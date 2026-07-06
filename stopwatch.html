@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stopwatch + Timer</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;user-select:none}
+.container{display:flex;flex-direction:column;align-items:center;gap:20px;padding:20px;width:100%;max-width:400px}
+.tabs{display:flex;gap:0;background:#12121a;border-radius:10px;overflow:hidden}
+.tab{background:transparent;border:none;color:#666;padding:8px 24px;cursor:pointer;font-size:13px;font-family:inherit;transition:all .15s}
+.tab.active{background:#00ff88;color:#0a0a0f;font-weight:600}
+.display{font-size:72px;font-weight:700;font-family:'Courier New',monospace;color:#00ff88;text-shadow:0 0 20px rgba(0,255,136,.3);font-variant-numeric:tabular-nums;letter-spacing:4px}
+.display.warning{color:#ffaa00;text-shadow:0 0 20px rgba(255,170,0,.3)}
+.display.danger{color:#ff3366;text-shadow:0 0 20px rgba(255,51,102,.3);animation:pulse .5s ease-in-out infinite alternate}
+.controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.btn{background:#12121a;border:1px solid #1a1a2e;color:#888;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:14px;transition:all .15s;font-family:inherit;min-width:70px}
+.btn:hover{background:#1a1a2e;color:#ccc}
+.btn.primary{background:#00ff88;color:#0a0a0f;border-color:#00ff88;font-weight:600}
+.btn.primary:hover{background:#00cc6a}
+.btn.danger{background:#ff336620;border-color:#ff336644;color:#ff3366}
+.btn.danger:hover{background:#ff336640}
+.laps{width:100%;max-height:150px;overflow-y:auto}
+.lap{display:flex;justify-content:space-between;padding:6px 12px;font-family:'Courier New',monospace;font-size:13px;border-bottom:1px solid #1a1a2e;color:#888}
+.lap:nth-child(odd){background:#0d0d14}
+.lap .time{color:#00ff88}
+.lap .diff{color:#ffaa00;font-size:11px}
+.lap .best{color:#3399ff}
+.timer-setup{display:flex;gap:8px;align-items:center;justify-content:center}
+.timer-input{background:#0d0d14;border:1px solid #1a1a2e;color:#ccc;padding:6px 10px;border-radius:6px;width:50px;text-align:center;font-family:'Courier New',monospace;font-size:14px;outline:none}
+.timer-input:focus{border-color:#00ff8844}
+.timer-label{font-size:12px;color:#444}
+@keyframes pulse{from{opacity:1}to{opacity:.5}}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="tabs">
+<button class="tab active" data-mode="stopwatch">Stopwatch</button>
+<button class="tab" data-mode="timer">Timer</button>
+</div>
+<div class="display" id="display">00:00.00</div>
+<div class="controls" id="controls"></div>
+<div id="timer-setup" style="display:none"></div>
+<div class="laps" id="laps"></div>
+</div>
+<script>
+let mode = 'stopwatch', running = false, startTime = 0, elapsed = 0, laps = [], timer = null;
+let timerDuration = 300, timerRemaining = 300, timerPaused = false;
+const display = document.getElementById('display'), lapsEl = document.getElementById('laps'), controlsEl = document.getElementById('controls'), timerSetup = document.getElementById('timer-setup');
+
+function fmt(ms) { const m = Math.floor(ms / 60000); const s = Math.floor((ms % 60000) / 1000); const c = Math.floor((ms % 1000) / 10); return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0') + '.' + String(c).padStart(2,'0'); }
+
+function beep(freq = 880, dur = 0.2) { try { const ctx = new AudioContext(); const o = ctx.createOscillator(); const g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value = freq; o.type = 'square'; g.gain.value = 0.2; o.start(); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur); o.stop(ctx.currentTime + dur); } catch(e){} }
+
+function updateDisplay() {
+if (mode === 'stopwatch') {
+const now = running ? Date.now() - startTime + elapsed : elapsed;
+display.textContent = fmt(now);
+display.className = 'display';
+} else {
+display.textContent = fmt(timerRemaining * 1000);
+if (timerRemaining <= 10) display.className = 'display danger';
+else if (timerRemaining <= 30) display.className = 'display warning';
+else display.className = 'display';
+}
+}
+
+function renderControls() {
+if (mode === 'stopwatch') {
+controlsEl.innerHTML = `
+<button class="btn primary" id="btn-main">${running ? 'Stop' : 'Start'}</button>
+<button class="btn" id="btn-lap" ${!running ? 'disabled' : ''}>Lap</button>
+<button class="btn danger" id="btn-reset">Reset</button>
+`;
+document.getElementById('btn-main').addEventListener('click', () => { if (running) stopSW(); else startSW(); });
+document.getElementById('btn-lap').addEventListener('click', lapSW);
+document.getElementById('btn-reset').addEventListener('click', resetSW);
+} else {
+controlsEl.innerHTML = `
+<button class="btn primary" id="btn-main">${timerRunning() ? 'Pause' : timerRemaining <= 0 ? 'Reset' : 'Start'}</button>
+<button class="btn danger" id="btn-reset">Reset</button>
+`;
+document.getElementById('btn-main').addEventListener('click', () => {
+if (timerRemaining <= 0) { resetTimer(); return; }
+if (timerRunning()) pauseTimer(); else startTimer();
+});
+document.getElementById('btn-reset').addEventListener('click', resetTimer);
+}
+}
+
+function startSW() { running = true; startTime = Date.now(); timer = setInterval(updateDisplay, 20); renderControls(); }
+function stopSW() { running = false; elapsed += Date.now() - startTime; clearInterval(timer); renderControls(); }
+function resetSW() { running = false; clearInterval(timer); elapsed = 0; laps = []; updateDisplay(); renderLaps(); renderControls(); }
+function lapSW() {
+if (!running) return;
+const now = Date.now() - startTime + elapsed;
+const prev = laps.length > 0 ? laps[laps.length - 1].total : 0;
+laps.push({ num: laps.length + 1, total: now, diff: now - prev });
+renderLaps();
+beep(660, 0.1);
+}
+function renderLaps() {
+if (mode !== 'stopwatch') { lapsEl.innerHTML = ''; return; }
+if (laps.length === 0) { lapsEl.innerHTML = ''; return; }
+const best = Math.min(...laps.map(l => l.diff));
+lapsEl.innerHTML = laps.slice().reverse().map(l => {
+const bc = l.diff === best ? ' best' : '';
+return `<div class="lap"><span>#${l.num}</span><span class="time">${fmt(l.total)}</span><span class="diff${bc}">+${fmt(l.diff)}</span></div>`;
+}).join('');
+}
+
+function timerRunning() { return timer !== null && !timerPaused; }
+function startTimer() {
+if (timerRemaining <= 0) return;
+timerPaused = false;
+timer = setInterval(() => {
+timerRemaining--;
+updateDisplay();
+if (timerRemaining <= 0) { clearInterval(timer); timer = null; beep(440, 0.5); setTimeout(() => beep(880, 0.3), 300); renderControls(); }
+}, 1000);
+renderControls();
+}
+function pauseTimer() { clearInterval(timer); timer = null; timerPaused = true; renderControls(); }
+function resetTimer() { clearInterval(timer); timer = null; timerPaused = false; timerRemaining = timerDuration; updateDisplay(); renderControls(); }
+
+function renderTimerSetup() {
+timerSetup.innerHTML = `
+<span class="timer-label">MM</span>
+<input class="timer-input" id="in-mm" value="${Math.floor(timerDuration / 60)}" maxlength="2">
+<span class="timer-label">SS</span>
+<input class="timer-input" id="in-ss" value="${String(timerDuration % 60).padStart(2,'0')}" maxlength="2">
+<button class="btn" id="btn-set">Set</button>
+`;
+document.getElementById('btn-set').addEventListener('click', () => {
+const mm = parseInt(document.getElementById('in-mm').value) || 0;
+const ss = parseInt(document.getElementById('in-ss').value) || 0;
+timerDuration = mm * 60 + ss;
+timerRemaining = timerDuration;
+updateDisplay();
+});
+}
+
+function switchMode(m) {
+mode = m; running = false; clearInterval(timer); timer = null; timerPaused = false;
+elapsed = 0; laps = []; timerRemaining = timerDuration;
+updateDisplay(); renderLaps(); renderControls();
+timerSetup.style.display = mode === 'timer' ? 'flex' : 'none';
+if (mode === 'timer') renderTimerSetup();
+document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.mode === m));
+}
+
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => switchMode(t.dataset.mode)));
+window.addEventListener('keydown', e => {
+if (mode === 'stopwatch') {
+if (e.code === 'Space') { e.preventDefault(); if (running) stopSW(); else startSW(); }
+if (e.code === 'KeyL' && running) lapSW();
+if (e.code === 'KeyR') resetSW();
+}
+});
+
+window.addEventListener('load', () => {
+renderControls();
+renderTimerSetup();
+updateDisplay();
+});
+</script>
+</body>
+</html>
