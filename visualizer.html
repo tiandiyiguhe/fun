@@ -1,0 +1,1725 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pulsefield Audio Visualizer</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #050711;
+      --panel: rgba(10, 14, 28, 0.72);
+      --panel-strong: rgba(12, 18, 34, 0.9);
+      --line: rgba(177, 216, 255, 0.18);
+      --line-strong: rgba(111, 255, 233, 0.52);
+      --text: #eef7ff;
+      --text-soft: #b8c7d9;
+      --muted: #72849c;
+      --accent-a: #6fffe9;
+      --accent-b: #b56bff;
+      --accent-c: #ff4fd8;
+      --danger: #ff5d7a;
+      --ok: #8dff9d;
+      --shadow: 0 28px 80px rgba(0, 0, 0, 0.46);
+      --radius: 8px;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    [data-theme="ember"] {
+      --bg: #080509;
+      --line-strong: rgba(255, 122, 61, 0.58);
+      --accent-a: #ff7a3d;
+      --accent-b: #ffd166;
+      --accent-c: #ff3b6b;
+      --ok: #ffe083;
+    }
+
+    [data-theme="volt"] {
+      --bg: #030806;
+      --line-strong: rgba(204, 255, 0, 0.6);
+      --accent-a: #ccff00;
+      --accent-b: #00e5ff;
+      --accent-c: #ffffff;
+      --ok: #a8ff3e;
+    }
+
+    [data-theme="sakura"] {
+      --bg: #090611;
+      --line-strong: rgba(255, 94, 168, 0.58);
+      --accent-a: #ff5ea8;
+      --accent-b: #ffccf2;
+      --accent-c: #7ee8fa;
+      --ok: #b6ffe2;
+    }
+
+    [data-theme="glacier"] {
+      --bg: #040912;
+      --line-strong: rgba(110, 231, 255, 0.58);
+      --accent-a: #6ee7ff;
+      --accent-b: #72ffa8;
+      --accent-c: #9da5ff;
+      --ok: #b7ffcf;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+    }
+
+    body {
+      background:
+        radial-gradient(circle at 18% 16%, color-mix(in srgb, var(--accent-b) 18%, transparent), transparent 28%),
+        radial-gradient(circle at 84% 22%, color-mix(in srgb, var(--accent-a) 15%, transparent), transparent 30%),
+        radial-gradient(circle at 54% 88%, color-mix(in srgb, var(--accent-c) 13%, transparent), transparent 32%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 46%),
+        var(--bg);
+      transition: background 240ms ease;
+    }
+
+    body::before {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      content: "";
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: radial-gradient(circle at center, black 0%, rgba(0, 0, 0, 0.7) 46%, transparent 82%);
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+    }
+
+    .app {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      isolation: isolate;
+    }
+
+    #visualizer {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      background: transparent;
+    }
+
+    .vignette {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at center, transparent 0 42%, rgba(0, 0, 0, 0.22) 76%, rgba(0, 0, 0, 0.58) 100%),
+        linear-gradient(180deg, rgba(0, 0, 0, 0.22), transparent 26%, rgba(0, 0, 0, 0.32));
+    }
+
+    .hud,
+    .top-actions,
+    .control-tray {
+      position: fixed;
+      z-index: 4;
+    }
+
+    .hud {
+      top: 18px;
+      left: 18px;
+      display: grid;
+      gap: 8px;
+      max-width: min(390px, calc(100vw - 36px));
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.01)),
+        var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(22px) saturate(1.35);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      position: relative;
+      width: 42px;
+      height: 42px;
+      flex: 0 0 auto;
+      border: 1px solid color-mix(in srgb, var(--accent-a) 62%, white 8%);
+      border-radius: var(--radius);
+      background:
+        radial-gradient(circle at 36% 30%, rgba(255, 255, 255, 0.32), transparent 26%),
+        linear-gradient(135deg, color-mix(in srgb, var(--accent-a) 34%, transparent), color-mix(in srgb, var(--accent-c) 18%, transparent));
+      box-shadow:
+        0 0 26px color-mix(in srgb, var(--accent-a) 28%, transparent),
+        inset 0 0 18px rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+    }
+
+    .brand-mark::before,
+    .brand-mark::after {
+      position: absolute;
+      content: "";
+      left: 8px;
+      right: 8px;
+      border-radius: 999px;
+      background: var(--text);
+      box-shadow: 0 0 12px var(--accent-a);
+    }
+
+    .brand-mark::before {
+      top: 13px;
+      height: 3px;
+      transform: rotate(-22deg);
+    }
+
+    .brand-mark::after {
+      bottom: 13px;
+      height: 3px;
+      transform: rotate(22deg);
+    }
+
+    .brand-copy {
+      min-width: 0;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1rem, 2vw, 1.35rem);
+      line-height: 1.08;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .status-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      margin-top: 3px;
+      color: var(--text-soft);
+      font-size: 0.82rem;
+      line-height: 1.3;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--muted);
+      box-shadow: 0 0 0 transparent;
+    }
+
+    .status-dot.live {
+      background: var(--ok);
+      box-shadow: 0 0 18px var(--ok);
+    }
+
+    #statusText {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .meter {
+      display: grid;
+      grid-template-columns: 48px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .meter-track {
+      position: relative;
+      height: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .meter-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent-a), var(--accent-b), var(--accent-c));
+      box-shadow: 0 0 22px color-mix(in srgb, var(--accent-a) 34%, transparent);
+      transition: width 70ms linear;
+    }
+
+    .top-actions {
+      top: 18px;
+      right: 18px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .icon-button,
+    .mode-button,
+    .swatch,
+    .file-zone,
+    .range-wrap {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.012)),
+        var(--panel-strong);
+      color: var(--text-soft);
+      box-shadow: 0 18px 52px rgba(0, 0, 0, 0.24);
+      backdrop-filter: blur(20px) saturate(1.3);
+    }
+
+    .icon-button {
+      display: grid;
+      width: 44px;
+      height: 44px;
+      place-items: center;
+      cursor: pointer;
+      transition: transform 160ms ease, color 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+    }
+
+    .icon-button svg {
+      width: 21px;
+      height: 21px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .icon-button:hover,
+    .icon-button:focus-visible,
+    .icon-button.active,
+    .mode-button:hover,
+    .mode-button:focus-visible,
+    .mode-button.active,
+    .swatch:hover,
+    .swatch:focus-visible,
+    .swatch.active,
+    .file-zone:hover,
+    .file-zone:focus-visible {
+      border-color: var(--line-strong);
+      color: var(--text);
+      outline: none;
+      transform: translateY(-1px);
+      box-shadow:
+        0 0 0 3px color-mix(in srgb, var(--accent-a) 10%, transparent),
+        0 20px 52px rgba(0, 0, 0, 0.32),
+        0 0 26px color-mix(in srgb, var(--accent-a) 18%, transparent);
+    }
+
+    .icon-button:active,
+    .mode-button:active,
+    .swatch:active,
+    .file-zone:active {
+      transform: translateY(0);
+    }
+
+    .control-tray {
+      left: 18px;
+      right: 18px;
+      bottom: 18px;
+      display: grid;
+      grid-template-columns: minmax(176px, 1.05fr) minmax(260px, 1.35fr) minmax(220px, 0.9fr) minmax(182px, 0.75fr);
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .file-zone {
+      position: relative;
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+      min-height: 62px;
+      padding: 10px 12px;
+      cursor: pointer;
+      text-align: left;
+      transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    }
+
+    .file-zone.dragging {
+      border-color: color-mix(in srgb, var(--accent-c) 80%, white 10%);
+      background:
+        linear-gradient(135deg, color-mix(in srgb, var(--accent-a) 18%, transparent), color-mix(in srgb, var(--accent-c) 12%, transparent)),
+        var(--panel-strong);
+      box-shadow:
+        0 0 0 3px color-mix(in srgb, var(--accent-c) 16%, transparent),
+        0 0 46px color-mix(in srgb, var(--accent-c) 24%, transparent);
+    }
+
+    .file-zone svg {
+      width: 28px;
+      height: 28px;
+      color: var(--accent-a);
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .zone-title,
+    .control-label {
+      margin: 0;
+      color: var(--text);
+      font-size: 0.82rem;
+      font-weight: 720;
+      letter-spacing: 0;
+    }
+
+    .zone-subtitle {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 0.72rem;
+      line-height: 1.25;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #fileInput {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .mode-group {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      min-height: 62px;
+      padding: 0;
+      border: 0;
+      margin: 0;
+    }
+
+    .mode-button {
+      display: grid;
+      place-items: center;
+      gap: 4px;
+      min-width: 0;
+      padding: 8px 6px;
+      cursor: pointer;
+      transition: transform 160ms ease, color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    }
+
+    .mode-button svg {
+      width: 21px;
+      height: 21px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .mode-button span {
+      width: 100%;
+      overflow: hidden;
+      color: inherit;
+      font-size: 0.68rem;
+      font-weight: 720;
+      line-height: 1;
+      text-align: center;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mode-button.active {
+      background:
+        radial-gradient(circle at top, color-mix(in srgb, var(--accent-a) 20%, transparent), transparent 62%),
+        linear-gradient(180deg, color-mix(in srgb, var(--accent-a) 10%, transparent), rgba(255, 255, 255, 0.018)),
+        var(--panel-strong);
+      color: var(--text);
+    }
+
+    .range-wrap {
+      display: grid;
+      gap: 9px;
+      min-height: 62px;
+      padding: 11px 12px 10px;
+    }
+
+    .range-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    #sensitivityValue {
+      color: var(--accent-a);
+      font-family: var(--mono);
+      font-size: 0.74rem;
+      font-weight: 760;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 16px;
+      appearance: none;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 6px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent-a), var(--accent-b), var(--accent-c));
+      box-shadow: 0 0 18px color-mix(in srgb, var(--accent-a) 22%, transparent);
+    }
+
+    input[type="range"]::-moz-range-track {
+      height: 6px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent-a), var(--accent-b), var(--accent-c));
+      box-shadow: 0 0 18px color-mix(in srgb, var(--accent-a) 22%, transparent);
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      width: 18px;
+      height: 18px;
+      margin-top: -6px;
+      appearance: none;
+      border: 2px solid var(--text);
+      border-radius: 50%;
+      background: var(--accent-a);
+      box-shadow: 0 0 22px var(--accent-a);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--text);
+      border-radius: 50%;
+      background: var(--accent-a);
+      box-shadow: 0 0 22px var(--accent-a);
+    }
+
+    .theme-group {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      min-height: 62px;
+    }
+
+    .swatch {
+      position: relative;
+      min-width: 0;
+      cursor: pointer;
+      transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    .swatch::before {
+      position: absolute;
+      inset: 9px;
+      border-radius: 999px;
+      content: "";
+      background: linear-gradient(135deg, var(--swatch-a), var(--swatch-b) 52%, var(--swatch-c));
+      box-shadow: 0 0 24px color-mix(in srgb, var(--swatch-a) 36%, transparent);
+    }
+
+    .swatch.active::after {
+      position: absolute;
+      inset: 5px;
+      border: 1px solid color-mix(in srgb, var(--text) 68%, transparent);
+      border-radius: calc(var(--radius) - 2px);
+      content: "";
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 94px;
+      z-index: 5;
+      max-width: min(340px, calc(100vw - 36px));
+      padding: 11px 13px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel-strong);
+      color: var(--text-soft);
+      font-size: 0.82rem;
+      line-height: 1.35;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+      transition: opacity 180ms ease, transform 180ms ease;
+      backdrop-filter: blur(18px);
+    }
+
+    .toast.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 980px) {
+      .control-tray {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      }
+    }
+
+    @media (max-width: 680px) {
+      .hud {
+        top: 12px;
+        left: 12px;
+        right: 72px;
+        padding: 12px;
+      }
+
+      .top-actions {
+        top: 12px;
+        right: 12px;
+        flex-direction: column;
+      }
+
+      .icon-button {
+        width: 42px;
+        height: 42px;
+      }
+
+      .control-tray {
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        grid-template-columns: 1fr;
+      }
+
+      .file-zone,
+      .range-wrap,
+      .mode-group,
+      .theme-group {
+        min-height: 54px;
+      }
+
+      .mode-button span {
+        font-size: 0.62rem;
+      }
+
+      .toast {
+        right: 12px;
+        bottom: 270px;
+      }
+    }
+
+    @media (max-width: 430px) {
+      .hud {
+        right: 64px;
+      }
+
+      .brand-mark {
+        width: 36px;
+        height: 36px;
+      }
+
+      .meter {
+        grid-template-columns: 42px minmax(0, 1fr);
+      }
+
+      .mode-group {
+        gap: 6px;
+      }
+
+      .mode-button {
+        padding-inline: 3px;
+      }
+    }
+  </style>
+</head>
+<body data-theme="aurora">
+  <main class="app" aria-label="Pulsefield audio visualizer">
+    <canvas id="visualizer"></canvas>
+    <div class="vignette" aria-hidden="true"></div>
+
+    <section class="hud" aria-live="polite">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"></div>
+        <div class="brand-copy">
+          <h1>Pulsefield</h1>
+          <div class="status-line">
+            <span id="statusDot" class="status-dot" aria-hidden="true"></span>
+            <span id="statusText">Ready for audio</span>
+          </div>
+        </div>
+      </div>
+      <div class="meter" aria-hidden="true">
+        <span>Level</span>
+        <div class="meter-track"><div id="levelMeter" class="meter-fill"></div></div>
+      </div>
+    </section>
+
+    <div class="top-actions">
+      <button id="micButton" class="icon-button" type="button" title="Microphone" aria-label="Microphone">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"></path>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+          <path d="M12 19v3"></path>
+          <path d="M8 22h8"></path>
+        </svg>
+      </button>
+      <button id="playButton" class="icon-button" type="button" title="Play or pause" aria-label="Play or pause">
+        <svg id="playIcon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M8 5v14l11-7Z"></path>
+        </svg>
+      </button>
+      <button id="fullscreenButton" class="icon-button" type="button" title="Fullscreen" aria-label="Fullscreen">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M8 3H3v5"></path>
+          <path d="M16 3h5v5"></path>
+          <path d="M21 16v5h-5"></path>
+          <path d="M3 16v5h5"></path>
+        </svg>
+      </button>
+    </div>
+
+    <section class="control-tray" aria-label="Visualizer controls">
+      <button id="dropzone" class="file-zone" type="button" title="Load audio file">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 3v12"></path>
+          <path d="m7 10 5 5 5-5"></path>
+          <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path>
+        </svg>
+        <span>
+          <span class="zone-title">Drop audio</span>
+          <span id="fileLabel" class="zone-subtitle">MP3, WAV, OGG</span>
+        </span>
+        <input id="fileInput" type="file" accept="audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/webm,.mp3,.wav,.ogg">
+      </button>
+
+      <fieldset class="mode-group" aria-label="Visualization mode">
+        <legend class="sr-only">Visualization mode</legend>
+        <button class="mode-button active" type="button" data-mode="bars" aria-pressed="true" title="Bars">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 20V9"></path><path d="M10 20V4"></path><path d="M15 20v-7"></path><path d="M20 20V6"></path>
+          </svg>
+          <span>Bars</span>
+        </button>
+        <button class="mode-button" type="button" data-mode="circular" aria-pressed="false" title="Circular">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"></circle><path d="M12 2v4"></path><path d="M12 18v4"></path><path d="M2 12h4"></path><path d="M18 12h4"></path><path d="m4.9 4.9 2.8 2.8"></path><path d="m16.3 16.3 2.8 2.8"></path><path d="m19.1 4.9-2.8 2.8"></path><path d="m7.7 16.3-2.8 2.8"></path>
+          </svg>
+          <span>Ring</span>
+        </button>
+        <button class="mode-button" type="button" data-mode="waveform" aria-pressed="false" title="Waveform">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 12h3l2-7 4 14 3-10 2 3h4"></path>
+          </svg>
+          <span>Wave</span>
+        </button>
+        <button class="mode-button" type="button" data-mode="particles" aria-pressed="false" title="Particles">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="6" cy="8" r="2"></circle><circle cx="16" cy="6" r="3"></circle><circle cx="18" cy="17" r="2"></circle><circle cx="8" cy="18" r="3"></circle><path d="m8 9 5 5"></path><path d="m15 8-5 8"></path>
+          </svg>
+          <span>Dust</span>
+        </button>
+        <button class="mode-button" type="button" data-mode="spectrum" aria-pressed="false" title="Spectrum">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 18c3-11 5 1 8-7 3-8 4 9 10-4"></path><path d="M3 21h18"></path>
+          </svg>
+          <span>Spec</span>
+        </button>
+      </fieldset>
+
+      <label class="range-wrap" for="sensitivity">
+        <span class="range-head">
+          <span class="control-label">Sensitivity</span>
+          <span id="sensitivityValue">1.15x</span>
+        </span>
+        <input id="sensitivity" type="range" min="0.45" max="2.4" value="1.15" step="0.05">
+      </label>
+
+      <div class="theme-group" role="radiogroup" aria-label="Color theme">
+        <button class="swatch active" type="button" data-theme-choice="aurora" style="--swatch-a:#6fffe9;--swatch-b:#b56bff;--swatch-c:#ff4fd8" role="radio" aria-checked="true" title="Aurora"></button>
+        <button class="swatch" type="button" data-theme-choice="ember" style="--swatch-a:#ff7a3d;--swatch-b:#ffd166;--swatch-c:#ff3b6b" role="radio" aria-checked="false" title="Ember"></button>
+        <button class="swatch" type="button" data-theme-choice="volt" style="--swatch-a:#ccff00;--swatch-b:#00e5ff;--swatch-c:#ffffff" role="radio" aria-checked="false" title="Volt"></button>
+        <button class="swatch" type="button" data-theme-choice="sakura" style="--swatch-a:#ff5ea8;--swatch-b:#ffccf2;--swatch-c:#7ee8fa" role="radio" aria-checked="false" title="Sakura"></button>
+        <button class="swatch" type="button" data-theme-choice="glacier" style="--swatch-a:#6ee7ff;--swatch-b:#72ffa8;--swatch-c:#9da5ff" role="radio" aria-checked="false" title="Glacier"></button>
+      </div>
+    </section>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </main>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const canvas = document.getElementById("visualizer");
+      const ctx = canvas.getContext("2d", { alpha: true });
+      const root = document.body;
+      const statusText = document.getElementById("statusText");
+      const statusDot = document.getElementById("statusDot");
+      const levelMeter = document.getElementById("levelMeter");
+      const fileInput = document.getElementById("fileInput");
+      const fileLabel = document.getElementById("fileLabel");
+      const dropzone = document.getElementById("dropzone");
+      const micButton = document.getElementById("micButton");
+      const playButton = document.getElementById("playButton");
+      const playIcon = document.getElementById("playIcon");
+      const fullscreenButton = document.getElementById("fullscreenButton");
+      const sensitivity = document.getElementById("sensitivity");
+      const sensitivityValue = document.getElementById("sensitivityValue");
+      const toast = document.getElementById("toast");
+      const modeButtons = [...document.querySelectorAll("[data-mode]")];
+      const themeButtons = [...document.querySelectorAll("[data-theme-choice]")];
+
+      const modes = ["bars", "circular", "waveform", "particles", "spectrum"];
+      const supportedFilePattern = /\.(mp3|wav|ogg)$/i;
+      const TAU = Math.PI * 2;
+
+      const state = {
+        width: 0,
+        height: 0,
+        dpr: 1,
+        frame: 0,
+        mode: "bars",
+        sensitivity: Number(sensitivity.value),
+        theme: "aurora",
+        isPlaying: false,
+        hasSource: false,
+        usingMic: false,
+        level: 0,
+        bass: 0,
+        mids: 0,
+        treble: 0,
+        colors: [],
+        lastToast: 0
+      };
+
+      let audioContext = null;
+      let analyser = null;
+      let outputGain = null;
+      let sourceNode = null;
+      let mediaStream = null;
+      let audioElement = null;
+      let fileUrl = null;
+      let frequencyData = new Uint8Array(1024);
+      let timeData = new Uint8Array(2048);
+
+      const backgroundParticles = [];
+      const orbitParticles = [];
+
+      // AnalyserNode-backed FFT pipeline. Kept explicit for smoke tests and maintainability.
+      function ensureAudio() {
+        if (!audioContext) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContextClass) {
+            throw new Error("Web Audio API is not available in this browser.");
+          }
+
+          audioContext = new AudioContextClass();
+          analyser = audioContext.createAnalyser();
+          analyser.fftSize = 2048;
+          analyser.smoothingTimeConstant = 0.82;
+          analyser.minDecibels = -92;
+          analyser.maxDecibels = -8;
+
+          outputGain = audioContext.createGain();
+          outputGain.gain.value = 1;
+          analyser.connect(outputGain);
+          outputGain.connect(audioContext.destination);
+
+          frequencyData = new Uint8Array(analyser.frequencyBinCount);
+          timeData = new Uint8Array(analyser.fftSize);
+        }
+
+        return audioContext;
+      }
+
+      async function resumeAudioContext() {
+        const context = ensureAudio();
+        if (context.state === "suspended") {
+          await context.resume();
+        }
+      }
+
+      function connectSource(node, audible) {
+        if (sourceNode) {
+          try {
+            sourceNode.disconnect();
+          } catch (error) {
+            // Already disconnected by the browser.
+          }
+        }
+
+        sourceNode = node;
+        sourceNode.connect(analyser);
+        outputGain.gain.setTargetAtTime(audible ? 1 : 0, audioContext.currentTime, 0.02);
+      }
+
+      function stopMicrophone() {
+        if (mediaStream) {
+          mediaStream.getTracks().forEach((track) => track.stop());
+          mediaStream = null;
+        }
+      }
+
+      function clearAudioElement() {
+        if (audioElement) {
+          audioElement.pause();
+          audioElement.removeAttribute("src");
+          audioElement.load();
+          audioElement = null;
+        }
+
+        if (fileUrl) {
+          URL.revokeObjectURL(fileUrl);
+          fileUrl = null;
+        }
+      }
+
+      function clearSource() {
+        if (sourceNode) {
+          try {
+            sourceNode.disconnect();
+          } catch (error) {
+            // Already disconnected by the browser.
+          }
+          sourceNode = null;
+        }
+
+        stopMicrophone();
+        clearAudioElement();
+        state.usingMic = false;
+        state.hasSource = false;
+        state.isPlaying = false;
+        updateTransport();
+      }
+
+      async function loadAudioFile(file) {
+        if (!file) {
+          return;
+        }
+
+        if (!file.type.startsWith("audio/") && !supportedFilePattern.test(file.name)) {
+          showToast("Use an MP3, WAV, or OGG file.");
+          return;
+        }
+
+        try {
+          await resumeAudioContext();
+          clearSource();
+
+          fileUrl = URL.createObjectURL(file);
+          audioElement = new Audio();
+          audioElement.preload = "auto";
+          audioElement.src = fileUrl;
+          audioElement.addEventListener("ended", () => {
+            state.isPlaying = false;
+            setStatus("Playback ended", false);
+            updateTransport();
+          });
+          audioElement.addEventListener("error", () => {
+            setStatus("Unable to decode this audio file", false);
+            showToast("The browser could not decode that audio file.");
+          });
+
+          const fileSource = audioContext.createMediaElementSource(audioElement);
+          connectSource(fileSource, true);
+
+          state.hasSource = true;
+          state.usingMic = false;
+          fileLabel.textContent = trimName(file.name);
+          setStatus(trimName(file.name), true);
+
+          await audioElement.play();
+          state.isPlaying = true;
+          updateTransport();
+        } catch (error) {
+          state.isPlaying = false;
+          updateTransport();
+          setStatus("Tap play after loading audio", false);
+          showToast(error && error.name === "NotAllowedError" ? "Playback needs a user gesture." : "Unable to start that audio file.");
+        }
+      }
+
+      async function toggleMicrophone() {
+        if (state.usingMic) {
+          clearSource();
+          fileLabel.textContent = "MP3, WAV, OGG";
+          setStatus("Microphone stopped", false);
+          return;
+        }
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          setStatus("Microphone not available", false);
+          showToast("This browser does not expose microphone capture here.");
+          return;
+        }
+
+        try {
+          await resumeAudioContext();
+          clearSource();
+
+          mediaStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: false,
+              noiseSuppression: false,
+              autoGainControl: false
+            },
+            video: false
+          });
+
+          const micSource = audioContext.createMediaStreamSource(mediaStream);
+          connectSource(micSource, false);
+
+          state.hasSource = true;
+          state.usingMic = true;
+          state.isPlaying = true;
+          fileLabel.textContent = "Microphone input";
+          setStatus("Microphone live", true);
+          updateTransport();
+        } catch (error) {
+          state.usingMic = false;
+          state.isPlaying = false;
+          stopMicrophone();
+          updateTransport();
+
+          if (error && error.name === "NotAllowedError") {
+            setStatus("Microphone permission denied", false);
+            showToast("Microphone permission was denied.");
+          } else if (error && error.name === "NotFoundError") {
+            setStatus("No microphone found", false);
+            showToast("No microphone input was found.");
+          } else {
+            setStatus("Microphone unavailable", false);
+            showToast("The microphone could not be started.");
+          }
+        }
+      }
+
+      async function togglePlayback() {
+        if (!state.hasSource) {
+          fileInput.click();
+          return;
+        }
+
+        try {
+          await resumeAudioContext();
+
+          if (state.usingMic) {
+            if (state.isPlaying) {
+              await audioContext.suspend();
+              state.isPlaying = false;
+              setStatus("Microphone paused", false);
+            } else {
+              await audioContext.resume();
+              state.isPlaying = true;
+              setStatus("Microphone live", true);
+            }
+          } else if (audioElement) {
+            if (audioElement.paused) {
+              await audioElement.play();
+              state.isPlaying = true;
+              setStatus(fileLabel.textContent || "Audio playing", true);
+            } else {
+              audioElement.pause();
+              state.isPlaying = false;
+              setStatus("Playback paused", false);
+            }
+          }
+
+          updateTransport();
+        } catch (error) {
+          showToast("Playback could not be toggled.");
+        }
+      }
+
+      function updateTransport() {
+        playButton.classList.toggle("active", state.isPlaying);
+        micButton.classList.toggle("active", state.usingMic && state.isPlaying);
+        playButton.setAttribute("aria-pressed", String(state.isPlaying));
+        micButton.setAttribute("aria-pressed", String(state.usingMic && state.isPlaying));
+
+        playIcon.innerHTML = state.isPlaying
+          ? "<path d=\"M8 5h3v14H8z\"></path><path d=\"M13 5h3v14h-3z\"></path>"
+          : "<path d=\"M8 5v14l11-7Z\"></path>";
+      }
+
+      function setStatus(message, live) {
+        statusText.textContent = message;
+        statusDot.classList.toggle("live", Boolean(live));
+      }
+
+      function showToast(message) {
+        state.lastToast += 1;
+        const toastId = state.lastToast;
+        toast.textContent = message;
+        toast.classList.add("visible");
+
+        window.setTimeout(() => {
+          if (toastId === state.lastToast) {
+            toast.classList.remove("visible");
+          }
+        }, 2900);
+      }
+
+      function trimName(name) {
+        if (name.length <= 34) {
+          return name;
+        }
+        const dot = name.lastIndexOf(".");
+        const extension = dot > -1 ? name.slice(dot) : "";
+        return `${name.slice(0, 26)}...${extension}`;
+      }
+
+      function setMode(mode) {
+        if (!modes.includes(mode)) {
+          return;
+        }
+
+        state.mode = mode;
+        modeButtons.forEach((button) => {
+          const active = button.dataset.mode === mode;
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-pressed", String(active));
+        });
+      }
+
+      function setTheme(theme) {
+        state.theme = theme;
+        root.dataset.theme = theme;
+        themeButtons.forEach((button) => {
+          const active = button.dataset.themeChoice === theme;
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-checked", String(active));
+        });
+        readThemeColors();
+      }
+
+      function readThemeColors() {
+        const style = getComputedStyle(root);
+        state.colors = [
+          style.getPropertyValue("--accent-a").trim(),
+          style.getPropertyValue("--accent-b").trim(),
+          style.getPropertyValue("--accent-c").trim()
+        ];
+      }
+
+      function resizeCanvas() {
+        state.dpr = Math.min(window.devicePixelRatio || 1, 2);
+        state.width = window.innerWidth;
+        state.height = window.innerHeight;
+        canvas.width = Math.floor(state.width * state.dpr);
+        canvas.height = Math.floor(state.height * state.dpr);
+        canvas.style.width = `${state.width}px`;
+        canvas.style.height = `${state.height}px`;
+        ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+        createBackgroundParticles();
+        createOrbitParticles();
+      }
+
+      function createBackgroundParticles() {
+        const count = Math.max(54, Math.floor((state.width * state.height) / 16500));
+        backgroundParticles.length = 0;
+
+        for (let i = 0; i < count; i += 1) {
+          backgroundParticles.push({
+            x: Math.random() * state.width,
+            y: Math.random() * state.height,
+            vx: (Math.random() - 0.5) * 0.16,
+            vy: (Math.random() - 0.5) * 0.16,
+            r: 0.7 + Math.random() * 2.2,
+            phase: Math.random() * TAU,
+            color: i % 3
+          });
+        }
+      }
+
+      function createOrbitParticles() {
+        const count = 240;
+        orbitParticles.length = 0;
+
+        for (let i = 0; i < count; i += 1) {
+          orbitParticles.push({
+            angle: Math.random() * TAU,
+            radius: 30 + Math.random() * Math.min(state.width, state.height) * 0.42,
+            speed: 0.001 + Math.random() * 0.006,
+            size: 0.7 + Math.random() * 2.8,
+            band: Math.floor(Math.random() * 92),
+            drift: Math.random() * TAU,
+            color: i % 3
+          });
+        }
+      }
+
+      function updateAudioData() {
+        if (analyser && state.hasSource) {
+          analyser.getByteFrequencyData(frequencyData);
+          analyser.getByteTimeDomainData(timeData);
+        } else {
+          synthesizeIdleData();
+        }
+
+        const sens = state.sensitivity;
+        state.bass = averageRange(2, 18) * sens;
+        state.mids = averageRange(20, 120) * sens;
+        state.treble = averageRange(130, 420) * sens;
+        const level = Math.min(1, (state.bass * 0.48) + (state.mids * 0.34) + (state.treble * 0.18));
+        state.level += (level - state.level) * 0.18;
+        levelMeter.style.width = `${Math.round(state.level * 100)}%`;
+      }
+
+      function synthesizeIdleData() {
+        const time = state.frame * 0.018;
+
+        for (let i = 0; i < frequencyData.length; i += 1) {
+          const x = i / frequencyData.length;
+          const wave = Math.sin(time * 1.6 + x * 22) * 0.5 + Math.sin(time * 0.7 + x * 61) * 0.5;
+          const falloff = Math.pow(1 - x, 1.7);
+          frequencyData[i] = Math.max(0, Math.min(255, 18 + wave * 20 + falloff * 48));
+        }
+
+        for (let i = 0; i < timeData.length; i += 1) {
+          const x = i / timeData.length;
+          const wave = Math.sin((x * TAU * 3) + time) * 10 + Math.sin((x * TAU * 9) - time * 0.7) * 4;
+          timeData[i] = Math.max(0, Math.min(255, 128 + wave));
+        }
+      }
+
+      function averageRange(start, end) {
+        const last = Math.min(frequencyData.length - 1, end);
+        let total = 0;
+        let count = 0;
+
+        for (let i = Math.max(0, start); i <= last; i += 1) {
+          total += frequencyData[i] / 255;
+          count += 1;
+        }
+
+        return count ? total / count : 0;
+      }
+
+      function sampleBand(index, total, power = 1.72) {
+        const startRatio = index / total;
+        const endRatio = (index + 1) / total;
+        const start = Math.floor(Math.pow(startRatio, power) * (frequencyData.length - 1));
+        const end = Math.max(start + 1, Math.floor(Math.pow(endRatio, power) * (frequencyData.length - 1)));
+        let sum = 0;
+        let count = 0;
+
+        for (let i = start; i < end; i += 1) {
+          sum += frequencyData[i] / 255;
+          count += 1;
+        }
+
+        return Math.min(1, (sum / Math.max(1, count)) * state.sensitivity);
+      }
+
+      function draw() {
+        state.frame += 1;
+        updateAudioData();
+        drawBackground();
+
+        if (state.mode === "bars") {
+          drawBars();
+        } else if (state.mode === "circular") {
+          drawCircular();
+        } else if (state.mode === "waveform") {
+          drawWaveform();
+        } else if (state.mode === "particles") {
+          drawParticles();
+        } else {
+          drawSpectrum();
+        }
+
+        requestAnimationFrame(draw);
+      }
+
+      function drawBackground() {
+        const w = state.width;
+        const h = state.height;
+        const pulse = state.level;
+        const grd = ctx.createRadialGradient(w * 0.5, h * 0.46, 0, w * 0.5, h * 0.5, Math.max(w, h) * 0.72);
+        grd.addColorStop(0, colorAlpha(state.colors[1], 0.08 + pulse * 0.08));
+        grd.addColorStop(0.32, colorAlpha(state.colors[0], 0.035 + pulse * 0.05));
+        grd.addColorStop(1, "rgba(0,0,0,0.72)");
+
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        backgroundParticles.forEach((particle) => {
+          particle.x += particle.vx * (1 + pulse * 3);
+          particle.y += particle.vy * (1 + pulse * 3);
+          particle.phase += 0.01 + pulse * 0.01;
+
+          if (particle.x < -20) particle.x = w + 20;
+          if (particle.x > w + 20) particle.x = -20;
+          if (particle.y < -20) particle.y = h + 20;
+          if (particle.y > h + 20) particle.y = -20;
+
+          const alpha = 0.12 + (Math.sin(particle.phase) + 1) * 0.08 + pulse * 0.16;
+          ctx.beginPath();
+          ctx.fillStyle = colorAlpha(state.colors[particle.color], alpha);
+          ctx.arc(particle.x, particle.y, particle.r + pulse * 1.2, 0, TAU);
+          ctx.fill();
+        });
+        ctx.restore();
+      }
+
+      function drawBars() {
+        const w = state.width;
+        const h = state.height;
+        const count = Math.min(112, Math.max(56, Math.floor(w / 13)));
+        const gap = Math.max(2, w / count * 0.28);
+        const barWidth = Math.max(3, (w - gap * (count - 1)) / count);
+        const floor = h - Math.max(96, h * 0.18);
+        const maxHeight = h * 0.68;
+        const gradient = ctx.createLinearGradient(0, floor - maxHeight, 0, floor);
+        gradient.addColorStop(0, state.colors[2]);
+        gradient.addColorStop(0.46, state.colors[1]);
+        gradient.addColorStop(1, state.colors[0]);
+
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        ctx.shadowColor = colorAlpha(state.colors[0], 0.72);
+        ctx.shadowBlur = 18 + state.level * 30;
+
+        for (let i = 0; i < count; i += 1) {
+          const value = Math.pow(sampleBand(i, count), 1.34);
+          const height = Math.max(5, value * maxHeight);
+          const x = i * (barWidth + gap);
+          const y = floor - height;
+          ctx.fillStyle = gradient;
+          roundRect(ctx, x, y, barWidth, height, Math.min(8, barWidth * 0.5));
+          ctx.fill();
+
+          ctx.fillStyle = colorAlpha(state.colors[2], 0.16 + value * 0.16);
+          roundRect(ctx, x, floor + 10, barWidth, height * 0.18, Math.min(8, barWidth * 0.5));
+          ctx.fill();
+        }
+
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 0.34;
+        ctx.strokeStyle = colorAlpha(state.colors[0], 0.8);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, floor + 1);
+        ctx.lineTo(w, floor + 1);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawCircular() {
+        const w = state.width;
+        const h = state.height;
+        const cx = w / 2;
+        const cy = h / 2;
+        const baseRadius = Math.min(w, h) * (0.14 + state.level * 0.025);
+        const count = 180;
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.globalCompositeOperation = "lighter";
+
+        const ringGradient = ctx.createRadialGradient(0, 0, baseRadius * 0.2, 0, 0, baseRadius * 2.6);
+        ringGradient.addColorStop(0, colorAlpha(state.colors[0], 0.05));
+        ringGradient.addColorStop(0.45, colorAlpha(state.colors[1], 0.22));
+        ringGradient.addColorStop(1, colorAlpha(state.colors[2], 0));
+        ctx.fillStyle = ringGradient;
+        ctx.beginPath();
+        ctx.arc(0, 0, baseRadius * (2.1 + state.level * 0.7), 0, TAU);
+        ctx.fill();
+
+        ctx.lineCap = "round";
+        for (let i = 0; i < count; i += 1) {
+          const angle = (i / count) * TAU - Math.PI / 2;
+          const value = Math.pow(sampleBand(i, count, 1.45), 1.16);
+          const inner = baseRadius + Math.sin(state.frame * 0.018 + i * 0.18) * 3;
+          const outer = inner + 18 + value * Math.min(w, h) * 0.24;
+          const color = state.colors[i % 3];
+
+          ctx.strokeStyle = colorAlpha(color, 0.22 + value * 0.78);
+          ctx.lineWidth = 1.2 + value * 3.2;
+          ctx.shadowColor = colorAlpha(color, 0.7);
+          ctx.shadowBlur = 14 + value * 22;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner);
+          ctx.lineTo(Math.cos(angle) * outer, Math.sin(angle) * outer);
+          ctx.stroke();
+        }
+
+        ctx.shadowBlur = 24 + state.level * 42;
+        ctx.shadowColor = colorAlpha(state.colors[0], 0.9);
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = colorAlpha(state.colors[0], 0.9);
+        ctx.beginPath();
+        ctx.arc(0, 0, baseRadius, 0, TAU);
+        ctx.stroke();
+
+        ctx.shadowBlur = 38;
+        ctx.fillStyle = colorAlpha(state.colors[1], 0.11 + state.level * 0.16);
+        ctx.beginPath();
+        ctx.arc(0, 0, baseRadius * (0.62 + state.level * 0.3), 0, TAU);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawWaveform() {
+        const w = state.width;
+        const h = state.height;
+        const center = h * 0.52;
+        const amplitude = h * (0.18 + state.level * 0.2);
+
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+
+        for (let echo = 3; echo >= 0; echo -= 1) {
+          const alpha = 0.12 + (3 - echo) * 0.17;
+          const offset = (echo - 1.5) * (16 + state.level * 18);
+          ctx.beginPath();
+
+          for (let i = 0; i < timeData.length; i += 4) {
+            const x = (i / (timeData.length - 1)) * w;
+            const normalized = (timeData[i] - 128) / 128;
+            const y = center + offset + normalized * amplitude;
+
+            if (i === 0) {
+              ctx.moveTo(x, y);
+            } else {
+              ctx.lineTo(x, y);
+            }
+          }
+
+          const gradient = ctx.createLinearGradient(0, 0, w, 0);
+          gradient.addColorStop(0, colorAlpha(state.colors[0], alpha));
+          gradient.addColorStop(0.5, colorAlpha(state.colors[1], alpha + 0.16));
+          gradient.addColorStop(1, colorAlpha(state.colors[2], alpha));
+          ctx.strokeStyle = gradient;
+          ctx.lineWidth = echo === 0 ? 4 : 2;
+          ctx.shadowColor = colorAlpha(state.colors[1], 0.62);
+          ctx.shadowBlur = echo === 0 ? 24 : 10;
+          ctx.stroke();
+        }
+
+        ctx.globalAlpha = 0.22;
+        ctx.fillStyle = colorAlpha(state.colors[0], 0.26);
+        for (let i = 0; i < 14; i += 1) {
+          const y = center + (i - 7) * 20;
+          ctx.fillRect(0, y, w, 1);
+        }
+        ctx.restore();
+      }
+
+      function drawParticles() {
+        const w = state.width;
+        const h = state.height;
+        const cx = w / 2;
+        const cy = h / 2;
+        const maxRadius = Math.min(w, h) * 0.48;
+
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+
+        orbitParticles.forEach((particle, index) => {
+          const band = sampleBand(particle.band, 120, 1.35);
+          const pull = 1 + band * 0.95 + state.level * 0.35;
+          particle.angle += particle.speed * (1 + state.treble * 8);
+          particle.drift += 0.01 + band * 0.018;
+
+          const radius = (particle.radius * pull + Math.sin(particle.drift) * 18) % maxRadius;
+          const wobble = Math.sin(state.frame * 0.011 + index) * (10 + state.mids * 34);
+          const x = cx + Math.cos(particle.angle) * (radius + wobble);
+          const y = cy + Math.sin(particle.angle) * (radius - wobble * 0.45);
+          const size = particle.size + band * 6 + state.bass * 2;
+          const color = state.colors[particle.color];
+
+          ctx.fillStyle = colorAlpha(color, 0.2 + band * 0.68);
+          ctx.shadowColor = colorAlpha(color, 0.86);
+          ctx.shadowBlur = 16 + band * 32;
+          ctx.beginPath();
+          ctx.arc(x, y, size, 0, TAU);
+          ctx.fill();
+
+          if (band > 0.55 && index % 3 === 0) {
+            ctx.strokeStyle = colorAlpha(color, 0.08 + band * 0.16);
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(x, y);
+            ctx.stroke();
+          }
+        });
+
+        ctx.shadowBlur = 42 + state.level * 30;
+        ctx.shadowColor = colorAlpha(state.colors[0], 0.82);
+        ctx.strokeStyle = colorAlpha(state.colors[0], 0.24);
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(cx, cy, Math.min(w, h) * (0.08 + state.bass * 0.04), 0, TAU);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawSpectrum() {
+        const w = state.width;
+        const h = state.height;
+        const count = Math.max(120, Math.floor(w / 4));
+        const base = h * 0.72;
+        const topLimit = h * 0.18;
+        const points = [];
+
+        for (let i = 0; i <= count; i += 1) {
+          const value = Math.pow(sampleBand(i, count, 1.58), 1.08);
+          const x = (i / count) * w;
+          const y = base - value * (base - topLimit);
+          points.push({ x, y, value });
+        }
+
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+
+        const fillGradient = ctx.createLinearGradient(0, topLimit, 0, base);
+        fillGradient.addColorStop(0, colorAlpha(state.colors[2], 0.34));
+        fillGradient.addColorStop(0.45, colorAlpha(state.colors[1], 0.2));
+        fillGradient.addColorStop(1, colorAlpha(state.colors[0], 0.03));
+
+        ctx.beginPath();
+        ctx.moveTo(0, base);
+        drawSmoothPath(points, true);
+        ctx.lineTo(w, base);
+        ctx.closePath();
+        ctx.fillStyle = fillGradient;
+        ctx.fill();
+
+        const lineGradient = ctx.createLinearGradient(0, 0, w, 0);
+        lineGradient.addColorStop(0, state.colors[0]);
+        lineGradient.addColorStop(0.5, state.colors[1]);
+        lineGradient.addColorStop(1, state.colors[2]);
+        ctx.strokeStyle = lineGradient;
+        ctx.lineWidth = 3;
+        ctx.shadowColor = colorAlpha(state.colors[1], 0.74);
+        ctx.shadowBlur = 22 + state.level * 34;
+        ctx.beginPath();
+        drawSmoothPath(points);
+        ctx.stroke();
+
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 0.22;
+        ctx.strokeStyle = colorAlpha(state.colors[0], 0.45);
+        for (let i = 1; i < 7; i += 1) {
+          const y = base - (i / 7) * (base - topLimit);
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(w, y);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawSmoothPath(points, connectFromCurrent = false) {
+        if (!points.length) {
+          return;
+        }
+
+        if (connectFromCurrent) {
+          ctx.lineTo(points[0].x, points[0].y);
+        } else {
+          ctx.moveTo(points[0].x, points[0].y);
+        }
+        for (let i = 1; i < points.length - 2; i += 1) {
+          const xc = (points[i].x + points[i + 1].x) / 2;
+          const yc = (points[i].y + points[i + 1].y) / 2;
+          ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+        }
+
+        const last = points[points.length - 1];
+        const prev = points[points.length - 2];
+        ctx.quadraticCurveTo(prev.x, prev.y, last.x, last.y);
+      }
+
+      function roundRect(context, x, y, width, height, radius) {
+        const r = Math.min(radius, width / 2, height / 2);
+        context.beginPath();
+        context.moveTo(x + r, y);
+        context.lineTo(x + width - r, y);
+        context.quadraticCurveTo(x + width, y, x + width, y + r);
+        context.lineTo(x + width, y + height - r);
+        context.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+        context.lineTo(x + r, y + height);
+        context.quadraticCurveTo(x, y + height, x, y + height - r);
+        context.lineTo(x, y + r);
+        context.quadraticCurveTo(x, y, x + r, y);
+        context.closePath();
+      }
+
+      function colorAlpha(color, alpha) {
+        if (!color) {
+          return `rgba(255,255,255,${alpha})`;
+        }
+
+        if (color.startsWith("#")) {
+          const hex = color.slice(1);
+          const full = hex.length === 3
+            ? hex.split("").map((char) => char + char).join("")
+            : hex;
+          const int = Number.parseInt(full, 16);
+          const r = (int >> 16) & 255;
+          const g = (int >> 8) & 255;
+          const b = int & 255;
+          return `rgba(${r},${g},${b},${alpha})`;
+        }
+
+        return color;
+      }
+
+      function onDrag(event) {
+        event.preventDefault();
+        dropzone.classList.add("dragging");
+      }
+
+      function onDragLeave(event) {
+        event.preventDefault();
+        if (!dropzone.contains(event.relatedTarget)) {
+          dropzone.classList.remove("dragging");
+        }
+      }
+
+      function onDrop(event) {
+        event.preventDefault();
+        dropzone.classList.remove("dragging");
+        const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
+        loadAudioFile(file);
+      }
+
+      function onKeydown(event) {
+        const target = event.target;
+        const editing = target && (target.tagName === "INPUT" || target.tagName === "SELECT" || target.tagName === "TEXTAREA");
+
+        if (!editing && event.code === "Space") {
+          event.preventDefault();
+          togglePlayback();
+          return;
+        }
+
+        if (!editing && /^[1-5]$/.test(event.key)) {
+          setMode(modes[Number(event.key) - 1]);
+          return;
+        }
+
+        if (!editing && event.key.toLowerCase() === "f") {
+          toggleFullscreen();
+        }
+      }
+
+      async function toggleFullscreen() {
+        try {
+          if (!document.fullscreenElement) {
+            await document.documentElement.requestFullscreen();
+            fullscreenButton.classList.add("active");
+          } else {
+            await document.exitFullscreen();
+            fullscreenButton.classList.remove("active");
+          }
+        } catch (error) {
+          showToast("Fullscreen is blocked in this context.");
+        }
+      }
+
+      function bindEvents() {
+        window.addEventListener("resize", resizeCanvas);
+        document.addEventListener("keydown", onKeydown);
+        document.addEventListener("fullscreenchange", () => {
+          fullscreenButton.classList.toggle("active", Boolean(document.fullscreenElement));
+        });
+
+        micButton.addEventListener("click", toggleMicrophone);
+        playButton.addEventListener("click", togglePlayback);
+        fullscreenButton.addEventListener("click", toggleFullscreen);
+
+        dropzone.addEventListener("click", () => fileInput.click());
+        dropzone.addEventListener("dragenter", onDrag);
+        dropzone.addEventListener("dragover", onDrag);
+        dropzone.addEventListener("dragleave", onDragLeave);
+        dropzone.addEventListener("drop", onDrop);
+        document.addEventListener("dragover", (event) => event.preventDefault());
+        document.addEventListener("drop", (event) => {
+          if (!dropzone.contains(event.target)) {
+            event.preventDefault();
+            const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
+            loadAudioFile(file);
+          }
+        });
+
+        fileInput.addEventListener("change", () => {
+          loadAudioFile(fileInput.files[0]);
+          fileInput.value = "";
+        });
+
+        sensitivity.addEventListener("input", () => {
+          state.sensitivity = Number(sensitivity.value);
+          sensitivityValue.textContent = `${state.sensitivity.toFixed(2)}x`;
+        });
+
+        modeButtons.forEach((button) => {
+          button.addEventListener("click", () => setMode(button.dataset.mode));
+        });
+
+        themeButtons.forEach((button) => {
+          button.addEventListener("click", () => setTheme(button.dataset.themeChoice));
+        });
+      }
+
+      function init() {
+        readThemeColors();
+        resizeCanvas();
+        bindEvents();
+        updateTransport();
+        requestAnimationFrame(draw);
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
