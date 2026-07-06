@@ -1,0 +1,1371 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pixel Deck</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #080a0f;
+      --bg-soft: #0d1118;
+      --panel: #111722;
+      --panel-2: #151d2a;
+      --screen: #0b1018;
+      --line: rgba(176, 196, 222, 0.17);
+      --line-strong: rgba(112, 220, 211, 0.48);
+      --text: #eef4f8;
+      --text-soft: #c4d1dc;
+      --muted: #7f8d9b;
+      --cyan: #4fd1c5;
+      --amber: #f6c768;
+      --coral: #ff6b6b;
+      --green: #8ee36f;
+      --blue: #6fb6ff;
+      --purple: #b497ff;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+      --radius: 8px;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-height: 100%;
+      background: var(--bg);
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: hidden;
+      background:
+        linear-gradient(180deg, rgba(79, 209, 197, 0.08), transparent 34%),
+        repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.018) 0, rgba(255, 255, 255, 0.018) 1px, transparent 1px, transparent 4px),
+        var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 92px minmax(0, 1fr) 320px;
+      min-height: 100vh;
+      animation: enter 420ms ease both;
+    }
+
+    .rail,
+    .side {
+      border-color: var(--line);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent),
+        var(--panel);
+    }
+
+    .rail {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 12px;
+      border-right: 1px solid var(--line);
+    }
+
+    .brand {
+      display: grid;
+      width: 54px;
+      height: 54px;
+      place-items: center;
+      border: 1px solid rgba(79, 209, 197, 0.58);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(135deg, rgba(79, 209, 197, 0.18), rgba(246, 199, 104, 0.08)),
+        #0c141d;
+      box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.025), 0 16px 34px rgba(0, 0, 0, 0.28);
+      color: var(--cyan);
+      font-family: var(--mono);
+      font-size: 1.24rem;
+      font-weight: 850;
+      line-height: 1;
+    }
+
+    .tool-stack,
+    .history-stack {
+      display: grid;
+      gap: 8px;
+    }
+
+    .history-stack {
+      margin-top: auto;
+    }
+
+    .icon-button {
+      display: grid;
+      width: 48px;
+      height: 48px;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(12, 18, 27, 0.82);
+      color: var(--text-soft);
+      cursor: pointer;
+      transition: transform 150ms ease, border-color 150ms ease, color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+      user-select: none;
+    }
+
+    .icon-button svg {
+      width: 23px;
+      height: 23px;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
+
+    .icon-button:hover,
+    .icon-button:focus-visible,
+    .icon-button.active {
+      border-color: var(--line-strong);
+      background: rgba(79, 209, 197, 0.12);
+      color: var(--text);
+      box-shadow: 0 0 0 3px rgba(79, 209, 197, 0.08), 0 12px 30px rgba(0, 0, 0, 0.25);
+      outline: none;
+      transform: translateY(-1px);
+    }
+
+    .icon-button.active {
+      color: var(--cyan);
+    }
+
+    .icon-button:active {
+      transform: translateY(0);
+    }
+
+    .icon-button:disabled {
+      cursor: not-allowed;
+      opacity: 0.4;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .main {
+      display: grid;
+      min-width: 0;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      background:
+        linear-gradient(90deg, rgba(246, 199, 104, 0.035), transparent 26%, rgba(111, 182, 255, 0.035)),
+        var(--bg-soft);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      min-width: 0;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .title {
+      min-width: 0;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.28rem;
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+    }
+
+    .quick-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .button,
+    .select,
+    .number-input,
+    .color-input {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(12, 18, 27, 0.86);
+      color: var(--text);
+      transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 13px;
+      cursor: pointer;
+      font-weight: 750;
+    }
+
+    .button svg {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
+
+    .button.primary {
+      border-color: rgba(246, 199, 104, 0.52);
+      background: linear-gradient(135deg, rgba(246, 199, 104, 0.96), rgba(255, 107, 107, 0.9));
+      color: #120d08;
+      box-shadow: 0 16px 34px rgba(255, 107, 107, 0.15);
+    }
+
+    .button:hover,
+    .button:focus-visible,
+    .select:hover,
+    .select:focus-visible,
+    .number-input:hover,
+    .number-input:focus-visible,
+    .color-input:hover,
+    .color-input:focus-visible {
+      border-color: var(--line-strong);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(79, 209, 197, 0.08);
+    }
+
+    .button:hover,
+    .button:focus-visible {
+      transform: translateY(-1px);
+    }
+
+    .button:active {
+      transform: translateY(0);
+    }
+
+    .select {
+      min-width: 76px;
+      padding: 0 10px;
+      cursor: pointer;
+    }
+
+    .canvas-viewport {
+      position: relative;
+      display: grid;
+      min-height: 0;
+      place-items: center;
+      padding: 22px;
+      overflow: auto;
+    }
+
+    .console {
+      position: relative;
+      display: grid;
+      place-items: center;
+      max-width: 100%;
+      border: 1px solid rgba(176, 196, 222, 0.18);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.055), transparent 22%),
+        linear-gradient(315deg, rgba(79, 209, 197, 0.08), transparent 28%),
+        #0a0d13;
+      box-shadow: var(--shadow), inset 0 0 0 4px rgba(255, 255, 255, 0.025);
+      padding: 18px;
+    }
+
+    .screen-frame {
+      position: relative;
+      overflow: auto;
+      max-width: min(100%, 72vw);
+      max-height: min(72vh, 820px);
+      border: 1px solid rgba(79, 209, 197, 0.26);
+      border-radius: 6px;
+      background: #07090d;
+      padding: 12px;
+      box-shadow: inset 0 0 42px rgba(0, 0, 0, 0.58);
+    }
+
+    .stage {
+      position: relative;
+      width: var(--canvas-size, 256px);
+      height: var(--canvas-size, 256px);
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.11);
+      background-color: #101722;
+      background-image:
+        linear-gradient(45deg, rgba(255, 255, 255, 0.09) 25%, transparent 25%),
+        linear-gradient(-45deg, rgba(255, 255, 255, 0.09) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.09) 75%),
+        linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.09) 75%);
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+      background-size: 16px 16px;
+      image-rendering: pixelated;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    #paintCanvas {
+      display: block;
+      width: var(--canvas-size, 256px);
+      height: var(--canvas-size, 256px);
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      touch-action: none;
+    }
+
+    .grid-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.72;
+      background-image:
+        linear-gradient(to right, rgba(238, 244, 248, 0.22) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(238, 244, 248, 0.22) 1px, transparent 1px);
+      background-size: var(--cell-size, 16px) var(--cell-size, 16px);
+      transition: opacity 140ms ease;
+    }
+
+    .grid-overlay.hidden {
+      opacity: 0;
+    }
+
+    .lcd-glow {
+      position: absolute;
+      inset: 12px;
+      border-radius: 5px;
+      pointer-events: none;
+      box-shadow: 0 0 36px rgba(79, 209, 197, 0.12);
+    }
+
+    .statusbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 20px 16px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 28px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(12, 18, 27, 0.68);
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 12px rgba(142, 227, 111, 0.6);
+    }
+
+    .side {
+      min-width: 0;
+      padding: 16px;
+      border-left: 1px solid var(--line);
+      overflow-y: auto;
+    }
+
+    .control-section {
+      padding: 0 0 18px;
+      margin: 0 0 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .control-section:last-child {
+      margin-bottom: 0;
+      border-bottom: 0;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 0 0 11px;
+      color: var(--text-soft);
+      font-size: 0.78rem;
+      font-weight: 850;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .swatch {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1;
+      min-height: 34px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 6px;
+      background: var(--swatch);
+      cursor: pointer;
+      box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.15);
+      transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+    }
+
+    .swatch:hover,
+    .swatch:focus-visible,
+    .swatch.active {
+      border-color: rgba(238, 244, 248, 0.76);
+      outline: none;
+      transform: translateY(-1px);
+    }
+
+    .swatch.active {
+      box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.18), 0 0 0 3px rgba(79, 209, 197, 0.18);
+    }
+
+    .custom-row,
+    .setting-row,
+    .zoom-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .custom-row {
+      margin-top: 10px;
+    }
+
+    .label {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+
+    .color-input {
+      width: 56px;
+      padding: 4px;
+      cursor: pointer;
+    }
+
+    .selected-color {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .selected-chip {
+      width: 34px;
+      height: 34px;
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      border-radius: 6px;
+      background: var(--active-color);
+      box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.18);
+    }
+
+    .selected-hex {
+      min-width: 0;
+      color: var(--text-soft);
+      font-family: var(--mono);
+      font-size: 0.84rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .setting-row {
+      min-height: 38px;
+      margin-bottom: 10px;
+    }
+
+    .setting-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .range-wrap {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 60px;
+      gap: 8px;
+      width: 100%;
+      align-items: center;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--cyan);
+    }
+
+    .number-input {
+      width: 60px;
+      padding: 0 8px;
+      text-align: center;
+    }
+
+    .zoom-row {
+      justify-content: flex-end;
+    }
+
+    .zoom-value {
+      min-width: 56px;
+      color: var(--text-soft);
+      font-family: var(--mono);
+      text-align: center;
+    }
+
+    .mini-button {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(12, 18, 27, 0.86);
+      color: var(--text);
+      cursor: pointer;
+      font-family: var(--mono);
+      font-size: 1.08rem;
+      font-weight: 850;
+      transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
+    }
+
+    .mini-button:hover,
+    .mini-button:focus-visible {
+      border-color: var(--line-strong);
+      background: rgba(79, 209, 197, 0.12);
+      outline: none;
+      transform: translateY(-1px);
+    }
+
+    .mini-button:active {
+      transform: translateY(0);
+    }
+
+    .toggle {
+      position: relative;
+      display: inline-flex;
+      width: 54px;
+      height: 30px;
+      cursor: pointer;
+    }
+
+    .toggle input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(12, 18, 27, 0.92);
+      transition: background 150ms ease, border-color 150ms ease;
+    }
+
+    .toggle-track::after {
+      content: "";
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: transform 150ms ease, background 150ms ease;
+    }
+
+    .toggle input:checked + .toggle-track {
+      border-color: rgba(79, 209, 197, 0.62);
+      background: rgba(79, 209, 197, 0.15);
+    }
+
+    .toggle input:checked + .toggle-track::after {
+      transform: translateX(24px);
+      background: var(--cyan);
+      box-shadow: 0 0 14px rgba(79, 209, 197, 0.5);
+    }
+
+    .toggle input:focus-visible + .toggle-track {
+      outline: 2px solid rgba(79, 209, 197, 0.42);
+      outline-offset: 3px;
+    }
+
+    @keyframes enter {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 1020px) {
+      .app {
+        grid-template-columns: 78px minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1fr) auto;
+      }
+
+      .side {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        border-top: 1px solid var(--line);
+        border-left: 0;
+      }
+
+      .control-section {
+        margin: 0;
+        padding: 0;
+        border-bottom: 0;
+      }
+
+      .screen-frame {
+        max-width: min(100%, 86vw);
+      }
+    }
+
+    @media (max-width: 720px) {
+      .app {
+        display: flex;
+        min-height: 100vh;
+        flex-direction: column;
+      }
+
+      .rail {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 10px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .brand {
+        width: 42px;
+        height: 42px;
+        font-size: 1rem;
+      }
+
+      .tool-stack,
+      .history-stack {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+      }
+
+      .history-stack {
+        margin-top: 0;
+      }
+
+      .icon-button {
+        width: 42px;
+        height: 42px;
+      }
+
+      .main {
+        min-height: 58vh;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 14px;
+      }
+
+      .quick-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .canvas-viewport {
+        padding: 12px;
+      }
+
+      .console {
+        padding: 10px;
+      }
+
+      .screen-frame {
+        max-width: calc(100vw - 44px);
+        max-height: 58vh;
+        padding: 8px;
+      }
+
+      .statusbar {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 10px 14px 14px;
+      }
+
+      .side {
+        display: block;
+        padding: 14px;
+      }
+
+      .control-section {
+        padding: 0 0 16px;
+        margin: 0 0 16px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .control-section:last-child {
+        border-bottom: 0;
+      }
+
+      .color-grid {
+        grid-template-columns: repeat(8, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="rail" aria-label="Tools">
+      <div class="brand" aria-label="Pixel Deck">PX</div>
+
+      <div class="tool-stack" role="toolbar" aria-label="Drawing tools">
+        <button class="icon-button active" type="button" data-tool="pencil" title="Pencil (B)" aria-label="Pencil">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l11-11-4-4L4 16v4z"></path><path d="M13 7l4 4"></path></svg>
+          <span class="sr-only">Pencil</span>
+        </button>
+        <button class="icon-button" type="button" data-tool="eraser" title="Eraser (E)" aria-label="Eraser">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15l8-8a3 3 0 0 1 4 0l4 4-8 8H7l-3-3z"></path><path d="M13 18h7"></path></svg>
+          <span class="sr-only">Eraser</span>
+        </button>
+        <button class="icon-button" type="button" data-tool="fill" title="Fill bucket (G)" aria-label="Fill bucket">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13l8-8 8 8-7 7a2 2 0 0 1-2.8 0L4 13z"></path><path d="M7 10l7 7"></path><path d="M19 17c1.3 1.4 2 2.4 2 3a2 2 0 0 1-4 0c0-.6.7-1.6 2-3z"></path></svg>
+          <span class="sr-only">Fill</span>
+        </button>
+        <button class="icon-button" type="button" data-tool="eyedropper" title="Eyedropper (I)" aria-label="Eyedropper">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4l6 6"></path><path d="M12 6l6 6-9 9H4v-5l8-10z"></path><path d="M7 17l4 4"></path></svg>
+          <span class="sr-only">Eyedropper</span>
+        </button>
+      </div>
+
+      <div class="history-stack" role="toolbar" aria-label="History">
+        <button class="icon-button" type="button" id="undoButton" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7H4v5"></path><path d="M4 12a8 8 0 1 0 2.3-5.7L4 8.6"></path></svg>
+          <span class="sr-only">Undo</span>
+        </button>
+        <button class="icon-button" type="button" id="redoButton" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 7h5v5"></path><path d="M20 12a8 8 0 1 1-2.3-5.7L20 8.6"></path></svg>
+          <span class="sr-only">Redo</span>
+        </button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="title">
+          <h1>Pixel Deck</h1>
+          <p class="subtitle" id="canvasMeta">16x16 grid</p>
+        </div>
+        <div class="quick-actions">
+          <select class="select" id="exportScale" aria-label="Export scale" title="Export scale">
+            <option value="1">1x</option>
+            <option value="2">2x</option>
+            <option value="4" selected>4x</option>
+            <option value="8">8x</option>
+          </select>
+          <button class="button primary" type="button" id="exportButton">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M5 21h14"></path></svg>
+            Export PNG
+          </button>
+        </div>
+      </header>
+
+      <section class="canvas-viewport" aria-label="Drawing canvas">
+        <div class="console">
+          <div class="screen-frame">
+            <div class="stage" id="stage">
+              <canvas id="paintCanvas" width="16" height="16" aria-label="Pixel drawing canvas"></canvas>
+              <div class="grid-overlay" id="gridOverlay" aria-hidden="true"></div>
+            </div>
+            <div class="lcd-glow" aria-hidden="true"></div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="statusbar">
+        <span class="status-pill"><span class="dot" aria-hidden="true"></span><span id="statusText">Ready</span></span>
+        <span class="status-pill" id="historyText">History 1/50</span>
+      </footer>
+    </main>
+
+    <aside class="side" aria-label="Editor controls">
+      <section class="control-section">
+        <h2 class="section-title">Palette</h2>
+        <div class="color-grid" id="palette" aria-label="Preset colors"></div>
+        <div class="custom-row">
+          <div class="selected-color">
+            <span class="selected-chip" id="selectedChip" aria-hidden="true"></span>
+            <span class="selected-hex" id="selectedHex">#4fd1c5</span>
+          </div>
+          <input class="color-input" type="color" id="customColor" value="#4fd1c5" aria-label="Custom color">
+        </div>
+      </section>
+
+      <section class="control-section">
+        <h2 class="section-title">Canvas</h2>
+        <div class="setting-row">
+          <label class="label" for="sizeRange">Size</label>
+          <div class="range-wrap">
+            <input type="range" id="sizeRange" min="8" max="64" step="1" value="16" aria-label="Grid size">
+            <input class="number-input" type="number" id="sizeNumber" min="8" max="64" step="1" value="16" aria-label="Grid size number">
+          </div>
+        </div>
+        <div class="setting-row">
+          <span class="label">Zoom</span>
+          <div class="zoom-row">
+            <button class="mini-button" type="button" id="zoomOut" title="Zoom out" aria-label="Zoom out">-</button>
+            <span class="zoom-value" id="zoomValue">16px</span>
+            <button class="mini-button" type="button" id="zoomIn" title="Zoom in" aria-label="Zoom in">+</button>
+          </div>
+        </div>
+        <div class="setting-row">
+          <span class="label">Grid</span>
+          <label class="toggle" title="Show grid">
+            <input type="checkbox" id="gridToggle" checked aria-label="Show grid">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </section>
+
+      <section class="control-section">
+        <h2 class="section-title">Output</h2>
+        <div class="setting-row">
+          <span class="label">Scale</span>
+          <select class="select" id="exportScalePanel" aria-label="Export scale">
+            <option value="1">1x</option>
+            <option value="2">2x</option>
+            <option value="4" selected>4x</option>
+            <option value="8">8x</option>
+          </select>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const canvas = document.getElementById("paintCanvas");
+      const ctx = canvas.getContext("2d");
+      const stage = document.getElementById("stage");
+      const gridOverlay = document.getElementById("gridOverlay");
+      const paletteEl = document.getElementById("palette");
+      const selectedChip = document.getElementById("selectedChip");
+      const selectedHex = document.getElementById("selectedHex");
+      const customColor = document.getElementById("customColor");
+      const sizeRange = document.getElementById("sizeRange");
+      const sizeNumber = document.getElementById("sizeNumber");
+      const zoomValue = document.getElementById("zoomValue");
+      const canvasMeta = document.getElementById("canvasMeta");
+      const statusText = document.getElementById("statusText");
+      const historyText = document.getElementById("historyText");
+      const gridToggle = document.getElementById("gridToggle");
+      const undoButton = document.getElementById("undoButton");
+      const redoButton = document.getElementById("redoButton");
+      const exportButton = document.getElementById("exportButton");
+      const exportScale = document.getElementById("exportScale");
+      const exportScalePanel = document.getElementById("exportScalePanel");
+      const zoomIn = document.getElementById("zoomIn");
+      const zoomOut = document.getElementById("zoomOut");
+      const toolButtons = Array.from(document.querySelectorAll("[data-tool]"));
+
+      const presetColors = [
+        "#090a0f", "#172033", "#30445f", "#6b7f99", "#dce7ef", "#fff3d6",
+        "#ff4f5e", "#ff7a45", "#f6c768", "#ffe66d", "#8ee36f", "#22c55e",
+        "#1fbf9a", "#4fd1c5", "#54c6eb", "#3f8cff", "#5261ff", "#8e6cff",
+        "#b497ff", "#e66bff", "#ff6fb1", "#a65f3d", "#74462f", "#3b2a26"
+      ];
+      const zoomSteps = [8, 10, 12, 16, 20, 24, 32];
+      const historyLimit = 50;
+
+      let gridSize = 16;
+      let pixels = createPixels(gridSize);
+      let selectedColor = "#4fd1c5";
+      let activeTool = "pencil";
+      let zoomIndex = 3;
+      let isPointerDown = false;
+      let activePointerId = null;
+      let strokeChanged = false;
+      let lastTouchedIndex = -1;
+      let history = [];
+      let historyIndex = -1;
+
+      ctx.imageSmoothingEnabled = false;
+
+      function createPixels(size) {
+        return Array(size * size).fill(null);
+      }
+
+      function clamp(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+      }
+
+      function normalizeColor(value) {
+        if (!value) {
+          return selectedColor;
+        }
+        const probe = document.createElement("canvas").getContext("2d");
+        probe.fillStyle = value;
+        return probe.fillStyle.toLowerCase();
+      }
+
+      function indexFor(x, y, size = gridSize) {
+        return y * size + x;
+      }
+
+      function currentState() {
+        return {
+          size: gridSize,
+          pixels: pixels.slice()
+        };
+      }
+
+      function applyState(state) {
+        gridSize = state.size;
+        pixels = state.pixels.slice();
+        canvas.width = gridSize;
+        canvas.height = gridSize;
+        ctx.imageSmoothingEnabled = false;
+        sizeRange.value = String(gridSize);
+        sizeNumber.value = String(gridSize);
+        render();
+        updateLayout();
+        updateHistoryControls();
+      }
+
+      function pushHistory() {
+        history = history.slice(0, historyIndex + 1);
+        history.push(currentState());
+        if (history.length > historyLimit) {
+          history.shift();
+        }
+        historyIndex = history.length - 1;
+        updateHistoryControls();
+      }
+
+      function undo() {
+        if (historyIndex <= 0) {
+          return;
+        }
+        historyIndex -= 1;
+        applyState(history[historyIndex]);
+        setStatus("Undo");
+      }
+
+      function redo() {
+        if (historyIndex >= history.length - 1) {
+          return;
+        }
+        historyIndex += 1;
+        applyState(history[historyIndex]);
+        setStatus("Redo");
+      }
+
+      function updateHistoryControls() {
+        undoButton.disabled = historyIndex <= 0;
+        redoButton.disabled = historyIndex >= history.length - 1;
+        historyText.textContent = "History " + (historyIndex + 1) + "/" + historyLimit;
+      }
+
+      function setTool(tool) {
+        activeTool = tool;
+        toolButtons.forEach((button) => {
+          button.classList.toggle("active", button.dataset.tool === activeTool);
+        });
+        setStatus(tool.charAt(0).toUpperCase() + tool.slice(1));
+      }
+
+      function setColor(color) {
+        selectedColor = normalizeColor(color);
+        customColor.value = selectedColor;
+        selectedChip.style.setProperty("--active-color", selectedColor);
+        selectedHex.textContent = selectedColor;
+        document.documentElement.style.setProperty("--active-color", selectedColor);
+        Array.from(paletteEl.children).forEach((button) => {
+          button.classList.toggle("active", button.dataset.color === selectedColor);
+        });
+      }
+
+      function setStatus(message) {
+        statusText.textContent = message;
+      }
+
+      function setPixel(x, y, color) {
+        if (x < 0 || y < 0 || x >= gridSize || y >= gridSize) {
+          return false;
+        }
+        const index = indexFor(x, y);
+        if (pixels[index] === color) {
+          return false;
+        }
+        pixels[index] = color;
+        return true;
+      }
+
+      function render() {
+        ctx.clearRect(0, 0, gridSize, gridSize);
+        for (let i = 0; i < pixels.length; i += 1) {
+          const color = pixels[i];
+          if (!color) {
+            continue;
+          }
+          ctx.fillStyle = color;
+          ctx.fillRect(i % gridSize, Math.floor(i / gridSize), 1, 1);
+        }
+      }
+
+      function updateLayout() {
+        const cellSize = zoomSteps[zoomIndex];
+        const canvasSize = gridSize * cellSize;
+        stage.style.setProperty("--cell-size", cellSize + "px");
+        stage.style.setProperty("--canvas-size", canvasSize + "px");
+        zoomValue.textContent = cellSize + "px";
+        canvasMeta.textContent = gridSize + "x" + gridSize + " grid";
+      }
+
+      function canvasPoint(event) {
+        const rect = canvas.getBoundingClientRect();
+        const cellWidth = rect.width / gridSize;
+        const cellHeight = rect.height / gridSize;
+        return {
+          x: clamp(Math.floor((event.clientX - rect.left) / cellWidth), 0, gridSize - 1),
+          y: clamp(Math.floor((event.clientY - rect.top) / cellHeight), 0, gridSize - 1)
+        };
+      }
+
+      function applyActiveTool(point) {
+        const index = indexFor(point.x, point.y);
+        if ((activeTool === "pencil" || activeTool === "eraser") && index === lastTouchedIndex) {
+          return;
+        }
+        lastTouchedIndex = index;
+
+        if (activeTool === "pencil") {
+          strokeChanged = setPixel(point.x, point.y, selectedColor) || strokeChanged;
+          render();
+          return;
+        }
+
+        if (activeTool === "eraser") {
+          strokeChanged = setPixel(point.x, point.y, null) || strokeChanged;
+          render();
+          return;
+        }
+
+        if (activeTool === "fill") {
+          if (fill(point.x, point.y, selectedColor)) {
+            render();
+            pushHistory();
+            setStatus("Filled");
+          }
+          return;
+        }
+
+        if (activeTool === "eyedropper") {
+          const color = pixels[index];
+          if (color) {
+            setColor(color);
+            setTool("pencil");
+            setStatus("Picked " + color);
+          } else {
+            setStatus("Transparent pixel");
+          }
+        }
+      }
+
+      function fill(startX, startY, color) {
+        const target = pixels[indexFor(startX, startY)];
+        if (target === color) {
+          return false;
+        }
+
+        const queue = [[startX, startY]];
+        const visited = new Uint8Array(gridSize * gridSize);
+        let changed = false;
+
+        while (queue.length) {
+          const current = queue.pop();
+          const x = current[0];
+          const y = current[1];
+
+          if (x < 0 || y < 0 || x >= gridSize || y >= gridSize) {
+            continue;
+          }
+
+          const i = indexFor(x, y);
+          if (visited[i] || pixels[i] !== target) {
+            continue;
+          }
+
+          visited[i] = 1;
+          pixels[i] = color;
+          changed = true;
+          queue.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+        }
+
+        return changed;
+      }
+
+      function endStroke() {
+        if (!isPointerDown) {
+          return;
+        }
+        isPointerDown = false;
+        activePointerId = null;
+        lastTouchedIndex = -1;
+        if (strokeChanged) {
+          pushHistory();
+          setStatus("Stroke saved");
+        }
+        strokeChanged = false;
+      }
+
+      function resizeGrid(size) {
+        const nextSize = clamp(Math.round(size), 8, 64);
+        sizeRange.value = String(nextSize);
+        sizeNumber.value = String(nextSize);
+        if (nextSize === gridSize) {
+          return;
+        }
+
+        const oldPixels = pixels;
+        const oldSize = gridSize;
+        const nextPixels = createPixels(nextSize);
+        const copySize = Math.min(oldSize, nextSize);
+
+        for (let y = 0; y < copySize; y += 1) {
+          for (let x = 0; x < copySize; x += 1) {
+            nextPixels[y * nextSize + x] = oldPixels[y * oldSize + x];
+          }
+        }
+
+        gridSize = nextSize;
+        pixels = nextPixels;
+        canvas.width = gridSize;
+        canvas.height = gridSize;
+        ctx.imageSmoothingEnabled = false;
+        render();
+        updateLayout();
+        pushHistory();
+        setStatus(gridSize + "x" + gridSize);
+      }
+
+      function exportPng() {
+        const scale = Number(exportScale.value);
+        const output = document.createElement("canvas");
+        output.width = gridSize * scale;
+        output.height = gridSize * scale;
+        const outputCtx = output.getContext("2d");
+        outputCtx.imageSmoothingEnabled = false;
+
+        for (let i = 0; i < pixels.length; i += 1) {
+          const color = pixels[i];
+          if (!color) {
+            continue;
+          }
+          outputCtx.fillStyle = color;
+          outputCtx.fillRect((i % gridSize) * scale, Math.floor(i / gridSize) * scale, scale, scale);
+        }
+
+        const link = document.createElement("a");
+        link.download = "pixel-deck-" + gridSize + "x" + gridSize + "-" + scale + "x.png";
+        link.href = output.toDataURL("image/png");
+        link.click();
+        setStatus("PNG " + scale + "x");
+      }
+
+      function buildPalette() {
+        paletteEl.innerHTML = "";
+        presetColors.forEach((color) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "swatch";
+          button.dataset.color = color;
+          button.style.setProperty("--swatch", color);
+          button.title = color;
+          button.setAttribute("aria-label", "Use color " + color);
+          button.addEventListener("click", () => setColor(color));
+          paletteEl.appendChild(button);
+        });
+      }
+
+      function syncExportScales(source, target) {
+        target.value = source.value;
+      }
+
+      function shouldIgnoreShortcut(event) {
+        const tag = event.target.tagName;
+        return tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA";
+      }
+
+      toolButtons.forEach((button) => {
+        button.addEventListener("click", () => setTool(button.dataset.tool));
+      });
+
+      undoButton.addEventListener("click", undo);
+      redoButton.addEventListener("click", redo);
+      exportButton.addEventListener("click", exportPng);
+
+      exportScale.addEventListener("change", () => syncExportScales(exportScale, exportScalePanel));
+      exportScalePanel.addEventListener("change", () => syncExportScales(exportScalePanel, exportScale));
+
+      customColor.addEventListener("input", (event) => setColor(event.target.value));
+
+      sizeRange.addEventListener("input", () => {
+        sizeNumber.value = sizeRange.value;
+        canvasMeta.textContent = sizeRange.value + "x" + sizeRange.value + " grid";
+      });
+      sizeRange.addEventListener("change", () => resizeGrid(Number(sizeRange.value)));
+      sizeNumber.addEventListener("change", () => resizeGrid(Number(sizeNumber.value)));
+      sizeNumber.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          resizeGrid(Number(sizeNumber.value));
+          sizeNumber.blur();
+        }
+      });
+
+      zoomIn.addEventListener("click", () => {
+        zoomIndex = clamp(zoomIndex + 1, 0, zoomSteps.length - 1);
+        updateLayout();
+      });
+      zoomOut.addEventListener("click", () => {
+        zoomIndex = clamp(zoomIndex - 1, 0, zoomSteps.length - 1);
+        updateLayout();
+      });
+
+      gridToggle.addEventListener("change", () => {
+        gridOverlay.classList.toggle("hidden", !gridToggle.checked);
+        setStatus(gridToggle.checked ? "Grid on" : "Grid off");
+      });
+
+      canvas.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+        const toolAtStart = activeTool;
+        canvas.setPointerCapture(event.pointerId);
+        isPointerDown = true;
+        activePointerId = event.pointerId;
+        strokeChanged = false;
+        lastTouchedIndex = -1;
+        applyActiveTool(canvasPoint(event));
+        if (toolAtStart === "fill" || toolAtStart === "eyedropper") {
+          endStroke();
+        }
+      });
+
+      canvas.addEventListener("pointermove", (event) => {
+        if (!isPointerDown || event.pointerId !== activePointerId) {
+          return;
+        }
+        if (activeTool !== "pencil" && activeTool !== "eraser") {
+          return;
+        }
+        event.preventDefault();
+        applyActiveTool(canvasPoint(event));
+      });
+
+      canvas.addEventListener("pointerup", endStroke);
+      canvas.addEventListener("pointercancel", endStroke);
+      canvas.addEventListener("lostpointercapture", endStroke);
+
+      window.addEventListener("keydown", (event) => {
+        const key = event.key.toLowerCase();
+        const modifier = event.ctrlKey || event.metaKey;
+
+        if (modifier && key === "z") {
+          event.preventDefault();
+          if (event.shiftKey) {
+            redo();
+          } else {
+            undo();
+          }
+          return;
+        }
+
+        if (modifier && key === "y") {
+          event.preventDefault();
+          redo();
+          return;
+        }
+
+        if (shouldIgnoreShortcut(event) || modifier || event.altKey) {
+          return;
+        }
+
+        if (key === "b") {
+          setTool("pencil");
+        } else if (key === "e") {
+          setTool("eraser");
+        } else if (key === "g") {
+          setTool("fill");
+        } else if (key === "i") {
+          setTool("eyedropper");
+        }
+      });
+
+      buildPalette();
+      setColor(selectedColor);
+      setTool(activeTool);
+      updateLayout();
+      render();
+      pushHistory();
+    })();
+  </script>
+</body>
+</html>
