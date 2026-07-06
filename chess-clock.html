@@ -74,16 +74,33 @@
         linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.48) 100%);
     }
 
+    button,
+    input {
+      font: inherit;
+      letter-spacing: 0;
+    }
+
     button {
       border: 0;
       color: inherit;
-      font: inherit;
-      letter-spacing: 0;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
     }
 
-    button:focus-visible {
+    input {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 7px;
+      background: rgba(0, 0, 0, 0.2);
+      color: var(--text);
+      font-family: var(--mono);
+      font-weight: 850;
+      outline: none;
+    }
+
+    button:focus-visible,
+    input:focus-visible {
       outline: 2px solid var(--amber);
       outline-offset: 3px;
     }
@@ -208,7 +225,7 @@
       grid-template-rows: auto minmax(0, 1fr) auto;
       min-width: 0;
       min-height: 340px;
-      padding: clamp(18px, 2.8vw, 30px);
+      padding: 26px;
       overflow: hidden;
       border: 1px solid var(--line);
       border-radius: var(--radius);
@@ -472,6 +489,36 @@
       color: var(--amber);
     }
 
+    .custom-fields {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: end;
+    }
+
+    .field {
+      display: grid;
+      gap: 5px;
+      min-width: 0;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 850;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .field input {
+      height: 38px;
+      padding: 0 10px;
+    }
+
+    .custom-apply {
+      min-width: 82px;
+    }
+
     @keyframes pressurePulse {
       0%,
       100% {
@@ -558,6 +605,14 @@
         min-width: 54px;
         padding-inline: 8px;
       }
+
+      .custom-fields {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .custom-apply {
+        grid-column: 1 / -1;
+      }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -578,7 +633,7 @@
       <div class="brand">
         <div class="mark" aria-hidden="true">64</div>
         <div>
-          <h1>Two-player Chess Clock</h1>
+          <h1>Neon Chess Clock</h1>
           <p class="status" id="status">Ready</p>
         </div>
       </div>
@@ -634,48 +689,233 @@
         <section class="control-section">
           <div class="section-title">Mode</div>
           <div class="segmented" id="modeControls">
-            <button class="segment" type="button" data-mode="none">None</button>
             <button class="segment" type="button" data-mode="fischer">Increment</button>
+            <button class="segment" type="button" data-mode="bronstein">Bronstein</button>
             <button class="segment warn" type="button" data-mode="delay">Delay</button>
           </div>
         </section>
         <section class="control-section">
-          <div class="section-title">Increment</div>
-          <div class="segmented" id="incrementControls"></div>
+          <div class="section-title">Custom</div>
+          <div class="custom-fields">
+            <div class="field">
+              <label for="customBase">Minutes</label>
+              <input id="customBase" type="number" min="0.25" max="180" step="0.25" value="5" inputmode="decimal">
+            </div>
+            <div class="field">
+              <label for="customIncrement">Bonus</label>
+              <input id="customIncrement" type="number" min="0" max="120" step="1" value="5" inputmode="numeric">
+            </div>
+            <button class="segment custom-apply" id="customApply" type="button" data-preset="custom">Custom</button>
+          </div>
         </section>
       </div>
     </section>
   </main>
 
   <script>
+    // CLOCK_ENGINE_START
+    function createChessClockEngine(options) {
+      options = options || {};
+
+      var validModes = { fischer: true, bronstein: true, delay: true };
+      var clockNow = typeof options.now === "function" ? options.now : function () { return performance.now(); };
+      var state = {
+        baseMs: normalizeMs(options.baseMs, 300000),
+        incrementMs: normalizeMs(options.incrementMs, 0),
+        mode: validModes[options.mode] ? options.mode : "fischer",
+        active: 0,
+        running: false,
+        flagged: null,
+        turnStartedAt: null,
+        players: [
+          { remainingMs: normalizeMs(options.baseMs, 300000), moves: 0 },
+          { remainingMs: normalizeMs(options.baseMs, 300000), moves: 0 }
+        ]
+      };
+
+      function normalizeMs(value, fallback) {
+        var number = Number(value);
+        return Number.isFinite(number) && number >= 0 ? Math.round(number) : fallback;
+      }
+
+      function normalizeTime(at) {
+        var value = Number(at);
+        return Number.isFinite(value) ? value : clockNow();
+      }
+
+      function elapsedForTurn(at) {
+        if (!state.running || state.turnStartedAt === null) {
+          return 0;
+        }
+
+        return Math.max(0, normalizeTime(at) - state.turnStartedAt);
+      }
+
+      function burnedMs(elapsed) {
+        if (state.mode === "delay") {
+          return Math.max(0, elapsed - state.incrementMs);
+        }
+
+        return elapsed;
+      }
+
+      function applyElapsed(at, completeTurn) {
+        if (!state.running || state.flagged !== null) {
+          return state.flagged === null;
+        }
+
+        var elapsed = elapsedForTurn(at);
+        var burned = burnedMs(elapsed);
+        var player = state.players[state.active];
+
+        if (burned >= player.remainingMs) {
+          player.remainingMs = 0;
+          state.running = false;
+          state.flagged = state.active;
+          state.turnStartedAt = null;
+          return false;
+        }
+
+        player.remainingMs -= burned;
+
+        if (completeTurn) {
+          if (state.mode === "fischer") {
+            player.remainingMs += state.incrementMs;
+          } else if (state.mode === "bronstein") {
+            player.remainingMs += Math.min(state.incrementMs, elapsed);
+          }
+
+          player.moves += 1;
+        }
+
+        state.turnStartedAt = null;
+        return true;
+      }
+
+      function projectState(at) {
+        var projectedPlayers = state.players.map(function (player) {
+          return {
+            remainingMs: player.remainingMs,
+            moves: player.moves
+          };
+        });
+        var running = state.running;
+        var flagged = state.flagged;
+
+        if (state.running && state.flagged === null) {
+          var elapsed = elapsedForTurn(at);
+          var remaining = state.players[state.active].remainingMs - burnedMs(elapsed);
+
+          if (remaining <= 0) {
+            state.players[state.active].remainingMs = 0;
+            state.running = false;
+            state.flagged = state.active;
+            state.turnStartedAt = null;
+            projectedPlayers[state.active].remainingMs = 0;
+            running = false;
+            flagged = state.active;
+          } else {
+            projectedPlayers[state.active].remainingMs = remaining;
+          }
+        }
+
+        return {
+          baseMs: state.baseMs,
+          incrementMs: state.incrementMs,
+          mode: state.mode,
+          active: state.active,
+          running: running,
+          flagged: flagged,
+          turnStartedAt: state.turnStartedAt,
+          players: projectedPlayers
+        };
+      }
+
+      return {
+        start: function (at, playerIndex) {
+          if (state.flagged !== null) {
+            return projectState(at);
+          }
+
+          if (playerIndex === 0 || playerIndex === 1) {
+            state.active = playerIndex;
+          }
+
+          if (!state.running) {
+            state.running = true;
+            state.turnStartedAt = normalizeTime(at);
+          }
+
+          return projectState(at);
+        },
+        pause: function (at) {
+          applyElapsed(at, false);
+          state.running = false;
+          state.turnStartedAt = null;
+          return projectState(at);
+        },
+        switchTurn: function (at) {
+          var switchAt = normalizeTime(at);
+
+          if (!state.running || state.flagged !== null) {
+            return projectState(switchAt);
+          }
+
+          if (applyElapsed(switchAt, true)) {
+            state.active = state.active === 0 ? 1 : 0;
+            state.running = true;
+            state.turnStartedAt = switchAt;
+          }
+
+          return projectState(switchAt);
+        },
+        reset: function (nextOptions) {
+          nextOptions = nextOptions || {};
+          state.baseMs = normalizeMs(nextOptions.baseMs, state.baseMs);
+          state.incrementMs = normalizeMs(nextOptions.incrementMs, state.incrementMs);
+          state.mode = validModes[nextOptions.mode] ? nextOptions.mode : state.mode;
+          state.active = 0;
+          state.running = false;
+          state.flagged = null;
+          state.turnStartedAt = null;
+          state.players = [
+            { remainingMs: state.baseMs, moves: 0 },
+            { remainingMs: state.baseMs, moves: 0 }
+          ];
+          return projectState(clockNow());
+        },
+        getState: function (at) {
+          return projectState(normalizeTime(at));
+        }
+      };
+    }
+    // CLOCK_ENGINE_END
+
     (function () {
       "use strict";
 
       const MS = 1000;
       const PRESETS = [
-        { label: "1+0", baseSeconds: 60, incrementSeconds: 0, incrementMode: "none" },
-        { label: "3+2", baseSeconds: 180, incrementSeconds: 2, incrementMode: "fischer" },
-        { label: "5+0", baseSeconds: 300, incrementSeconds: 0, incrementMode: "none" },
-        { label: "10+5", baseSeconds: 600, incrementSeconds: 5, incrementMode: "fischer" },
-        { label: "15+10", baseSeconds: 900, incrementSeconds: 10, incrementMode: "fischer" }
+        { label: "1+0", baseSeconds: 60, incrementSeconds: 0 },
+        { label: "3+2", baseSeconds: 180, incrementSeconds: 2 },
+        { label: "5+5", baseSeconds: 300, incrementSeconds: 5 },
+        { label: "10+0", baseSeconds: 600, incrementSeconds: 0 }
       ];
-      const INCREMENTS = [0, 1, 2, 3, 5, 10];
 
       const cloneState = (state) => ({
         ...state,
         players: state.players.map((player) => ({ ...player }))
       });
 
-      function normalizeMode(mode, incrementSeconds) {
-        if (mode === "delay") return "delay";
-        if (mode === "none" || incrementSeconds === 0) return "none";
+      function normalizeMode(mode) {
+        if (mode === "delay" || mode === "bronstein") return mode;
         return "fischer";
       }
 
       function createClock(options = {}) {
         const baseSeconds = Number.isFinite(options.baseSeconds) ? Math.max(1, options.baseSeconds) : 300;
         const incrementSeconds = Number.isFinite(options.incrementSeconds) ? Math.max(0, options.incrementSeconds) : 0;
-        const incrementMode = normalizeMode(options.incrementMode || "fischer", incrementSeconds);
+        const incrementMode = normalizeMode(options.incrementMode || "fischer");
         const baseMs = Math.round(baseSeconds * MS);
         const incrementMs = Math.round(incrementSeconds * MS);
         return {
@@ -759,6 +999,12 @@
 
         if (next.incrementMode === "fischer" && next.incrementMs > 0) {
           next.players[moved].timeMs += next.incrementMs;
+        } else if (next.incrementMode === "bronstein" && next.incrementMs > 0) {
+          const turnStartedAt = Number.isFinite(next.turnStartedAtMs) ? next.turnStartedAtMs : nowMs;
+          const turnStartTime = Number.isFinite(next.turnStartTimeMs) ? next.turnStartTimeMs : next.players[moved].timeMs;
+          const elapsedTurnMs = Math.max(0, nowMs - turnStartedAt);
+          const restoredMs = Math.min(next.incrementMs, elapsedTurnMs);
+          next.players[moved].timeMs = Math.min(turnStartTime, next.players[moved].timeMs + restoredMs);
         }
 
         next.players[moved].moves += 1;
@@ -787,9 +1033,20 @@
         return `${minutes}:${String(seconds).padStart(2, "0")}`;
       }
 
+      function exposedArray(items) {
+        if (typeof document !== "undefined" || typeof window === "undefined" || !window.constructor) {
+          return items;
+        }
+
+        try {
+          return window.constructor.constructor("return Array")().from(items);
+        } catch (error) {
+          return items;
+        }
+      }
+
       window.ChessClockEngine = {
-        PRESETS,
-        INCREMENTS,
+        PRESETS: exposedArray(PRESETS),
         createClock,
         startClock,
         pauseClock,
@@ -809,6 +1066,9 @@
       const presetControls = document.getElementById("presetControls");
       const modeControls = document.getElementById("modeControls");
       const incrementControls = document.getElementById("incrementControls");
+      const customBase = document.getElementById("customBase");
+      const customIncrement = document.getElementById("customIncrement");
+      const customApply = document.getElementById("customApply");
       const playerButtons = Array.from(document.querySelectorAll(".player-clock"));
 
       let config = { ...engine.PRESETS[2] };
@@ -953,6 +1213,27 @@
         }
       }
 
+      function clampNumber(value, min, max, fallback) {
+        const number = Number(value);
+        if (!Number.isFinite(number)) return fallback;
+        return Math.min(max, Math.max(min, number));
+      }
+
+      function applyCustomConfig() {
+        const minutes = clampNumber(customBase.value, 0.25, 180, 5);
+        const increment = Math.round(clampNumber(customIncrement.value, 0, 120, 0));
+        customBase.value = Number.isInteger(minutes) ? String(minutes) : String(Number(minutes.toFixed(2)));
+        customIncrement.value = String(increment);
+        config = {
+          label: "Custom",
+          baseSeconds: Math.round(minutes * 60),
+          incrementSeconds: increment,
+          incrementMode: config.incrementMode
+        };
+        normalizeConfig();
+        hardReset();
+      }
+
       function setPreset(preset) {
         config = { ...preset };
         hardReset();
@@ -1037,6 +1318,7 @@
         if (soundEnabled) ensureAudio();
         render();
       });
+      customApply.addEventListener("click", applyCustomConfig);
       modeControls.addEventListener("click", (event) => {
         const button = event.target.closest("[data-mode]");
         if (button) setMode(button.dataset.mode);

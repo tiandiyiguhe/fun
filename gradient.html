@@ -3,127 +3,408 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Gradient Generator</title>
+<title>Neon Gradient Generator</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#0a0a0f;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px}
-.container{display:flex;flex-direction:column;gap:16px;width:100%;max-width:520px;align-items:center}
-.title{font-size:24px;font-weight:700;color:#00ff88;letter-spacing:2px}
-.preview{width:100%;height:160px;border-radius:12px;box-shadow:0 0 30px rgba(0,255,136,.1);transition:background .15s}
-.stops{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
-.stop{display:flex;align-items:center;gap:6px;background:#12121a;padding:6px 10px;border-radius:8px}
-.stop input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:pointer;background:transparent}
-.stop input[type=color]::-webkit-color-swatch{border-radius:5px;border:1px solid #333}
-.stop input[type=range]{width:60px;accent-color:#00ff88}
-.stop .pos{color:#888;font-size:11px;font-family:'Courier New',monospace;min-width:30px}
-.stop .remove{color:#ff3366;cursor:pointer;font-size:18px;background:none;border:none}
-.controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:center}
-.btn{background:#12121a;border:1px solid #1a1a2e;color:#888;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:12px;transition:all .15s;font-family:inherit}
-.btn:hover{background:#1a1a2e;color:#ccc}
-.btn.primary{background:#00ff88;color:#0a0a0f;border-color:#00ff88;font-weight:600}
-.btn.primary:hover{background:#00cc6a}
-.type-row{display:flex;gap:4px;background:#12121a;border-radius:8px;padding:3px}
-.type-btn{background:transparent;border:none;color:#666;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;transition:all .15s}
-.type-btn.active{background:#00ff88;color:#0a0a0f;font-weight:600}
-.css-output{width:100%;background:#0d0d14;border:1px solid #1a1a2e;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:12px;color:#00ff88;word-break:break-all;min-height:48px;display:flex;align-items:center;justify-content:space-between}
-.css-output code{flex:1}
-.presets{display:flex;gap:4px;flex-wrap:wrap;justify-content:center}
-.preset{width:32px;height:32px;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:all .15s}
-.preset:hover{border-color:#fff3;transform:scale(1.1)}
+:root{
+--bg:#07080d;
+--panel:#10121b;
+--panel-2:#151824;
+--line:#262a3a;
+--text:#eef3ff;
+--muted:#8f96ad;
+--cyan:#00e5ff;
+--pink:#ff2fbf;
+--lime:#66ff99;
+--amber:#ffcc33;
+--danger:#ff4d6d;
+--shadow:0 24px 80px rgba(0,0,0,.45);
+}
+html,body{width:100%;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{min-height:100vh;overflow:hidden}
+button,input,textarea{font:inherit}
+button{border:0}
+.app{display:grid;grid-template-columns:minmax(0,1fr) 390px;min-height:100vh;background:radial-gradient(circle at 18% 20%,rgba(0,229,255,.16),transparent 30%),radial-gradient(circle at 80% 75%,rgba(255,47,191,.15),transparent 28%),var(--bg)}
+.stage{position:relative;min-height:100vh;padding:20px;display:flex}
+.preview{position:absolute;inset:0;background:linear-gradient(135deg,#ff2fbf 0%,#00e5ff 50%,#66ff99 100%);transition:background .18s ease}
+.preview::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,transparent 0 28%,rgba(7,8,13,.16) 58%,rgba(7,8,13,.48) 100%),linear-gradient(90deg,rgba(255,255,255,.08) 1px,transparent 1px),linear-gradient(0deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:auto,54px 54px,54px 54px;mix-blend-mode:soft-light;pointer-events:none}
+.stage-bar{position:relative;z-index:2;align-self:flex-start;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.brand{height:38px;display:flex;align-items:center;padding:0 14px;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(7,8,13,.55);backdrop-filter:blur(18px);box-shadow:0 0 28px rgba(0,229,255,.12);font-size:13px;font-weight:800;text-transform:uppercase;color:#fff}
+.ghost{height:38px;padding:0 12px;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(7,8,13,.55);color:#fff;cursor:pointer;backdrop-filter:blur(18px)}
+.ghost:hover{border-color:rgba(255,255,255,.36);background:rgba(16,18,27,.72)}
+.panel{position:relative;z-index:3;min-height:100vh;padding:22px;display:flex;flex-direction:column;gap:16px;background:linear-gradient(180deg,rgba(16,18,27,.96),rgba(10,12,18,.98));border-left:1px solid var(--line);box-shadow:var(--shadow);overflow:auto}
+h1{font-size:22px;line-height:1.05;color:#fff}
+.subhead{font-size:12px;color:var(--muted);line-height:1.5}
+.section{display:flex;flex-direction:column;gap:10px}
+.section-title{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#cfd6ea;font-size:11px;text-transform:uppercase;font-weight:800}
+.angle-row{display:grid;grid-template-columns:1fr 74px;gap:10px;align-items:center}
+.angle-value{height:40px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:8px;background:var(--panel-2);font-family:"Courier New",monospace;color:var(--cyan);font-weight:700}
+input[type=range]{width:100%;accent-color:var(--cyan);cursor:pointer}
+.stops{display:flex;flex-direction:column;gap:8px}
+.stop{display:grid;grid-template-columns:42px minmax(0,1fr) 58px 32px;gap:8px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:8px;background:rgba(21,24,36,.8)}
+.stop input[type=color]{width:42px;height:34px;border:1px solid rgba(255,255,255,.15);border-radius:7px;background:transparent;cursor:pointer;padding:0}
+.stop input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+.stop input[type=color]::-webkit-color-swatch{border:0;border-radius:6px}
+.stop-pos{height:34px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.1);border-radius:7px;background:#0b0d13;color:#dbe7ff;font-family:"Courier New",monospace;font-size:12px}
+.icon-btn{height:34px;width:34px;border-radius:7px;border:1px solid var(--line);background:#0b0d13;color:var(--muted);cursor:pointer;font-weight:800}
+.icon-btn:hover{color:#fff;border-color:rgba(255,255,255,.3)}
+.icon-btn.remove:hover{color:var(--danger);border-color:rgba(255,77,109,.45)}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn{height:40px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);color:#dfe7ff;cursor:pointer;font-size:13px;font-weight:700}
+.btn:hover{border-color:rgba(255,255,255,.32);background:#1c2030}
+.btn.primary{border-color:rgba(0,229,255,.55);background:linear-gradient(90deg,var(--cyan),var(--pink));color:#05070b;text-shadow:0 1px rgba(255,255,255,.3)}
+.btn.success{border-color:rgba(102,255,153,.45);color:var(--lime)}
+.palette-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.swatch{height:34px;border-radius:8px;border:1px solid rgba(255,255,255,.15);cursor:pointer;box-shadow:0 0 18px rgba(255,255,255,.08)}
+.swatch:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.38)}
+.code-wrap{position:relative}
+.css-output{width:100%;min-height:96px;resize:vertical;border:1px solid var(--line);border-radius:8px;background:#090b11;color:#9fffe3;padding:12px;font-family:"Courier New",monospace;font-size:12px;line-height:1.5}
+.presets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.preset{min-height:48px;border-radius:8px;border:1px solid var(--line);cursor:pointer;overflow:hidden;background:var(--panel-2);position:relative}
+.preset::before{content:"";position:absolute;inset:0;background:var(--preset-bg)}
+.preset span{position:absolute;left:8px;bottom:7px;padding:2px 6px;border-radius:5px;background:rgba(0,0,0,.42);font-size:10px;color:#fff;font-weight:700}
+.empty{padding:12px;border:1px dashed var(--line);border-radius:8px;color:var(--muted);font-size:12px;text-align:center}
+.toast{position:fixed;right:22px;bottom:22px;z-index:10;padding:10px 13px;border:1px solid rgba(102,255,153,.36);border-radius:8px;background:rgba(10,12,18,.92);box-shadow:0 0 26px rgba(102,255,153,.18);color:#dfffe9;font-size:13px;opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .18s,transform .18s}
+.toast.show{opacity:1;transform:translateY(0)}
+@media (max-width:900px){
+body{overflow:auto}
+.app{grid-template-columns:1fr;min-height:100vh}
+.stage{min-height:44vh}
+.panel{min-height:auto;border-left:0;border-top:1px solid var(--line)}
+}
+@media (max-width:480px){
+.panel{padding:18px}
+.actions{grid-template-columns:1fr}
+.palette-grid{grid-template-columns:repeat(3,1fr)}
+.presets{grid-template-columns:1fr}
+.stop{grid-template-columns:38px minmax(0,1fr) 52px 30px}
+}
 </style>
 </head>
 <body>
-<div class="container">
-<div class="title">Gradient Generator</div>
+<main class="app">
+<section class="stage" aria-label="Live gradient preview">
 <div class="preview" id="preview"></div>
-<div class="type-row">
-<button class="type-btn active" data-type="linear">Linear</button>
-<button class="type-btn" data-type="radial">Radial</button>
-<button class="type-btn" data-type="conic">Conic</button>
+<div class="stage-bar">
+<div class="brand">Neon Gradient</div>
+<button class="ghost" id="fullscreenPreview" type="button">Fullscreen</button>
 </div>
-<div class="controls">
-<input type="range" id="angle" min="0" max="360" value="135" style="width:80px;accent-color:#00ff88">
-<span id="angle-val" style="font-family:'Courier New',monospace;font-size:12px;color:#888;min-width:36px">135°</span>
-<button class="btn primary" id="btn-random">Random</button>
-<button class="btn" id="btn-add">+ Color</button>
-<button class="btn" id="btn-copy">Copy CSS</button>
+</section>
+<aside class="panel">
+<header>
+<h1>Gradient Generator</h1>
+<p class="subhead">Build neon CSS gradients with editable color stops, angle control, random palettes, copy-ready CSS, and local presets.</p>
+</header>
+<section class="section">
+<div class="section-title"><span>Angle</span><span id="angleText">135deg</span></div>
+<div class="angle-row">
+<input id="angle" type="range" min="0" max="360" value="135">
+<div class="angle-value" id="angleValue">135</div>
+</div>
+</section>
+<section class="section">
+<div class="section-title">
+<span>Color Stops</span>
+<button class="icon-btn" id="addStop" type="button" title="Add color stop">+</button>
 </div>
 <div class="stops" id="stops"></div>
-<div class="presets" id="presets"></div>
-<div class="css-output"><code id="css-code"></code></div>
+</section>
+<section class="section">
+<div class="section-title"><span>Palette</span></div>
+<div class="actions">
+<button class="btn primary" id="randomPalette" type="button">Random Palette</button>
+<button class="btn" id="resetGradient" type="button">Reset</button>
 </div>
+<div class="palette-grid" id="quickPalettes"></div>
+</section>
+<section class="section">
+<div class="section-title"><span>CSS Output</span></div>
+<div class="code-wrap">
+<textarea class="css-output" id="cssOutput" readonly spellcheck="false"></textarea>
+</div>
+<div class="actions">
+<button class="btn success" id="copyCss" type="button">Copy CSS</button>
+<button class="btn" id="savePreset" type="button">Save Preset</button>
+</div>
+</section>
+<section class="section">
+<div class="section-title">
+<span>Saved Presets</span>
+<button class="icon-btn" id="clearPresets" type="button" title="Clear presets">x</button>
+</div>
+<div class="presets" id="presets"></div>
+</section>
+</aside>
+</main>
+<div class="toast" id="toast"></div>
 <script>
-let gradientType = 'linear', angle = 135, stops = [{color:'#ff3366',pos:0},{color:'#00ff88',pos:100}];
-const presets = [['#667eea','#764ba2'],['#f093fb','#f5576c'],['#4facfe','#00f2fe'],['#43e97b','#38f9d7'],['#fa709a','#fee140'],['#a18cd1','#fbc2eb'],['#fad0c4','#ffd1ff'],['#ffecd2','#fcb69f']];
+const STORAGE_KEY = 'neon-gradient-presets-v1';
+const neonPalettes = [
+['#ff2fbf','#00e5ff','#66ff99'],
+['#ff3864','#7c3cff','#00f5d4'],
+['#f9f871','#00ffa3','#00bbf9'],
+['#ff7a18','#af00ff','#00d4ff'],
+['#fe53bb','#09fbd3','#f5d300'],
+['#00f5ff','#ff00e6','#8cff00'],
+['#ff005d','#fffb00','#00ffb2'],
+['#4d5bff','#00eaff','#ff4ecd'],
+['#ff6ec7','#7873f5','#28f0ff'],
+['#b8ff00','#00ffc6','#ff38ef']
+];
+const defaultState = {
+angle:135,
+stops:[
+{color:'#ff2fbf',pos:0},
+{color:'#00e5ff',pos:50},
+{color:'#66ff99',pos:100}
+]
+};
+let state = cloneState(defaultState);
+const preview = document.getElementById('preview');
+const angle = document.getElementById('angle');
+const angleText = document.getElementById('angleText');
+const angleValue = document.getElementById('angleValue');
+const stopsEl = document.getElementById('stops');
+const cssOutput = document.getElementById('cssOutput');
+const presetsEl = document.getElementById('presets');
+const toast = document.getElementById('toast');
 
-const preview = document.getElementById('preview'), stopsEl = document.getElementById('stops'), cssCode = document.getElementById('css-code');
-
-function buildGradient() {
-stops.sort((a,b) => a.pos - b.pos);
-const colors = stops.map(s => s.color + ' ' + s.pos + '%').join(', ');
-if (gradientType === 'linear') return 'linear-gradient(' + angle + 'deg, ' + colors + ')';
-if (gradientType === 'radial') return 'radial-gradient(circle, ' + colors + ')';
-return 'conic-gradient(from ' + angle + 'deg, ' + colors + ')';
+function cloneState(value){
+return JSON.parse(JSON.stringify(value));
 }
 
-function update() {
-const css = buildGradient();
-preview.style.background = css;
-cssCode.textContent = 'background: ' + css + ';';
+function clamp(value,min,max){
+return Math.max(min,Math.min(max,value));
+}
+
+function normalizeStops(stops){
+return stops.map(stop => ({color:stop.color,pos:clamp(Number(stop.pos)||0,0,100)})).sort((a,b) => a.pos - b.pos);
+}
+
+function buildGradient(){
+const stops = normalizeStops(state.stops);
+const colors = stops.map(stop => `${stop.color} ${stop.pos}%`).join(', ');
+return `linear-gradient(${state.angle}deg, ${colors})`;
+}
+
+function buildCss(){
+return `background: ${buildGradient()};`;
+}
+
+function showToast(message){
+toast.textContent = message;
+toast.classList.add('show');
+window.clearTimeout(showToast.timer);
+showToast.timer = window.setTimeout(() => toast.classList.remove('show'), 1300);
+}
+
+function renderStops(){
+stopsEl.innerHTML = '';
+normalizeStops(state.stops).forEach((stop,index) => {
+const row = document.createElement('div');
+row.className = 'stop';
+row.innerHTML = `
+<input type="color" value="${stop.color}" data-index="${index}" aria-label="Stop ${index + 1} color">
+<input type="range" min="0" max="100" value="${stop.pos}" data-index="${index}" aria-label="Stop ${index + 1} position">
+<div class="stop-pos">${stop.pos}%</div>
+<button class="icon-btn remove" type="button" data-index="${index}" title="Remove stop">-</button>
+`;
+stopsEl.appendChild(row);
+});
+stopsEl.querySelectorAll('button.remove').forEach(button => {
+button.disabled = state.stops.length <= 2;
+button.style.opacity = state.stops.length <= 2 ? '.35' : '1';
+});
+}
+
+function renderPresets(){
+const presets = loadPresets();
+presetsEl.innerHTML = '';
+if (!presets.length) {
+const empty = document.createElement('div');
+empty.className = 'empty';
+empty.textContent = 'No saved presets';
+presetsEl.appendChild(empty);
+return;
+}
+presets.forEach((preset,index) => {
+const button = document.createElement('button');
+button.className = 'preset';
+button.type = 'button';
+button.style.setProperty('--preset-bg', gradientFromPreset(preset));
+button.innerHTML = `<span>${index + 1}</span>`;
+button.addEventListener('click', () => {
+state = cloneState(preset);
+render();
+showToast('Preset loaded');
+});
+presetsEl.appendChild(button);
+});
+}
+
+function gradientFromPreset(preset){
+const colors = normalizeStops(preset.stops).map(stop => `${stop.color} ${stop.pos}%`).join(', ');
+return `linear-gradient(${preset.angle}deg, ${colors})`;
+}
+
+function renderQuickPalettes(){
+const quickPalettes = document.getElementById('quickPalettes');
+quickPalettes.innerHTML = '';
+neonPalettes.forEach(palette => {
+const swatch = document.createElement('button');
+swatch.className = 'swatch';
+swatch.type = 'button';
+swatch.style.background = `linear-gradient(135deg, ${palette.join(', ')})`;
+swatch.addEventListener('click', () => applyPalette(palette));
+quickPalettes.appendChild(swatch);
+});
+}
+
+function render(){
+state.stops = normalizeStops(state.stops);
+angle.value = state.angle;
+angleText.textContent = `${state.angle}deg`;
+angleValue.textContent = state.angle;
+const gradient = buildGradient();
+preview.style.background = gradient;
+cssOutput.value = buildCss();
 renderStops();
 }
 
-function renderStops() {
-stopsEl.innerHTML = stops.map((s, i) => `
-<div class="stop">
-<input type="color" value="${s.color}" data-idx="${i}" class="color-input">
-<input type="range" min="0" max="100" value="${s.pos}" data-idx="${i}" class="pos-input">
-<span class="pos">${s.pos}%</span>
-${stops.length > 2 ? '<button class="remove" data-idx="' + i + '">×</button>' : ''}
-</div>
-`).join('');
-
-stopsEl.querySelectorAll('.color-input').forEach(el => el.addEventListener('input', e => {
-stops[parseInt(e.target.dataset.idx)].color = e.target.value; update();
-}));
-stopsEl.querySelectorAll('.pos-input').forEach(el => el.addEventListener('input', e => {
-stops[parseInt(e.target.dataset.idx)].pos = parseInt(e.target.value); update();
-}));
-stopsEl.querySelectorAll('.remove').forEach(el => el.addEventListener('click', e => {
-stops.splice(parseInt(e.target.dataset.idx), 1); update();
-}));
+function applyPalette(palette){
+const step = palette.length === 1 ? 100 : 100 / (palette.length - 1);
+state.stops = palette.map((color,index) => ({color,pos:Math.round(index * step)}));
+render();
 }
 
-document.getElementById('btn-add').addEventListener('click', () => {
-stops.push({color: '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6,'0'), pos: Math.round(stops[stops.length-1]?.pos/2 + 50 || 75)});
-update();
-});
-document.getElementById('btn-random').addEventListener('click', () => {
-const count = 2 + Math.floor(Math.random() * 3);
-stops = [];
-for (let i = 0; i < count; i++) stops.push({color: '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6,'0'), pos: Math.round(i * (100/(count-1)))});
-update();
-});
-document.getElementById('btn-copy').addEventListener('click', () => navigator.clipboard.writeText('background: ' + buildGradient() + ';'));
-document.getElementById('angle').addEventListener('input', e => { angle = parseInt(e.target.value); document.getElementById('angle-val').textContent = angle + '°'; update(); });
+function randomColor(){
+const hue = Math.floor(Math.random() * 360);
+const sat = 82 + Math.floor(Math.random() * 16);
+const light = 52 + Math.floor(Math.random() * 14);
+return hslToHex(hue,sat,light);
+}
 
-document.querySelectorAll('.type-btn').forEach(b => b.addEventListener('click', () => {
-gradientType = b.dataset.type;
-document.querySelectorAll('.type-btn').forEach(x => x.classList.remove('active'));
-b.classList.add('active');
-update();
-}));
+function randomPalette(){
+const count = 2 + Math.floor(Math.random() * 4);
+const base = Math.floor(Math.random() * 360);
+const step = 100 / (count - 1);
+state.angle = Math.floor(Math.random() * 361);
+state.stops = Array.from({length:count}, (_,index) => {
+const hue = (base + index * (90 + Math.floor(Math.random() * 70))) % 360;
+return {color:hslToHex(hue,86,58),pos:Math.round(index * step)};
+});
+render();
+}
 
-const presetsEl = document.getElementById('presets');
-presets.forEach(([c1, c2]) => {
-const div = document.createElement('div');
-div.className = 'preset';
-div.style.background = 'linear-gradient(135deg,' + c1 + ',' + c2 + ')';
-div.addEventListener('click', () => { stops = [{color:c1,pos:0},{color:c2,pos:100}]; update(); });
-presetsEl.appendChild(div);
+function hslToHex(h,s,l){
+s /= 100;
+l /= 100;
+const k = n => (n + h / 30) % 12;
+const a = s * Math.min(l,1 - l);
+const f = n => l - a * Math.max(-1,Math.min(k(n) - 3,Math.min(9 - k(n),1)));
+return '#' + [f(0),f(8),f(4)].map(value => Math.round(255 * value).toString(16).padStart(2,'0')).join('');
+}
+
+function loadPresets(){
+try {
+const raw = localStorage.getItem(STORAGE_KEY);
+const parsed = raw ? JSON.parse(raw) : [];
+return Array.isArray(parsed) ? parsed.filter(isPreset).slice(0,12) : [];
+} catch {
+return [];
+}
+}
+
+function savePresets(presets){
+localStorage.setItem(STORAGE_KEY, JSON.stringify(presets.slice(0,12)));
+}
+
+function isPreset(preset){
+return preset && Number.isFinite(Number(preset.angle)) && Array.isArray(preset.stops) && preset.stops.length >= 2;
+}
+
+function savePreset(){
+const current = cloneState(state);
+const presets = loadPresets();
+presets.unshift(current);
+savePresets(presets);
+renderPresets();
+showToast('Preset saved');
+}
+
+async function copyCss(){
+const css = buildCss();
+try {
+await navigator.clipboard.writeText(css);
+showToast('CSS copied');
+} catch {
+cssOutput.focus();
+cssOutput.select();
+document.execCommand('copy');
+showToast('CSS copied');
+}
+}
+
+function addStop(){
+const stops = normalizeStops(state.stops);
+let pos = 50;
+if (stops.length) {
+const biggestGap = stops.slice(1).reduce((best,stop,index) => {
+const previous = stops[index];
+const gap = stop.pos - previous.pos;
+return gap > best.gap ? {gap,pos:Math.round(previous.pos + gap / 2)} : best;
+}, {gap:-1,pos:50});
+pos = biggestGap.pos;
+}
+state.stops.push({color:randomColor(),pos});
+render();
+}
+
+function removeStop(index){
+if (state.stops.length <= 2) return;
+state.stops.splice(index,1);
+render();
+}
+
+async function fullscreenPreview(){
+const stage = document.querySelector('.stage');
+if (document.fullscreenElement) {
+await document.exitFullscreen();
+return;
+}
+if (stage.requestFullscreen) await stage.requestFullscreen();
+}
+
+angle.addEventListener('input', event => {
+state.angle = Number(event.target.value);
+render();
 });
 
-window.addEventListener('load', update);
+stopsEl.addEventListener('input', event => {
+const target = event.target;
+const index = Number(target.dataset.index);
+if (target.type === 'color') state.stops[index].color = target.value;
+if (target.type === 'range') state.stops[index].pos = Number(target.value);
+render();
+});
+
+stopsEl.addEventListener('click', event => {
+const button = event.target.closest('button.remove');
+if (!button) return;
+removeStop(Number(button.dataset.index));
+});
+
+document.getElementById('addStop').addEventListener('click', addStop);
+document.getElementById('randomPalette').addEventListener('click', randomPalette);
+document.getElementById('resetGradient').addEventListener('click', () => { state = cloneState(defaultState); render(); });
+document.getElementById('copyCss').addEventListener('click', copyCss);
+document.getElementById('savePreset').addEventListener('click', savePreset);
+document.getElementById('clearPresets').addEventListener('click', () => { savePresets([]); renderPresets(); showToast('Presets cleared'); });
+document.getElementById('fullscreenPreview').addEventListener('click', fullscreenPreview);
+
+renderQuickPalettes();
+renderPresets();
+render();
 </script>
 </body>
 </html>

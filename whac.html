@@ -1,174 +1,890 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Whac-a-Mole</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#0a0a0f;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;user-select:none;padding:20px}
-.game{display:flex;flex-direction:column;align-items:center;gap:16px;max-width:420px;width:100%}
-.title{font-size:28px;font-weight:700;color:#00ff88;letter-spacing:3px}
-.hud{display:flex;gap:24px;font-family:'Courier New',monospace}
-.stat{text-align:center}
-.stat .label{font-size:10px;color:#444;text-transform:uppercase;letter-spacing:2px}
-.stat .value{font-size:24px;font-weight:700;color:#00ff88}
-.stat .value.warn{color:#ffaa00}
-.stat .value.danger{color:#ff3366;animation:pulse .5s infinite alternate}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;max-width:360px}
-.hole{aspect-ratio:1;background:#0d0d14;border-radius:50%;position:relative;overflow:hidden;border:2px solid #1a1a2e;cursor:pointer}
-.hole .mole{position:absolute;bottom:-100%;left:50%;transform:translateX(-50%);width:70%;height:70%;background:#ffaa00;border-radius:50% 50% 40% 40%;transition:bottom .12s ease-out;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 0 20px rgba(255,170,0,.4)}
-.hole.up .mole{bottom:15%}
-.hole.whacked .mole{background:#ff3366;box-shadow:0 0 25px rgba(255,51,102,.6)}
-.hole .particles{position:absolute;inset:0;pointer-events:none}
-.particle{position:absolute;width:6px;height:6px;border-radius:50%;background:#ffaa00;animation:particle .4s ease-out forwards}
-@keyframes particle{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(0)}}
-.controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
-.btn{background:#12121a;border:1px solid #1a1a2e;color:#888;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:14px;transition:all .15s;font-family:inherit}
-.btn:hover{background:#1a1a2e;color:#ccc}
-.btn.primary{background:#00ff88;color:#0a0a0f;border-color:#00ff88;font-weight:600}
-.btn.primary:hover{background:#00cc6a}
-.difficulty{display:flex;gap:4px}
-.diff-btn{background:#12121a;border:1px solid #1a1a2e;color:#666;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:11px;transition:all .15s}
-.diff-btn:hover{color:#ccc}
-.diff-btn.active{background:#00ff8820;border-color:#00ff8844;color:#00ff88}
-@keyframes pulse{from{opacity:1}to{opacity:.5}}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Neon Whac-a-Mole</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #05070b;
+      --panel: rgba(10, 14, 24, 0.9);
+      --panel-strong: rgba(14, 20, 33, 0.96);
+      --line: rgba(219, 241, 255, 0.17);
+      --line-hot: rgba(72, 255, 232, 0.58);
+      --text: #eef8ff;
+      --text-soft: #9fb2c9;
+      --muted: #6f8094;
+      --cyan: #48ffe8;
+      --pink: #ff4fc8;
+      --amber: #ffd166;
+      --green: #9aff6a;
+      --red: #ff4d72;
+      --violet: #9c7dff;
+      --radius: 8px;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.54);
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      letter-spacing: 0;
+    }
+
+    body {
+      min-height: 100dvh;
+      overflow-x: hidden;
+      background:
+        radial-gradient(circle at 20% 8%, rgba(72, 255, 232, 0.14), transparent 28%),
+        radial-gradient(circle at 88% 14%, rgba(255, 79, 200, 0.12), transparent 25%),
+        radial-gradient(circle at 50% 102%, rgba(154, 255, 106, 0.08), transparent 36%),
+        linear-gradient(135deg, #05070b 0%, #09101a 48%, #070710 100%);
+      user-select: none;
+    }
+
+    body::before {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      content: "";
+      pointer-events: none;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.034) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.026) 1px, transparent 1px);
+      background-size: 38px 38px;
+      mask-image: linear-gradient(to bottom, black, transparent 88%);
+    }
+
+    body::after {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      content: "";
+      pointer-events: none;
+      background:
+        repeating-linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.028) 0,
+          rgba(255, 255, 255, 0.028) 1px,
+          transparent 1px,
+          transparent 7px
+        );
+      opacity: 0.22;
+      mix-blend-mode: screen;
+    }
+
+    button {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+        var(--panel-strong);
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+      transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
+    }
+
+    button:hover {
+      border-color: var(--line-hot);
+      box-shadow: 0 0 22px rgba(72, 255, 232, 0.16);
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 3px;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+      transform: none;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 314px;
+      gap: 18px;
+      align-items: center;
+      width: min(1180px, 100%);
+      min-height: 100dvh;
+      margin: 0 auto;
+      padding: 18px;
+    }
+
+    .stage {
+      display: grid;
+      min-width: 0;
+      gap: 14px;
+    }
+
+    .topbar,
+    .board-shell,
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.014)),
+        var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px) saturate(1.16);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      min-height: 78px;
+      padding: 14px 16px;
+    }
+
+    .brand {
+      min-width: 0;
+    }
+
+    h1 {
+      margin: 0;
+      color: var(--text);
+      font-size: clamp(1.55rem, 4vw, 3.2rem);
+      line-height: 0.95;
+      font-weight: 900;
+      text-transform: uppercase;
+      text-shadow:
+        0 0 16px rgba(72, 255, 232, 0.46),
+        0 0 34px rgba(255, 79, 200, 0.22);
+    }
+
+    .subtitle {
+      margin: 7px 0 0;
+      color: var(--text-soft);
+      font-size: 0.9rem;
+    }
+
+    .status-pill {
+      display: inline-grid;
+      grid-template-columns: 9px auto;
+      align-items: center;
+      gap: 8px;
+      min-height: 34px;
+      padding: 0 12px;
+      border: 1px solid rgba(72, 255, 232, 0.34);
+      border-radius: 999px;
+      background: rgba(72, 255, 232, 0.08);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+
+    .status-pill::before {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 16px var(--cyan);
+      content: "";
+    }
+
+    .status-pill[data-state="idle"] {
+      border-color: rgba(255, 209, 102, 0.34);
+      background: rgba(255, 209, 102, 0.08);
+    }
+
+    .status-pill[data-state="idle"]::before {
+      background: var(--amber);
+      box-shadow: 0 0 16px var(--amber);
+    }
+
+    .status-pill[data-state="over"] {
+      border-color: rgba(255, 77, 114, 0.4);
+      background: rgba(255, 77, 114, 0.09);
+    }
+
+    .status-pill[data-state="over"]::before {
+      background: var(--red);
+      box-shadow: 0 0 16px var(--red);
+    }
+
+    .board-shell {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-height: min(680px, calc(100dvh - 128px));
+      padding: clamp(14px, 3.5vw, 34px);
+      overflow: hidden;
+    }
+
+    .board-shell::before {
+      position: absolute;
+      inset: 16px;
+      border: 1px solid rgba(72, 255, 232, 0.16);
+      border-radius: 8px;
+      content: "";
+      pointer-events: none;
+      box-shadow:
+        inset 0 0 36px rgba(72, 255, 232, 0.06),
+        0 0 42px rgba(255, 79, 200, 0.07);
+    }
+
+    .board {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: clamp(10px, 2.8vw, 22px);
+      width: min(650px, 100%);
+      aspect-ratio: 1;
+      padding: clamp(8px, 2vw, 16px);
+    }
+
+    .hole {
+      position: relative;
+      display: grid;
+      place-items: end center;
+      min-width: 0;
+      aspect-ratio: 1;
+      border: 0;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 56%, rgba(0, 0, 0, 0.92) 0 35%, rgba(8, 15, 25, 0.98) 58%, rgba(72, 255, 232, 0.18) 62%, rgba(10, 15, 27, 0.98) 70%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.01));
+      box-shadow:
+        inset 0 15px 28px rgba(0, 0, 0, 0.78),
+        inset 0 -9px 20px rgba(72, 255, 232, 0.11),
+        0 0 0 1px rgba(210, 238, 255, 0.13),
+        0 14px 38px rgba(0, 0, 0, 0.38);
+      overflow: hidden;
+      touch-action: manipulation;
+    }
+
+    .hole::before {
+      position: absolute;
+      inset: 56% 10% 10%;
+      border-radius: 50%;
+      background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.75), transparent 68%);
+      content: "";
+      pointer-events: none;
+    }
+
+    .hole::after {
+      position: absolute;
+      inset: 7%;
+      border-radius: 50%;
+      border: 1px solid rgba(72, 255, 232, 0.16);
+      content: "";
+      pointer-events: none;
+      transition: border-color 120ms ease, box-shadow 120ms ease;
+    }
+
+    .hole:hover::after,
+    .hole.up::after {
+      border-color: rgba(72, 255, 232, 0.44);
+      box-shadow: 0 0 22px rgba(72, 255, 232, 0.18);
+    }
+
+    .mole {
+      position: absolute;
+      left: 50%;
+      bottom: -84%;
+      width: 62%;
+      height: 72%;
+      border-radius: 44% 44% 34% 34%;
+      background:
+        radial-gradient(circle at 32% 25%, #fff7bd 0 3%, transparent 4%),
+        radial-gradient(circle at 68% 25%, #fff7bd 0 3%, transparent 4%),
+        radial-gradient(circle at 50% 45%, #12151e 0 5%, transparent 6%),
+        radial-gradient(circle at 50% 60%, rgba(255, 79, 200, 0.45) 0 11%, transparent 12%),
+        linear-gradient(160deg, #ffe08a 0%, #ff9f43 52%, #ff4fc8 100%);
+      box-shadow:
+        0 0 24px rgba(255, 209, 102, 0.56),
+        0 0 42px rgba(255, 79, 200, 0.28);
+      transform: translateX(-50%) translateY(0) scale(0.9);
+      transition: bottom 145ms cubic-bezier(0.17, 0.84, 0.44, 1), transform 145ms ease, filter 145ms ease;
+      pointer-events: none;
+    }
+
+    .mole::before,
+    .mole::after {
+      position: absolute;
+      top: -11%;
+      width: 27%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: #ffb84f;
+      box-shadow: inset 0 0 0 5px rgba(255, 79, 200, 0.28);
+      content: "";
+    }
+
+    .mole::before {
+      left: 7%;
+    }
+
+    .mole::after {
+      right: 7%;
+    }
+
+    .hole.up .mole {
+      bottom: 17%;
+      transform: translateX(-50%) translateY(0) scale(1);
+    }
+
+    .hole.hit .mole {
+      filter: hue-rotate(80deg) saturate(1.5);
+      transform: translateX(-50%) translateY(8%) scale(0.92);
+    }
+
+    .hole.miss {
+      animation: missPulse 180ms ease;
+    }
+
+    .particles {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .particle {
+      position: absolute;
+      left: 50%;
+      top: 48%;
+      width: clamp(5px, 1.2vw, 9px);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: var(--color, var(--cyan));
+      box-shadow: 0 0 14px var(--color, var(--cyan));
+      opacity: 0;
+      transform: translate(-50%, -50%);
+      animation: burst 560ms ease-out forwards;
+    }
+
+    .sidebar {
+      display: grid;
+      gap: 14px;
+      align-content: center;
+      min-width: 0;
+    }
+
+    .panel {
+      padding: 14px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .stat {
+      min-width: 0;
+      padding: 12px;
+      border: 1px solid rgba(219, 241, 255, 0.12);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 5px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: clamp(1.3rem, 4vw, 2.2rem);
+      line-height: 1;
+      text-shadow: 0 0 18px rgba(72, 255, 232, 0.32);
+    }
+
+    .stat.full {
+      grid-column: 1 / -1;
+    }
+
+    .stat.full strong {
+      color: var(--green);
+    }
+
+    .timer.danger {
+      color: var(--red);
+      animation: timerPulse 520ms ease-in-out infinite alternate;
+      text-shadow: 0 0 20px rgba(255, 77, 114, 0.52);
+    }
+
+    .controls {
+      display: grid;
+      gap: 10px;
+    }
+
+    .start-btn {
+      width: 100%;
+      min-height: 48px;
+      border-color: rgba(72, 255, 232, 0.52);
+      background:
+        linear-gradient(180deg, rgba(72, 255, 232, 0.2), rgba(72, 255, 232, 0.06)),
+        rgba(72, 255, 232, 0.08);
+      color: var(--text);
+      font-weight: 900;
+      text-transform: uppercase;
+      box-shadow: 0 0 24px rgba(72, 255, 232, 0.16);
+    }
+
+    .reset-btn {
+      width: 100%;
+      color: var(--text-soft);
+    }
+
+    .meter {
+      display: grid;
+      gap: 8px;
+    }
+
+    .meter-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--text-soft);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+    }
+
+    .bar {
+      height: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(72, 255, 232, 0.2);
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    .bar-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--cyan), var(--pink));
+      box-shadow: 0 0 18px rgba(72, 255, 232, 0.4);
+      transition: width 220ms ease;
+    }
+
+    .hint {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.45;
+    }
+
+    .flash {
+      animation: valueFlash 220ms ease;
+    }
+
+    @keyframes burst {
+      0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+
+      100% {
+        opacity: 0;
+        transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.2);
+      }
+    }
+
+    @keyframes missPulse {
+      0%,
+      100% {
+        transform: translateX(0);
+      }
+
+      35% {
+        transform: translateX(-4px);
+      }
+
+      70% {
+        transform: translateX(4px);
+      }
+    }
+
+    @keyframes timerPulse {
+      from {
+        opacity: 1;
+      }
+
+      to {
+        opacity: 0.58;
+      }
+    }
+
+    @keyframes valueFlash {
+      0% {
+        color: var(--amber);
+        text-shadow: 0 0 26px rgba(255, 209, 102, 0.72);
+        transform: scale(1.08);
+      }
+
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    @media (max-width: 880px) {
+      .app {
+        grid-template-columns: 1fr;
+        align-items: start;
+      }
+
+      .sidebar {
+        grid-template-columns: minmax(0, 1fr) minmax(230px, 0.85fr);
+        align-items: stretch;
+      }
+
+      .board-shell {
+        min-height: auto;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .app {
+        gap: 12px;
+        padding: 12px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .status-pill {
+        width: 100%;
+      }
+
+      .sidebar {
+        grid-template-columns: 1fr;
+      }
+
+      .stats {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .stat {
+        padding: 10px;
+      }
+
+      .stat.full {
+        grid-column: auto;
+      }
+
+      .hint {
+        display: none;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 1ms !important;
+        scroll-behavior: auto !important;
+        transition-duration: 1ms !important;
+      }
+    }
+  </style>
 </head>
 <body>
-<div class="game">
-<div class="title">Whac-a-Mole</div>
-<div class="difficulty" id="difficulty">
-<button class="diff-btn" data-diff="easy">Easy</button>
-<button class="diff-btn active" data-diff="normal">Normal</button>
-<button class="diff-btn" data-diff="hard">Hard</button>
-</div>
-<div class="hud">
-<div class="stat"><div class="label">Score</div><div class="value" id="score">0</div></div>
-<div class="stat"><div class="label">Time</div><div class="value" id="time">30</div></div>
-<div class="stat"><div class="label">Best</div><div class="value" id="best">0</div></div>
-</div>
-<div class="grid" id="grid"></div>
-<div class="controls">
-<button class="btn primary" id="btn-start">Start</button>
-</div>
-</div>
-<script>
-const STORAGE_KEY = 'whac-best';
-let gridSize = 9, moleTimer = null, gameTimer = null, score = 0, timeLeft = 30, playing = false, best = 0, diff = 'normal';
+  <main class="app" aria-label="Neon Whac-a-Mole game">
+    <section class="stage" aria-label="Game board">
+      <header class="topbar">
+        <div class="brand">
+          <h1>Whac-a-Mole</h1>
+          <p class="subtitle">Hit the lit moles before the timer burns out.</p>
+        </div>
+        <div class="status-pill" id="status" data-state="idle" aria-live="polite">Ready</div>
+      </header>
 
-const diffSettings = { easy: { duration: 45, minDelay: 800, maxDelay: 1800, lifetime: 1500 },
-normal: { duration: 30, minDelay: 500, maxDelay: 1200, lifetime: 1200 },
-hard: { duration: 20, minDelay: 350, maxDelay: 900, lifetime: 900 } };
+      <div class="board-shell">
+        <div class="board" id="board" aria-label="3 by 3 whac-a-mole grid">
+          <button class="hole" type="button" data-index="0" aria-label="Hole 1"><span class="mole"></span><span class="particles"></span></button>
+          <button class="hole" type="button" data-index="1" aria-label="Hole 2"><span class="mole"></span><span class="particles"></span></button>
+          <button class="hole" type="button" data-index="2" aria-label="Hole 3"><span class="mole"></span><span class="particles"></span></button>
+          <button class="hole" type="button" data-index="3" aria-label="Hole 4"><span class="mole"></span><span class="particles"></span></button>
+          <button class="hole" type="button" data-index="4" aria-label="Hole 5"><span class="mole"></span><span class="particles"></span></button>
+          <button class="hole" type="button" data-index="5" aria-label="Hole 6"><span class="mole"></span><span class="particles"></span></button>
+          <button class="hole" type="button" data-index="6" aria-label="Hole 7"><span class="mole"></span><span class="particles"></span></button>
+          <button class="hole" type="button" data-index="7" aria-label="Hole 8"><span class="mole"></span><span class="particles"></span></button>
+          <button class="hole" type="button" data-index="8" aria-label="Hole 9"><span class="mole"></span><span class="particles"></span></button>
+        </div>
+      </div>
+    </section>
 
-const scoreEl = document.getElementById('score'), timeEl = document.getElementById('time'), bestEl = document.getElementById('best'),
-gridEl = document.getElementById('grid'), btnStart = document.getElementById('btn-start');
+    <aside class="sidebar" aria-label="Game controls and score">
+      <section class="panel stats" aria-label="Scoreboard">
+        <div class="stat">
+          <span>Score</span>
+          <strong id="score">0</strong>
+        </div>
+        <div class="stat">
+          <span>Time</span>
+          <strong class="timer" id="time">30</strong>
+        </div>
+        <div class="stat full">
+          <span>Best</span>
+          <strong id="best">0</strong>
+        </div>
+      </section>
 
-function sound(freq = 660, dur = 0.08) { try { const ctx = new AudioContext(); const o = ctx.createOscillator(); const g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value = freq; o.type = 'square'; g.gain.value = 0.1; o.start(); o.stop(ctx.currentTime + dur); } catch(e){} }
+      <section class="panel controls">
+        <button class="start-btn" id="startBtn" type="button">Start</button>
+        <button class="reset-btn" id="resetBtn" type="button">Reset Best</button>
+        <div class="meter" aria-label="Speed meter">
+          <div class="meter-row">
+            <span>Speed</span>
+            <strong id="speedLabel">Level 1</strong>
+          </div>
+          <div class="bar" aria-hidden="true"><div class="bar-fill" id="speedBar"></div></div>
+        </div>
+        <p class="hint">Moles appear faster as your score climbs. Space starts a round.</p>
+      </section>
+    </aside>
+  </main>
 
-function buildGrid() {
-gridEl.innerHTML = '';
-for (let i = 0; i < gridSize; i++) {
-const hole = document.createElement('div');
-hole.className = 'hole';
-hole.dataset.idx = i;
-hole.innerHTML = '<div class="mole">🐹</div><div class="particles"></div>';
-hole.addEventListener('pointerdown', () => whack(hole));
-gridEl.appendChild(hole);
-}
-}
+  <script>
+    const ROUND_SECONDS = 30;
+    const STORAGE_KEY = "neon-whac-best";
+    const HIT_COLORS = ["#48ffe8", "#ff4fc8", "#ffd166", "#9aff6a", "#9c7dff"];
 
-function randomHole() {
-const holes = document.querySelectorAll('.hole:not(.up)');
-if (holes.length === 0) return;
-const hole = holes[Math.floor(Math.random() * holes.length)];
-hole.classList.add('up');
-const settings = diffSettings[diff];
-const duration = settings.lifetime * (0.8 + Math.random() * 0.4);
-setTimeout(() => { if (hole.classList.contains('up')) hole.classList.remove('up'); }, duration);
-}
+    const holes = Array.from(document.querySelectorAll(".hole"));
+    const scoreEl = document.getElementById("score");
+    const timeEl = document.getElementById("time");
+    const bestEl = document.getElementById("best");
+    const statusEl = document.getElementById("status");
+    const startBtn = document.getElementById("startBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const speedLabel = document.getElementById("speedLabel");
+    const speedBar = document.getElementById("speedBar");
 
-function whack(hole) {
-if (!playing || !hole.classList.contains('up')) return;
-hole.classList.remove('up');
-hole.classList.add('whacked');
-score++;
-scoreEl.textContent = score;
-scoreEl.className = 'value';
-sound(880, 0.08);
-const particles = hole.querySelector('.particles');
-for (let i = 0; i < 8; i++) {
-const p = document.createElement('div');
-p.className = 'particle';
-p.style.setProperty('--dx', (Math.random() - 0.5) * 60 + 'px');
-p.style.setProperty('--dy', (Math.random() - 0.5) * 60 - 20 + 'px');
-p.style.background = '#ffaa00';
-particles.appendChild(p);
-setTimeout(() => p.remove(), 400);
-}
-setTimeout(() => hole.classList.remove('whacked'), 200);
-}
+    let score = 0;
+    let best = Number(localStorage.getItem(STORAGE_KEY)) || 0;
+    let timeLeft = ROUND_SECONDS;
+    let running = false;
+    let activeIndex = -1;
+    let roundTimer = 0;
+    let spawnTimer = 0;
+    let hideTimer = 0;
+    let audioContext = null;
 
-function spawnMoles() {
-if (!playing) return;
-const settings = diffSettings[diff];
-randomHole();
-if (Math.random() < 0.3 + (diff === 'hard' ? 0.2 : 0)) setTimeout(() => { if (playing) randomHole(); }, settings.minDelay / 2);
-moleTimer = setTimeout(spawnMoles, settings.minDelay + Math.random() * (settings.maxDelay - settings.minDelay));
-}
+    function setStatus(text, state) {
+      statusEl.textContent = text;
+      statusEl.dataset.state = state;
+    }
 
-function tick() {
-if (!playing) return;
-timeLeft--;
-timeEl.textContent = timeLeft;
-if (timeLeft <= 10) timeEl.className = timeLeft <= 5 ? 'value danger' : 'value warn';
-if (timeLeft <= 0) { endGame(); return; }
-gameTimer = setTimeout(tick, 1000);
-}
+    function updateHud() {
+      scoreEl.textContent = score;
+      timeEl.textContent = timeLeft;
+      bestEl.textContent = best;
+      timeEl.classList.toggle("danger", timeLeft <= 8 && running);
 
-function startGame() {
-score = 0; timeLeft = diffSettings[diff].duration;
-scoreEl.textContent = '0'; timeEl.textContent = timeLeft;
-scoreEl.className = 'value'; timeEl.className = 'value';
-playing = true;
-btnStart.textContent = 'Playing...';
-spawnMoles();
-tick();
-}
+      const level = Math.min(10, Math.floor(score / 4) + 1);
+      speedLabel.textContent = `Level ${level}`;
+      speedBar.style.width = `${Math.min(100, (level - 1) * 11.2)}%`;
+    }
 
-function endGame() {
-playing = false;
-clearTimeout(moleTimer);
-clearTimeout(gameTimer);
-document.querySelectorAll('.hole.up').forEach(h => h.classList.remove('up'));
-btnStart.textContent = 'Play Again';
-sound(440, 0.3);
-if (score > best) { best = score; bestEl.textContent = best; try { localStorage.setItem(STORAGE_KEY, best); } catch(e){} }
-}
+    function flashValue(element) {
+      element.classList.remove("flash");
+      void element.offsetWidth;
+      element.classList.add("flash");
+    }
 
-btnStart.addEventListener('click', () => {
-if (playing) return;
-clearTimeout(moleTimer); clearTimeout(gameTimer);
-startGame();
-});
+    function clearMoles() {
+      holes.forEach((hole) => {
+        hole.classList.remove("up", "hit", "miss");
+      });
+      activeIndex = -1;
+      window.clearTimeout(hideTimer);
+    }
 
-document.getElementById('difficulty').addEventListener('click', e => {
-const b = e.target.closest('.diff-btn');
-if (!b || playing) return;
-diff = b.dataset.diff;
-document.querySelectorAll('.diff-btn').forEach(d => d.classList.remove('active'));
-b.classList.add('active');
-timeLeft = diffSettings[diff].duration;
-timeEl.textContent = timeLeft;
-timeEl.className = 'value';
-});
+    function speedSettings() {
+      const level = Math.min(10, Math.floor(score / 4) + 1);
+      return {
+        level,
+        popDuration: Math.max(410, 1180 - level * 70),
+        nextDelay: Math.max(250, 820 - level * 58)
+      };
+    }
 
-document.addEventListener('keydown', e => { if (e.code === 'Space' && !playing) { e.preventDefault(); startGame(); } });
+    function randomHoleIndex() {
+      let next = Math.floor(Math.random() * holes.length);
+      if (holes.length > 1 && next === activeIndex) {
+        next = (next + 1 + Math.floor(Math.random() * (holes.length - 1))) % holes.length;
+      }
+      return next;
+    }
 
-window.addEventListener('load', () => {
-try { best = parseInt(localStorage.getItem(STORAGE_KEY)) || 0; bestEl.textContent = best; } catch(e){}
-buildGrid();
-});
-</script>
+    function popMole() {
+      if (!running) return;
+
+      clearMoles();
+      const index = randomHoleIndex();
+      const settings = speedSettings();
+      activeIndex = index;
+      holes[index].classList.add("up");
+
+      hideTimer = window.setTimeout(() => {
+        if (!running) return;
+        holes[index].classList.remove("up");
+        activeIndex = -1;
+      }, settings.popDuration);
+
+      spawnTimer = window.setTimeout(popMole, settings.nextDelay + Math.random() * 260);
+      updateHud();
+    }
+
+    function playHitSound() {
+      try {
+        audioContext = audioContext || new AudioContext();
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+
+        oscillator.type = "square";
+        oscillator.frequency.setValueAtTime(260 + Math.min(score, 30) * 18, audioContext.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(740, audioContext.currentTime + 0.07);
+        gain.gain.setValueAtTime(0.08, audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.1);
+
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.11);
+      } catch (error) {
+        audioContext = null;
+      }
+    }
+
+    function createParticles(hole) {
+      const layer = hole.querySelector(".particles");
+      layer.innerHTML = "";
+
+      for (let i = 0; i < 15; i += 1) {
+        const particle = document.createElement("span");
+        const angle = (Math.PI * 2 * i) / 15 + Math.random() * 0.42;
+        const distance = 34 + Math.random() * 54;
+        const color = HIT_COLORS[i % HIT_COLORS.length];
+
+        particle.className = "particle";
+        particle.style.setProperty("--dx", `${Math.cos(angle) * distance}px`);
+        particle.style.setProperty("--dy", `${Math.sin(angle) * distance}px`);
+        particle.style.setProperty("--color", color);
+        layer.appendChild(particle);
+      }
+
+      window.setTimeout(() => {
+        layer.innerHTML = "";
+      }, 620);
+    }
+
+    function whack(hole) {
+      if (!running) return;
+
+      if (!hole.classList.contains("up")) {
+        hole.classList.add("miss");
+        window.setTimeout(() => hole.classList.remove("miss"), 190);
+        return;
+      }
+
+      score += 1;
+      hole.classList.remove("up");
+      hole.classList.add("hit");
+      activeIndex = -1;
+      createParticles(hole);
+      playHitSound();
+      updateHud();
+      flashValue(scoreEl);
+
+      window.setTimeout(() => {
+        hole.classList.remove("hit");
+      }, 180);
+    }
+
+    function endRound() {
+      running = false;
+      window.clearInterval(roundTimer);
+      window.clearTimeout(spawnTimer);
+      window.clearTimeout(hideTimer);
+      clearMoles();
+
+      if (score > best) {
+        best = score;
+        localStorage.setItem(STORAGE_KEY, String(best));
+        flashValue(bestEl);
+      }
+
+      startBtn.textContent = "Play Again";
+      setStatus("Round Over", "over");
+      updateHud();
+    }
+
+    function startRound() {
+      window.clearInterval(roundTimer);
+      window.clearTimeout(spawnTimer);
+      window.clearTimeout(hideTimer);
+
+      score = 0;
+      timeLeft = ROUND_SECONDS;
+      running = true;
+      clearMoles();
+      startBtn.textContent = "Playing";
+      setStatus("Live", "live");
+      updateHud();
+
+      popMole();
+      roundTimer = window.setInterval(() => {
+        timeLeft -= 1;
+        updateHud();
+        if (timeLeft <= 0) endRound();
+      }, 1000);
+    }
+
+    holes.forEach((hole) => {
+      hole.addEventListener("pointerdown", () => whack(hole));
+    });
+
+    startBtn.addEventListener("click", () => {
+      if (!running) startRound();
+    });
+
+    resetBtn.addEventListener("click", () => {
+      best = 0;
+      localStorage.removeItem(STORAGE_KEY);
+      updateHud();
+      flashValue(bestEl);
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.code === "Space" && !running) {
+        event.preventDefault();
+        startRound();
+      }
+    });
+
+    updateHud();
+  </script>
 </body>
 </html>

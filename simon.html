@@ -3,25 +3,28 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#050507">
-  <title>Simon</title>
+  <title>Neon Simon</title>
   <style>
     :root {
       color-scheme: dark;
-      --bg: #050507;
-      --panel: #101016;
-      --panel-2: #171724;
-      --text: #f4f7ff;
-      --muted: #9ca3b8;
-      --line: rgba(255, 255, 255, 0.14);
-      --green: #35ff8a;
-      --red: #ff4f6d;
-      --yellow: #ffe66d;
-      --blue: #46a7ff;
-      --shadow: rgba(0, 0, 0, 0.55);
-      font-family:
-        Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-        "Segoe UI", sans-serif;
+      --bg: #050506;
+      --panel: rgba(13, 14, 18, 0.88);
+      --panel-solid: #101116;
+      --line: rgba(238, 247, 255, 0.16);
+      --line-hot: rgba(81, 255, 221, 0.54);
+      --text: #f3f8ff;
+      --soft: #aab6c4;
+      --muted: #707b89;
+      --green: #55ff7a;
+      --red: #ff476f;
+      --yellow: #ffe05d;
+      --blue: #54b6ff;
+      --cyan: #51ffdd;
+      --magenta: #ff5edb;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.58);
+      --radius: 8px;
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
     }
 
     * {
@@ -30,331 +33,567 @@
 
     html,
     body {
-      height: 100%;
+      min-height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      letter-spacing: 0;
     }
 
     body {
-      margin: 0;
-      min-height: 100svh;
+      min-height: 100dvh;
       overflow-x: hidden;
       background:
-        linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-        radial-gradient(circle at 50% 45%, #1d1324 0%, #09090d 42%, var(--bg) 100%);
-      background-size: 44px 44px, 44px 44px, auto;
-      color: var(--text);
+        linear-gradient(135deg, rgba(81, 255, 221, 0.11), transparent 32%),
+        linear-gradient(225deg, rgba(255, 94, 219, 0.1), transparent 34%),
+        linear-gradient(180deg, #08080b 0%, #101016 46%, #050506 100%);
+    }
+
+    body::before {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      content: "";
+      pointer-events: none;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.032) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.026) 1px, transparent 1px);
+      background-size: 34px 34px;
+      mask-image: linear-gradient(to bottom, black 0%, rgba(0, 0, 0, 0.72) 70%, transparent 100%);
+    }
+
+    body::after {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      content: "";
+      pointer-events: none;
+      background:
+        repeating-linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.024) 0,
+          rgba(255, 255, 255, 0.024) 1px,
+          transparent 1px,
+          transparent 8px
+        );
+      opacity: 0.22;
+    }
+
+    button,
+    input {
+      font: inherit;
     }
 
     button {
-      font: inherit;
+      border: 1px solid var(--line);
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    button:focus-visible,
+    input:focus-visible + .switch-track {
+      outline: 2px solid var(--cyan);
+      outline-offset: 4px;
     }
 
     .app {
       display: grid;
-      grid-template-rows: auto 1fr auto;
-      min-height: 100svh;
-      padding: clamp(18px, 4vw, 44px);
-      gap: clamp(14px, 2.5vw, 28px);
-    }
-
-    .topbar,
-    .footer {
-      display: flex;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 18px;
+      width: min(1180px, 100%);
+      min-height: 100dvh;
+      margin: 0 auto;
+      padding: 18px;
       align-items: center;
-      justify-content: center;
-      min-height: 28px;
     }
 
-    .title {
-      margin: 0;
-      text-transform: uppercase;
-      letter-spacing: 0;
-      font-size: clamp(2.1rem, 7vw, 5.2rem);
-      line-height: 0.92;
-      color: #ffffff;
-      text-shadow:
-        0 0 10px rgba(255, 255, 255, 0.45),
-        0 0 36px rgba(70, 167, 255, 0.24),
-        0 0 52px rgba(255, 79, 109, 0.18);
+    .stage,
+    .panel {
+      min-width: 0;
     }
 
     .stage {
       display: grid;
-      place-items: center;
-      width: 100%;
-      min-height: 0;
+      gap: 14px;
+    }
+
+    .topbar,
+    .panel,
+    .board-shell {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 14px 16px;
+    }
+
+    .title-block {
+      min-width: 0;
+    }
+
+    h1,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(1.9rem, 1.52rem + 1.25vw, 2.7rem);
+      line-height: 1.02;
+      text-shadow:
+        0 0 18px rgba(81, 255, 221, 0.3),
+        0 0 34px rgba(255, 94, 219, 0.18);
+    }
+
+    .subtitle {
+      margin-top: 5px;
+      color: var(--soft);
+      font-size: 0.95rem;
+      line-height: 1.35;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      justify-content: center;
+      min-width: 148px;
+      padding: 10px 12px;
+      border: 1px solid rgba(81, 255, 221, 0.34);
+      border-radius: 999px;
+      background: rgba(5, 7, 10, 0.74);
+      color: var(--cyan);
+      font-family: var(--mono);
+      font-size: 0.86rem;
+      text-align: center;
+      box-shadow: 0 0 22px rgba(81, 255, 221, 0.12);
+      white-space: nowrap;
     }
 
     .board-shell {
+      display: grid;
+      place-items: center;
+      min-height: min(720px, calc(100dvh - 132px));
+      padding: 18px;
+      overflow: hidden;
+    }
+
+    .board {
       position: relative;
-      width: min(86vw, 68svh, 640px);
-      min-width: min(86vw, 300px);
-      aspect-ratio: 1;
-      border-radius: 50%;
-      padding: clamp(12px, 2.2vw, 22px);
-      background:
-        linear-gradient(145deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.02)),
-        #08080d;
-      box-shadow:
-        0 24px 90px var(--shadow),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.12),
-        inset 0 0 44px rgba(255, 255, 255, 0.05);
-      transition: transform 180ms ease;
-    }
-
-    .board-shell.is-missed {
-      animation: miss-shake 300ms linear;
-    }
-
-    .pads {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       grid-template-rows: repeat(2, minmax(0, 1fr));
-      width: 100%;
-      height: 100%;
-      gap: clamp(12px, 2vw, 20px);
+      gap: clamp(10px, 2vw, 18px);
+      width: min(100%, 690px, calc(100dvh - 172px));
+      aspect-ratio: 1;
+      padding: clamp(12px, 2vw, 22px);
+      border: 1px solid rgba(255, 255, 255, 0.17);
       border-radius: 50%;
-      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.1), transparent 18%),
+        linear-gradient(145deg, rgba(81, 255, 221, 0.09), rgba(255, 94, 219, 0.07)),
+        #030406;
+      box-shadow:
+        inset 0 0 40px rgba(255, 255, 255, 0.06),
+        inset 0 0 78px rgba(0, 0, 0, 0.8),
+        0 0 46px rgba(81, 255, 221, 0.11),
+        0 0 80px rgba(255, 94, 219, 0.09);
+      transition: transform 160ms ease, box-shadow 180ms ease;
+    }
+
+    .board.is-error {
+      animation: board-error 280ms ease;
+      box-shadow:
+        inset 0 0 48px rgba(255, 71, 111, 0.2),
+        inset 0 0 78px rgba(0, 0, 0, 0.86),
+        0 0 56px rgba(255, 71, 111, 0.28);
+    }
+
+    .board-core {
+      position: absolute;
+      inset: 50%;
+      z-index: 3;
+      display: grid;
+      place-items: center;
+      width: clamp(118px, 24%, 166px);
+      aspect-ratio: 1;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 24%, rgba(255, 255, 255, 0.14), transparent 33%),
+        linear-gradient(180deg, #181a22, #07080b 76%);
+      box-shadow:
+        0 0 0 clamp(10px, 2vw, 18px) #050506,
+        0 0 42px rgba(81, 255, 221, 0.2),
+        inset 0 0 22px rgba(255, 255, 255, 0.06);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .core-text {
+      display: grid;
+      justify-items: center;
+      gap: 2px;
+      font-family: var(--mono);
+      text-align: center;
+      line-height: 1.15;
+    }
+
+    .core-label {
+      color: var(--muted);
+      font-size: 0.7rem;
+    }
+
+    .core-value {
+      color: var(--text);
+      font-size: clamp(1.45rem, 1.1rem + 1vw, 2.1rem);
+      font-weight: 800;
+      text-shadow: 0 0 20px rgba(81, 255, 221, 0.34);
     }
 
     .pad {
       position: relative;
-      display: block;
       min-width: 0;
       min-height: 0;
-      appearance: none;
-      border: 1px solid rgba(255, 255, 255, 0.14);
+      padding: 0;
+      overflow: hidden;
       background:
-        radial-gradient(circle at 36% 30%, rgba(255, 255, 255, 0.26), transparent 25%),
-        linear-gradient(145deg, color-mix(in srgb, var(--pad) 30%, #111), var(--pad-dim));
+        radial-gradient(circle at 34% 26%, rgba(255, 255, 255, 0.34), transparent 18%),
+        linear-gradient(145deg, color-mix(in srgb, var(--pad) 72%, white), var(--pad-dim));
       box-shadow:
-        inset 0 0 28px rgba(255, 255, 255, 0.04),
-        inset 0 0 58px rgba(0, 0, 0, 0.34),
-        0 0 16px color-mix(in srgb, var(--pad) 26%, transparent);
-      cursor: pointer;
-      filter: saturate(0.72) brightness(0.84);
-      outline: none;
-      transform: translateZ(0);
+        inset 0 0 34px rgba(255, 255, 255, 0.08),
+        inset 0 -24px 42px rgba(0, 0, 0, 0.42),
+        0 0 22px rgba(0, 0, 0, 0.5);
+      opacity: 0.74;
       transition:
-        filter 120ms ease,
-        box-shadow 120ms ease,
-        transform 120ms ease;
-      touch-action: manipulation;
+        opacity 130ms ease,
+        filter 130ms ease,
+        transform 130ms ease,
+        box-shadow 130ms ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .pad::before {
+      position: absolute;
+      inset: 0;
+      content: "";
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.25), transparent 34%),
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.2), transparent 52%);
+      opacity: 0;
+      transition: opacity 130ms ease;
     }
 
     .pad::after {
-      content: "";
       position: absolute;
-      inset: 12%;
+      inset: 14%;
+      content: "";
       border-radius: inherit;
       background: var(--pad);
+      filter: blur(24px);
       opacity: 0;
-      filter: blur(34px);
-      transition: opacity 120ms ease;
+      transition: opacity 130ms ease;
     }
 
     .pad:hover {
-      filter: saturate(0.92) brightness(0.96);
+      opacity: 0.92;
+      filter: saturate(1.18);
     }
 
-    .pad:focus-visible {
+    .pad:active,
+    .pad.is-active {
+      z-index: 2;
+      opacity: 1;
+      filter: saturate(1.55) brightness(1.28);
+      transform: scale(1.014);
       box-shadow:
-        inset 0 0 28px rgba(255, 255, 255, 0.08),
-        0 0 0 4px rgba(255, 255, 255, 0.2),
-        0 0 28px var(--pad);
+        inset 0 0 28px rgba(255, 255, 255, 0.22),
+        inset 0 -18px 38px rgba(0, 0, 0, 0.22),
+        0 0 26px var(--pad-glow),
+        0 0 64px var(--pad-glow);
     }
 
-    .pad.is-lit {
-      filter: saturate(1.35) brightness(1.42);
-      transform: scale(0.985);
-      box-shadow:
-        inset 0 0 34px rgba(255, 255, 255, 0.26),
-        inset 0 0 62px rgba(255, 255, 255, 0.12),
-        0 0 22px color-mix(in srgb, var(--pad) 82%, transparent),
-        0 0 72px color-mix(in srgb, var(--pad) 50%, transparent);
+    .pad.is-active::before,
+    .pad.is-active::after {
+      opacity: 0.72;
     }
 
-    .pad.is-lit::after {
-      opacity: 0.68;
+    .pad[aria-disabled="true"] {
+      cursor: default;
     }
 
     .pad-green {
       --pad: var(--green);
-      --pad-dim: #0e5a34;
-      border-top-left-radius: 100%;
+      --pad-dim: #127b38;
+      --pad-glow: rgba(85, 255, 122, 0.72);
+      border-radius: 100% 16px 16px 16px;
     }
 
     .pad-red {
       --pad: var(--red);
-      --pad-dim: #611323;
-      border-top-right-radius: 100%;
+      --pad-dim: #8c1030;
+      --pad-glow: rgba(255, 71, 111, 0.72);
+      border-radius: 16px 100% 16px 16px;
     }
 
     .pad-yellow {
       --pad: var(--yellow);
-      --pad-dim: #695a14;
-      border-bottom-left-radius: 100%;
+      --pad-dim: #98790e;
+      --pad-glow: rgba(255, 224, 93, 0.72);
+      border-radius: 16px 16px 16px 100%;
     }
 
     .pad-blue {
       --pad: var(--blue);
-      --pad-dim: #123f66;
-      border-bottom-right-radius: 100%;
+      --pad-dim: #0f558f;
+      --pad-glow: rgba(84, 182, 255, 0.72);
+      border-radius: 16px 16px 100% 16px;
     }
 
-    .hub {
-      position: absolute;
-      inset: 50% auto auto 50%;
+    .panel {
       display: grid;
-      grid-template-rows: auto auto auto;
-      place-items: center;
-      width: clamp(146px, 31%, 210px);
-      aspect-ratio: 1;
-      padding: clamp(16px, 3vw, 24px);
-      border: 1px solid var(--line);
-      border-radius: 50%;
-      background:
-        linear-gradient(150deg, rgba(255, 255, 255, 0.12), transparent 34%),
-        linear-gradient(180deg, var(--panel-2), var(--panel));
-      box-shadow:
-        0 18px 56px rgba(0, 0, 0, 0.58),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.05),
-        0 0 36px rgba(255, 255, 255, 0.08);
-      transform: translate(-50%, -50%);
-      z-index: 2;
+      gap: 14px;
+      padding: 16px;
+      align-self: center;
     }
 
-    .status {
+    .scores {
       display: grid;
-      place-items: center;
-      min-height: 2.6em;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      min-width: 0;
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.045);
+    }
+
+    .metric-label {
+      display: block;
       color: var(--muted);
-      font-size: clamp(0.78rem, 1.7vw, 0.95rem);
-      font-weight: 700;
-      letter-spacing: 0;
-      text-transform: uppercase;
+      font-size: 0.78rem;
+      line-height: 1.2;
     }
 
-    .score {
+    .metric-value {
+      display: block;
+      margin-top: 3px;
+      font-family: var(--mono);
+      font-size: clamp(1.45rem, 1.2rem + 0.55vw, 1.9rem);
+      font-weight: 800;
+      line-height: 1.05;
+    }
+
+    .controls {
       display: grid;
-      grid-template-columns: repeat(2, minmax(52px, 1fr));
-      width: 100%;
-      gap: 8px;
-      margin: 4px 0 12px;
+      gap: 10px;
     }
 
-    .meter {
+    .primary-button {
+      min-height: 48px;
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.03)),
+        linear-gradient(90deg, rgba(81, 255, 221, 0.22), rgba(255, 94, 219, 0.2)),
+        #101116;
+      font-weight: 800;
+      box-shadow: 0 0 28px rgba(81, 255, 221, 0.1);
+      transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+    }
+
+    .primary-button:hover {
+      border-color: var(--line-hot);
+      box-shadow: 0 0 34px rgba(81, 255, 221, 0.18);
+      transform: translateY(-1px);
+    }
+
+    .primary-button:active {
+      transform: translateY(0);
+    }
+
+    .switch-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 48px;
+      padding: 10px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--soft);
+      user-select: none;
+    }
+
+    .switch-text {
       display: grid;
       gap: 2px;
-      padding: 8px 7px;
-      border: 1px solid rgba(255, 255, 255, 0.09);
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.045);
-      text-align: center;
+      min-width: 0;
     }
 
-    .meter span {
+    .switch-title {
+      color: var(--text);
+      font-weight: 700;
+      line-height: 1.15;
+    }
+
+    .switch-state {
       color: var(--muted);
-      font-size: 0.65rem;
-      font-weight: 800;
-      letter-spacing: 0;
-      text-transform: uppercase;
+      font-size: 0.82rem;
+      line-height: 1.2;
     }
 
-    .meter strong {
-      min-height: 1.15em;
-      color: #fff;
-      font-size: clamp(1.15rem, 2.7vw, 1.55rem);
-      line-height: 1;
-      text-shadow: 0 0 16px rgba(70, 167, 255, 0.28);
+    .switch {
+      position: relative;
+      flex: 0 0 auto;
+      display: inline-grid;
+      place-items: center;
+      width: 54px;
+      height: 30px;
     }
 
-    .start {
-      width: min(100%, 118px);
-      min-height: 42px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+    .switch input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+    }
+
+    .switch-track {
+      position: absolute;
+      inset: 0;
+      border: 1px solid rgba(255, 255, 255, 0.14);
       border-radius: 999px;
-      background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.04)),
-        #20202d;
-      color: #ffffff;
-      cursor: pointer;
-      font-weight: 900;
-      letter-spacing: 0;
-      text-transform: uppercase;
-      box-shadow:
-        0 0 18px rgba(53, 255, 138, 0.18),
-        inset 0 0 18px rgba(255, 255, 255, 0.07);
-      transition:
-        border-color 120ms ease,
-        box-shadow 120ms ease,
-        transform 120ms ease;
+      background: #20232b;
+      transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
     }
 
-    .start:hover {
-      border-color: rgba(53, 255, 138, 0.6);
-      box-shadow:
-        0 0 24px rgba(53, 255, 138, 0.26),
-        inset 0 0 18px rgba(255, 255, 255, 0.08);
+    .switch-thumb {
+      position: absolute;
+      left: 4px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #dfe8f4;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.34);
+      transition: transform 140ms ease, background 140ms ease;
     }
 
-    .start:active {
-      transform: translateY(1px);
+    .switch input:checked + .switch-track {
+      border-color: rgba(255, 71, 111, 0.58);
+      background: rgba(255, 71, 111, 0.24);
+      box-shadow: 0 0 22px rgba(255, 71, 111, 0.18);
     }
 
-    .start:focus-visible {
-      outline: 3px solid rgba(70, 167, 255, 0.58);
-      outline-offset: 3px;
+    .switch input:checked ~ .switch-thumb {
+      background: var(--red);
+      transform: translateX(24px);
     }
 
-    .start:disabled {
-      cursor: default;
-      opacity: 0.62;
+    .message {
+      min-height: 58px;
+      padding: 12px;
+      border: 1px solid rgba(81, 255, 221, 0.2);
+      border-radius: var(--radius);
+      background: rgba(5, 7, 10, 0.58);
+      color: var(--soft);
+      line-height: 1.35;
     }
 
-    .footer {
+    .sequence-meter {
+      display: grid;
+      gap: 7px;
+    }
+
+    .meter-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
       color: var(--muted);
-      font-size: clamp(0.72rem, 2vw, 0.9rem);
-      font-weight: 650;
-      text-transform: uppercase;
-      letter-spacing: 0;
+      font-size: 0.82rem;
     }
 
-    @keyframes miss-shake {
-      0%, 100% { transform: translateX(0); }
-      20% { transform: translateX(-8px); }
-      40% { transform: translateX(8px); }
-      60% { transform: translateX(-5px); }
-      80% { transform: translateX(5px); }
+    .meter-track {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 5px;
+      min-height: 12px;
     }
 
-    @media (max-width: 560px) {
+    .meter-dot {
+      min-height: 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .meter-dot.is-filled {
+      background: linear-gradient(90deg, var(--cyan), var(--magenta));
+      box-shadow: 0 0 14px rgba(81, 255, 221, 0.2);
+    }
+
+    @keyframes board-error {
+      0%,
+      100% {
+        transform: translateX(0);
+      }
+      25% {
+        transform: translateX(-8px);
+      }
+      50% {
+        transform: translateX(8px);
+      }
+      75% {
+        transform: translateX(-5px);
+      }
+    }
+
+    @media (max-width: 860px) {
       .app {
-        padding: 18px 14px;
+        grid-template-columns: 1fr;
+        align-items: stretch;
+        padding: 12px;
       }
 
       .board-shell {
-        width: min(94vw, 72svh);
+        min-height: auto;
       }
 
-      .hub {
-        width: clamp(134px, 36%, 172px);
-        padding: 13px;
+      .board {
+        width: min(100%, 620px, calc(100dvh - 320px));
+        min-width: 260px;
       }
 
-      .score {
-        grid-template-columns: repeat(2, minmax(46px, 1fr));
-        gap: 6px;
-        margin-bottom: 9px;
+      .panel {
+        align-self: stretch;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
       }
 
-      .meter {
-        padding: 7px 5px;
+      .status-pill {
+        width: 100%;
       }
 
-      .start {
-        min-height: 38px;
-        width: min(100%, 104px);
+      .board {
+        width: min(100%, calc(100dvh - 360px));
+        min-width: 248px;
+      }
+
+      .scores {
+        grid-template-columns: 1fr 1fr;
       }
     }
 
@@ -370,338 +609,482 @@
   </style>
 </head>
 <body>
-  <main class="app">
-    <header class="topbar">
-      <h1 class="title">Simon</h1>
-    </header>
-
-    <section class="stage" aria-label="Simon game board">
-      <div class="board-shell" id="board">
-        <div class="pads">
-          <button class="pad pad-green" type="button" data-pad="green" aria-label="Green pad"></button>
-          <button class="pad pad-red" type="button" data-pad="red" aria-label="Red pad"></button>
-          <button class="pad pad-yellow" type="button" data-pad="yellow" aria-label="Yellow pad"></button>
-          <button class="pad pad-blue" type="button" data-pad="blue" aria-label="Blue pad"></button>
+  <main class="app" aria-label="Simon memory game">
+    <section class="stage" aria-label="Game board">
+      <header class="topbar">
+        <div class="title-block">
+          <h1>Neon Simon</h1>
+          <p class="subtitle">Watch the lights, then repeat the pattern.</p>
         </div>
+        <div class="status-pill" id="statusText" aria-live="polite">Ready</div>
+      </header>
 
-        <div class="hub" aria-live="polite">
-          <div class="status" id="status">Ready</div>
-          <div class="score" aria-label="Score">
-            <div class="meter">
-              <span>Level</span>
-              <strong id="level">0</strong>
-            </div>
-            <div class="meter">
-              <span>Best</span>
-              <strong id="best">0</strong>
+      <div class="board-shell">
+        <div class="board" id="board">
+          <button class="pad pad-green" type="button" data-pad="green" aria-label="Green pad" aria-disabled="true"></button>
+          <button class="pad pad-red" type="button" data-pad="red" aria-label="Red pad" aria-disabled="true"></button>
+          <button class="pad pad-yellow" type="button" data-pad="yellow" aria-label="Yellow pad" aria-disabled="true"></button>
+          <button class="pad pad-blue" type="button" data-pad="blue" aria-label="Blue pad" aria-disabled="true"></button>
+          <div class="board-core" aria-hidden="true">
+            <div class="core-text">
+              <span class="core-label">Round</span>
+              <span class="core-value" id="roundText">0</span>
             </div>
           </div>
-          <button class="start" id="start" type="button" aria-label="Start game">Start</button>
         </div>
       </div>
     </section>
 
-    <footer class="footer" id="footer">Memory sequence</footer>
+    <aside class="panel" aria-label="Game controls">
+      <div class="scores">
+        <div class="metric">
+          <span class="metric-label">Score</span>
+          <span class="metric-value" id="scoreText">0</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Best</span>
+          <span class="metric-value" id="bestText">0</span>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="primary-button" type="button" id="startButton">Start</button>
+
+        <label class="switch-row" for="strictToggle">
+          <span class="switch-text">
+            <span class="switch-title">Strict mode</span>
+            <span class="switch-state" id="strictState">Off</span>
+          </span>
+          <span class="switch" aria-hidden="true">
+            <input id="strictToggle" type="checkbox">
+            <span class="switch-track"></span>
+            <span class="switch-thumb"></span>
+          </span>
+        </label>
+      </div>
+
+      <div class="message" id="messageText" aria-live="polite">Press Start to begin.</div>
+
+      <div class="sequence-meter" aria-hidden="true">
+        <div class="meter-label">
+          <span>Pattern</span>
+          <span id="patternText">0 pads</span>
+        </div>
+        <div class="meter-track" id="meterTrack"></div>
+      </div>
+    </aside>
   </main>
 
   <script>
-    (() => {
-      const padOrder = ["green", "red", "yellow", "blue"];
-      const tones = {
-        green: 329.63,
-        red: 261.63,
-        yellow: 220,
-        blue: 392
-      };
-      const keyMap = {
-        q: "green",
-        w: "red",
-        a: "yellow",
-        s: "blue",
-        1: "green",
-        2: "red",
-        3: "yellow",
-        4: "blue"
-      };
+    /* SIMON_LOGIC_START */
+    const SimonLogic = (() => {
+      const PAD_IDS = ['green', 'red', 'yellow', 'blue'];
 
-      const board = document.querySelector("#board");
-      const statusEl = document.querySelector("#status");
-      const levelEl = document.querySelector("#level");
-      const bestEl = document.querySelector("#best");
-      const footerEl = document.querySelector("#footer");
-      const startBtn = document.querySelector("#start");
-      const pads = new Map(
-        Array.from(document.querySelectorAll("[data-pad]"), (pad) => [pad.dataset.pad, pad])
-      );
+      function normalizePad(step) {
+        if (Number.isInteger(step)) {
+          const index = ((step % PAD_IDS.length) + PAD_IDS.length) % PAD_IDS.length;
+          return PAD_IDS[index];
+        }
 
-      const state = {
-        audio: null,
-        sequence: [],
-        inputIndex: 0,
-        level: 0,
-        best: Number(localStorage.getItem("simonBest") || 0),
-        started: false,
-        gameOver: false,
-        accepting: false,
-        playing: false,
-        inputBusy: false,
-        runId: 0
-      };
+        if (PAD_IDS.includes(step)) {
+          return step;
+        }
 
-      bestEl.textContent = String(state.best);
-
-      const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
-
-      function randomPad() {
-        return padOrder[Math.floor(Math.random() * padOrder.length)];
+        throw new Error(`Unknown Simon pad: ${step}`);
       }
 
-      function setStatus(text, footerText) {
-        statusEl.textContent = text;
-        if (footerText) {
-          footerEl.textContent = footerText;
-        }
+      function createState(options = {}) {
+        const best = Number.isFinite(options.best) ? Math.max(0, Math.floor(options.best)) : 0;
+        return {
+          sequence: [],
+          playerIndex: 0,
+          score: 0,
+          best,
+          round: 0,
+          strict: Boolean(options.strict),
+          acceptingInput: false,
+          status: 'ready',
+        };
       }
 
-      function updatePanel() {
-        levelEl.textContent = String(state.level);
-        bestEl.textContent = String(state.best);
-        startBtn.textContent = state.started ? "Restart" : state.gameOver ? "Restart" : "Start";
-        startBtn.disabled = state.playing;
+      function nextRound(state, step = Math.floor(Math.random() * PAD_IDS.length)) {
+        const sequence = [...state.sequence, normalizePad(step)];
+        return {
+          ...state,
+          sequence,
+          playerIndex: 0,
+          round: sequence.length,
+          acceptingInput: false,
+          status: 'watching',
+        };
       }
 
-      function getAudioContext() {
-        if (!state.audio) {
-          const AudioContext = window.AudioContext || window.webkitAudioContext;
-          if (!AudioContext) {
-            return null;
-          }
-          state.audio = new AudioContext();
-        }
-
-        if (state.audio.state === "suspended") {
-          state.audio.resume();
-        }
-
-        return state.audio;
+      function startInput(state) {
+        return {
+          ...state,
+          acceptingInput: true,
+          playerIndex: 0,
+          status: 'player',
+        };
       }
 
-      function playTone(color, duration = 0.2) {
-        const ctx = getAudioContext();
-        if (!ctx) {
-          return;
+      function checkPad(state, pad) {
+        const padId = normalizePad(pad);
+        const expected = state.sequence[state.playerIndex];
+
+        if (!expected) {
+          return {
+            state,
+            correct: false,
+            roundComplete: false,
+            gameOver: false,
+            ignored: true,
+          };
         }
 
-        const now = ctx.currentTime;
-        const oscillator = ctx.createOscillator();
-        const gain = ctx.createGain();
+        if (padId !== expected) {
+          return {
+            state: {
+              ...state,
+              best: Math.max(state.best, state.score),
+              playerIndex: 0,
+              acceptingInput: false,
+              status: state.strict ? 'gameover' : 'retry',
+            },
+            correct: false,
+            roundComplete: false,
+            gameOver: state.strict,
+          };
+        }
 
-        oscillator.type = "sine";
-        oscillator.frequency.setValueAtTime(tones[color], now);
-        oscillator.frequency.exponentialRampToValueAtTime(tones[color] * 1.015, now + duration);
+        const nextIndex = state.playerIndex + 1;
+        const roundComplete = nextIndex >= state.sequence.length;
 
-        gain.gain.setValueAtTime(0.0001, now);
-        gain.gain.exponentialRampToValueAtTime(0.2, now + 0.018);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+        if (!roundComplete) {
+          return {
+            state: {
+              ...state,
+              playerIndex: nextIndex,
+              acceptingInput: true,
+              status: 'player',
+            },
+            correct: true,
+            roundComplete: false,
+            gameOver: false,
+          };
+        }
 
-        oscillator.connect(gain);
-        gain.connect(ctx.destination);
-        oscillator.start(now);
-        oscillator.stop(now + duration + 0.03);
+        const score = state.sequence.length;
+        return {
+          state: {
+            ...state,
+            score,
+            best: Math.max(state.best, score),
+            playerIndex: 0,
+            acceptingInput: false,
+            status: 'complete',
+          },
+          correct: true,
+          roundComplete: true,
+          gameOver: false,
+        };
       }
 
-      function playMissTone() {
-        const ctx = getAudioContext();
-        if (!ctx) {
-          return;
-        }
-
-        const now = ctx.currentTime;
-        const oscillator = ctx.createOscillator();
-        const gain = ctx.createGain();
-
-        oscillator.type = "sawtooth";
-        oscillator.frequency.setValueAtTime(130.81, now);
-        oscillator.frequency.exponentialRampToValueAtTime(82.41, now + 0.32);
-
-        gain.gain.setValueAtTime(0.0001, now);
-        gain.gain.exponentialRampToValueAtTime(0.18, now + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.34);
-
-        oscillator.connect(gain);
-        gain.connect(ctx.destination);
-        oscillator.start(now);
-        oscillator.stop(now + 0.38);
-      }
-
-      async function flashPad(color, duration = 260) {
-        const pad = pads.get(color);
-        if (!pad) {
-          return;
-        }
-
-        pad.classList.add("is-lit");
-        playTone(color, Math.max(0.1, duration / 1000));
-        await sleep(duration);
-        pad.classList.remove("is-lit");
-      }
-
-      async function playSequence(token = state.runId) {
-        state.playing = true;
-        state.accepting = false;
-        state.inputBusy = false;
-        updatePanel();
-        setStatus("Watch", "Listen");
-
-        await sleep(420);
-
-        const tempo = Math.max(280, 620 - state.sequence.length * 22);
-        for (const color of state.sequence) {
-          if (token !== state.runId) {
-            return;
-          }
-          await flashPad(color, Math.max(170, tempo * 0.54));
-          await sleep(Math.max(90, tempo * 0.36));
-        }
-
-        if (token !== state.runId) {
-          return;
-        }
-
-        state.playing = false;
-        state.accepting = true;
-        updatePanel();
-        setStatus("Repeat", "Your turn");
-      }
-
-      async function nextRound(token = state.runId) {
-        if (token !== state.runId) {
-          return;
-        }
-
-        state.sequence.push(randomPad());
-        state.inputIndex = 0;
-        state.level = state.sequence.length;
-        state.best = Math.max(state.best, state.level);
-        localStorage.setItem("simonBest", String(state.best));
-        updatePanel();
-        await playSequence(token);
-      }
-
-      async function startGame() {
-        if (state.playing) {
-          return;
-        }
-
-        state.runId += 1;
-        state.sequence = [];
-        state.inputIndex = 0;
-        state.level = 0;
-        state.started = true;
-        state.gameOver = false;
-        state.accepting = false;
-        state.inputBusy = false;
-        updatePanel();
-        setStatus("Ready", "Memory sequence");
-        await nextRound(state.runId);
-      }
-
-      async function handlePadPress(color) {
-        if (!padOrder.includes(color) || state.inputBusy) {
-          return;
-        }
-
-        if (!state.started && !state.playing) {
-          state.inputBusy = true;
-          await flashPad(color, 160);
-          state.inputBusy = false;
-          return;
-        }
-
-        if (!state.accepting) {
-          return;
-        }
-
-        state.inputBusy = true;
-        const expected = state.sequence[state.inputIndex];
-        await flashPad(color, 180);
-
-        if (color !== expected) {
-          failGame(expected);
-          state.inputBusy = false;
-          return;
-        }
-
-        state.inputIndex += 1;
-
-        if (state.inputIndex === state.sequence.length) {
-          state.accepting = false;
-          state.inputBusy = false;
-          setStatus("Good", "Next pattern");
-          window.setTimeout(() => nextRound(state.runId), 650);
-          return;
-        }
-
-        state.inputBusy = false;
-      }
-
-      function failGame(expected) {
-        state.runId += 1;
-        state.accepting = false;
-        state.playing = false;
-        state.started = false;
-        state.gameOver = true;
-        playMissTone();
-        updatePanel();
-        setStatus("Miss", expected ? "Pattern broke" : "Try again");
-        board.classList.remove("is-missed");
-        void board.offsetWidth;
-        board.classList.add("is-missed");
-      }
-
-      for (const [color, pad] of pads) {
-        pad.addEventListener("click", () => handlePadPress(color));
-      }
-
-      startBtn.addEventListener("click", startGame);
-
-      document.addEventListener("keydown", (event) => {
-        if (event.repeat) {
-          return;
-        }
-
-        const key = event.key.toLowerCase();
-        if (key === " " || key === "enter") {
-          event.preventDefault();
-          startGame();
-          return;
-        }
-
-        const color = keyMap[key];
-        if (color) {
-          event.preventDefault();
-          handlePadPress(color);
-        }
-      });
-
-      updatePanel();
-
-      window.Simon = {
-        getState: () => ({
-          sequence: [...state.sequence],
-          inputIndex: state.inputIndex,
-          level: state.level,
-          best: state.best,
-          started: state.started,
-          accepting: state.accepting,
-          playing: state.playing,
-          gameOver: state.gameOver
-        }),
-        handlePadPress,
-        playSequence,
-        startGame
+      return {
+        PAD_IDS,
+        createState,
+        nextRound,
+        startInput,
+        checkPad,
       };
     })();
+    /* SIMON_LOGIC_END */
+
+    window.SimonLogic = SimonLogic;
+
+    const PAD_CONFIG = {
+      green: { label: 'Green', tone: 329.63 },
+      red: { label: 'Red', tone: 261.63 },
+      yellow: { label: 'Yellow', tone: 220 },
+      blue: { label: 'Blue', tone: 392 },
+    };
+
+    const BEST_KEY = 'neon-simon-best-score';
+    const board = document.querySelector('#board');
+    const pads = [...document.querySelectorAll('[data-pad]')];
+    const startButton = document.querySelector('#startButton');
+    const strictToggle = document.querySelector('#strictToggle');
+    const strictState = document.querySelector('#strictState');
+    const statusText = document.querySelector('#statusText');
+    const messageText = document.querySelector('#messageText');
+    const scoreText = document.querySelector('#scoreText');
+    const bestText = document.querySelector('#bestText');
+    const roundText = document.querySelector('#roundText');
+    const patternText = document.querySelector('#patternText');
+    const meterTrack = document.querySelector('#meterTrack');
+
+    let audioContext;
+    let state = SimonLogic.createState({ best: loadBest(), strict: strictToggle.checked });
+    let timers = [];
+
+    function loadBest() {
+      try {
+        const stored = Number.parseInt(localStorage.getItem(BEST_KEY) || '0', 10);
+        return Number.isFinite(stored) ? Math.max(0, stored) : 0;
+      } catch (error) {
+        return 0;
+      }
+    }
+
+    function saveBest(best) {
+      try {
+        localStorage.setItem(BEST_KEY, String(best));
+      } catch (error) {
+        return undefined;
+      }
+    }
+
+    function ensureAudio() {
+      if (!audioContext) {
+        const AudioCtor = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtor) return null;
+        audioContext = new AudioCtor();
+      }
+
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+
+      return audioContext;
+    }
+
+    function playTone(padId, duration = 0.22) {
+      const context = ensureAudio();
+      if (!context) return;
+
+      const config = PAD_CONFIG[padId];
+      const now = context.currentTime;
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+
+      oscillator.type = 'triangle';
+      oscillator.frequency.setValueAtTime(config.tone, now);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.22, now + 0.018);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.start(now);
+      oscillator.stop(now + duration + 0.04);
+    }
+
+    function playErrorTone() {
+      const context = ensureAudio();
+      if (!context) return;
+
+      const now = context.currentTime;
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+
+      oscillator.type = 'sawtooth';
+      oscillator.frequency.setValueAtTime(118, now);
+      oscillator.frequency.exponentialRampToValueAtTime(72, now + 0.28);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.18, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.32);
+
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.start(now);
+      oscillator.stop(now + 0.36);
+    }
+
+    function setState(nextState) {
+      state = nextState;
+      if (state.best > loadBest()) {
+        saveBest(state.best);
+      }
+      render();
+    }
+
+    function clearTimers() {
+      timers.forEach((timer) => window.clearTimeout(timer));
+      timers = [];
+    }
+
+    function schedule(callback, delay) {
+      const timer = window.setTimeout(callback, delay);
+      timers.push(timer);
+      return timer;
+    }
+
+    function flashPad(padId, duration = 260) {
+      const pad = document.querySelector(`[data-pad="${padId}"]`);
+      if (!pad) return;
+
+      pad.classList.add('is-active');
+      pad.setAttribute('aria-pressed', 'true');
+      playTone(padId, duration / 1000);
+
+      schedule(() => {
+        pad.classList.remove('is-active');
+        pad.setAttribute('aria-pressed', 'false');
+      }, duration);
+    }
+
+    function showBoardError() {
+      board.classList.remove('is-error');
+      void board.offsetWidth;
+      board.classList.add('is-error');
+      schedule(() => board.classList.remove('is-error'), 320);
+    }
+
+    function startGame() {
+      ensureAudio();
+      clearTimers();
+      setState(SimonLogic.createState({ best: loadBest(), strict: strictToggle.checked }));
+      messageText.textContent = 'Get ready.';
+      schedule(() => beginNextRound(), 380);
+    }
+
+    function beginNextRound() {
+      const nextState = SimonLogic.nextRound(state);
+      setState(nextState);
+      playSequence(nextState.sequence);
+    }
+
+    function playSequence(sequence) {
+      clearTimers();
+      setState({
+        ...state,
+        acceptingInput: false,
+        playerIndex: 0,
+        status: 'watching',
+      });
+
+      const interval = Math.max(390, 660 - Math.min(state.round, 18) * 12);
+      const duration = Math.max(190, interval - 180);
+
+      sequence.forEach((padId, index) => {
+        schedule(() => flashPad(padId, duration), 440 + index * interval);
+      });
+
+      schedule(() => {
+        setState(SimonLogic.startInput(state));
+      }, 440 + sequence.length * interval + 120);
+    }
+
+    function handlePad(padId) {
+      if (!state.acceptingInput) return;
+
+      ensureAudio();
+      flashPad(padId, 170);
+      const result = SimonLogic.checkPad(state, padId);
+      setState(result.state);
+
+      if (!result.correct) {
+        playErrorTone();
+        showBoardError();
+
+        if (result.gameOver) {
+          messageText.textContent = `Strict run ended at ${state.score}.`;
+          return;
+        }
+
+        messageText.textContent = 'Miss. Watch it again.';
+        schedule(() => playSequence(state.sequence), 900);
+        return;
+      }
+
+      if (result.roundComplete) {
+        messageText.textContent = 'Clean repeat.';
+        schedule(() => beginNextRound(), 820);
+      }
+    }
+
+    function renderMeter() {
+      const filled = Math.min(state.sequence.length, 12);
+      meterTrack.replaceChildren();
+
+      for (let index = 0; index < 12; index += 1) {
+        const dot = document.createElement('span');
+        dot.className = index < filled ? 'meter-dot is-filled' : 'meter-dot';
+        meterTrack.append(dot);
+      }
+
+      patternText.textContent = `${state.sequence.length} ${state.sequence.length === 1 ? 'pad' : 'pads'}`;
+    }
+
+    function render() {
+      const statusLabels = {
+        ready: 'Ready',
+        watching: 'Watch',
+        player: 'Repeat',
+        complete: 'Clear',
+        retry: 'Retry',
+        gameover: 'Game over',
+      };
+
+      const messages = {
+        ready: 'Press Start to begin.',
+        watching: 'Watch the lights.',
+        player: 'Repeat the pattern.',
+        complete: 'Pattern matched.',
+        retry: 'Miss. Watch it again.',
+        gameover: 'Press Start for a new run.',
+      };
+
+      scoreText.textContent = state.score;
+      bestText.textContent = state.best;
+      roundText.textContent = state.round;
+      statusText.textContent = statusLabels[state.status] || 'Ready';
+      messageText.textContent = messages[state.status] || messageText.textContent;
+      startButton.textContent = state.status === 'ready' ? 'Start' : 'Restart';
+      strictToggle.checked = state.strict;
+      strictState.textContent = state.strict ? 'On' : 'Off';
+
+      pads.forEach((pad) => {
+        pad.setAttribute('aria-disabled', String(!state.acceptingInput));
+      });
+
+      renderMeter();
+    }
+
+    pads.forEach((pad) => {
+      pad.addEventListener('click', () => handlePad(pad.dataset.pad));
+    });
+
+    startButton.addEventListener('click', startGame);
+
+    strictToggle.addEventListener('change', () => {
+      setState({
+        ...state,
+        strict: strictToggle.checked,
+      });
+    });
+
+    window.addEventListener('keydown', (event) => {
+      if (event.repeat) return;
+
+      const map = {
+        q: 'green',
+        w: 'red',
+        a: 'yellow',
+        s: 'blue',
+        1: 'green',
+        2: 'red',
+        3: 'yellow',
+        4: 'blue',
+      };
+
+      const padId = map[event.key.toLowerCase()];
+      if (!padId) return;
+      event.preventDefault();
+      handlePad(padId);
+    });
+
+    render();
   </script>
 </body>
 </html>
