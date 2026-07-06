@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simon</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:system-ui,sans-serif;user-select:none}
+.game{display:flex;flex-direction:column;align-items:center;gap:20px;padding:20px}
+.title{font-size:28px;font-weight:700;color:#00ff88;letter-spacing:4px}
+.score{font-size:14px;color:#666}
+.score span{color:#00ff88;font-weight:600}
+.board{display:grid;grid-template-columns:120px 120px;grid-template-rows:120px 120px;gap:8px;position:relative}
+.pad{border-radius:16px;cursor:pointer;transition:all .1s;opacity:.4;border:2px solid transparent}
+.pad:hover{opacity:.6}
+.pad.lit{opacity:1;box-shadow:0 0 30px var(--glow);border-color:#fff3;transform:scale(1.04)}
+.pad:active{transform:scale(.95)}
+.pad.green{background:#00ff88;--glow:rgba(0,255,136,.6);border-top-left-radius:120px}
+.pad.red{background:#ff3366;--glow:rgba(255,51,102,.6);border-top-right-radius:120px}
+.pad.yellow{background:#ffaa00;--glow:rgba(255,170,0,.6);border-bottom-left-radius:120px}
+.pad.blue{background:#3399ff;--glow:rgba(51,153,255,.6);border-bottom-right-radius:120px}
+.center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:80px;height:80px;background:#12121a;border-radius:50%;border:2px solid #1a1a2e;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px}
+.center .round{font-size:22px;font-weight:700;color:#00ff88}
+.center .label{font-size:9px;color:#444;text-transform:uppercase}
+.message{font-size:16px;color:#888;min-height:24px;text-align:center}
+.controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.btn{background:#12121a;border:1px solid #1a1a2e;color:#888;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;transition:all .15s;font-family:inherit}
+.btn:hover{background:#1a1a2e;color:#ccc}
+.btn.primary{background:#00ff88;color:#0a0a0f;border-color:#00ff88;font-weight:600}
+.btn.primary:hover{background:#00cc6a}
+.strict{margin-top:4px;display:flex;align-items:center;gap:8px;font-size:12px;color:#666}
+.strict input{accent-color:#00ff88}
+</style>
+</head>
+<body>
+<div class="game">
+<div class="title">SIMON</div>
+<div class="score">Best: <span id="best">0</span></div>
+<div class="board">
+<div class="pad green" data-pad="0" id="pad0"></div>
+<div class="pad red" data-pad="1" id="pad1"></div>
+<div class="pad yellow" data-pad="2" id="pad2"></div>
+<div class="pad blue" data-pad="3" id="pad3"></div>
+<div class="center"><div class="round" id="round">--</div><div class="label">ROUND</div></div>
+</div>
+<div class="message" id="msg">Press Start</div>
+<div class="controls">
+<button class="btn primary" id="btn-start">Start</button>
+</div>
+<div class="strict"><input type="checkbox" id="strict-mode"><label for="strict-mode">Strict mode</label></div>
+</div>
+<script>
+const STORAGE_KEY = 'simon-best';
+const notes = [523, 659, 784, 1047];
+let sequence = [], playerIdx = 0, playing = false, state = 'idle', best = 0;
+const pads = document.querySelectorAll('.pad');
+const elRound = document.getElementById('round'), elMsg = document.getElementById('msg'), elBest = document.getElementById('best'), elStart = document.getElementById('btn-start'), elStrict = document.getElementById('strict-mode');
+
+function tone(freq, dur = 0.3) { try { const ctx = new AudioContext(); const o = ctx.createOscillator(); const g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.type = 'square'; o.frequency.value = freq; g.gain.value = 0.15; o.start(); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur); o.stop(ctx.currentTime + dur); } catch(e){} }
+
+function light(pad, dur = 300) {
+pads[pad].classList.add('lit');
+tone(notes[pad], dur / 1000);
+setTimeout(() => pads[pad].classList.remove('lit'), dur);
+}
+
+function playSequence(idx = 0) {
+if (idx >= sequence.length) { playing = false; playerIdx = 0; elMsg.textContent = 'Your turn'; return; }
+playing = true;
+light(sequence[idx], idx === sequence.length - 1 ? 400 : 250);
+setTimeout(() => playSequence(idx + 1), 400);
+}
+
+function nextRound() {
+const strict = elStrict.checked;
+if (strict) { sequence = []; elMsg.textContent = 'Strict mode — new sequence!'; }
+sequence.push(Math.floor(Math.random() * 4));
+playerIdx = 0; state = 'show';
+elRound.textContent = sequence.length;
+elMsg.textContent = 'Watch...';
+setTimeout(() => playSequence(), 600);
+}
+
+function handleWin() {
+state = 'idle';
+if (sequence.length > best) { best = sequence.length; elBest.textContent = best; try { localStorage.setItem(STORAGE_KEY, best); } catch(e){} }
+elMsg.textContent = 'Correct! Level ' + (sequence.length + 1);
+elRound.textContent = sequence.length;
+elStart.textContent = 'Next';
+}
+
+function handleFail() {
+state = 'idle'; playing = false;
+tone(200, 0.5);
+pads.forEach(p => { p.classList.add('lit'); setTimeout(() => p.classList.remove('lit'), 400); });
+const strict = elStrict.checked;
+const finalScore = strict ? 0 : sequence.length;
+elMsg.textContent = strict ? 'Wrong! Game Over' : ('Wrong! Score: ' + finalScore);
+elRound.textContent = strict ? '--' : sequence.length;
+if (!strict && sequence.length > best) { best = sequence.length; elBest.textContent = best; try { localStorage.setItem(STORAGE_KEY, best); } catch(e){} }
+elStart.textContent = 'Retry';
+}
+
+function handlePress(pad) {
+if (state !== 'wait' || playing) return;
+light(pad, 250);
+if (pad !== sequence[playerIdx]) { handleFail(); return; }
+playerIdx++;
+if (playerIdx >= sequence.length) { handleWin(); return; }
+}
+
+pads.forEach((p, i) => p.addEventListener('click', () => handlePress(i)));
+elStart.addEventListener('click', () => {
+if (state === 'idle') { nextRound(); elStart.textContent = '...'; return; }
+nextRound(); elStart.textContent = '...';
+});
+
+window.addEventListener('load', () => {
+try { best = parseInt(localStorage.getItem(STORAGE_KEY)) || 0; elBest.textContent = best; } catch(e){}
+});
+
+const observer = new MutationObserver(() => {
+if (elMsg.textContent === 'Your turn') state = 'wait';
+if (elMsg.textContent.includes('Correct')) state = 'idle';
+});
+observer.observe(elMsg, { childList: true, characterData: true, subtree: true });
+</script>
+</body>
+</html>

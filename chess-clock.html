@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chess Clock</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;user-select:none}
+.container{display:flex;flex-direction:column;align-items:center;gap:24px;padding:20px;width:100%;max-width:500px}
+.clocks{display:flex;width:100%;gap:8px}
+.clock{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 12px;border-radius:16px;background:#12121a;border:2px solid #1a1a2e;cursor:pointer;transition:all .15s;position:relative}
+.clock.active{border-color:#00ff88;box-shadow:0 0 20px rgba(0,255,136,.15),inset 0 0 20px rgba(0,255,136,.05)}
+.clock.low{border-color:#ff4444;box-shadow:0 0 20px rgba(255,68,68,.2)}
+.clock.low .time{color:#ff4444;animation:pulse .5s ease-in-out infinite alternate}
+.clock .label{font-size:12px;color:#666;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px}
+.clock .time{font-size:48px;font-weight:700;font-variant-numeric:tabular-nums;color:#00ff88;font-family:'Courier New',monospace}
+.clock .increment{font-size:11px;color:#444;margin-top:4px}
+.clock .moves{font-size:11px;color:#333;margin-top:2px}
+.controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.btn{background:#12121a;border:1px solid #1a1a2e;color:#888;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;transition:all .15s;font-family:inherit}
+.btn:hover{background:#1a1a2e;color:#ccc}
+.btn.primary{background:#00ff88;color:#0a0a0f;border-color:#00ff88;font-weight:600}
+.btn.primary:hover{background:#00cc6a}
+.presets{display:flex;gap:4px;flex-wrap:wrap;justify-content:center}
+.preset{background:#12121a;border:1px solid #1a1a2e;color:#666;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-family:'Courier New',monospace;transition:all .15s}
+.preset:hover{color:#ccc;border-color:#333}
+.preset.active{background:#1a1a2e;border-color:#00ff8844;color:#00ff88}
+@keyframes pulse{from{opacity:1}to{opacity:.5}}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="clocks">
+<div class="clock active" id="clock-top">
+<div class="label">White</div>
+<div class="time" id="time-top">5:00</div>
+<div class="increment" id="inc-top">+0s</div>
+<div class="moves" id="moves-top">Moves: 0</div>
+</div>
+<div class="clock" id="clock-bottom">
+<div class="label">Black</div>
+<div class="time" id="time-bottom">5:00</div>
+<div class="increment" id="inc-bottom">+0s</div>
+<div class="moves" id="moves-bottom">Moves: 0</div>
+</div>
+</div>
+<div class="presets" id="presets">
+<button class="preset" data-min="1" data-inc="0">1+0</button>
+<button class="preset active" data-min="5" data-inc="0">5+0</button>
+<button class="preset" data-min="3" data-inc="2">3+2</button>
+<button class="preset" data-min="5" data-inc="5">5+5</button>
+<button class="preset" data-min="10" data-inc="0">10+0</button>
+</div>
+<div class="controls">
+<button class="btn primary" id="btn-start">Start</button>
+<button class="btn" id="btn-pause">Pause</button>
+<button class="btn" id="btn-reset">Reset</button>
+<button class="btn" id="btn-swap">Swap Sides</button>
+</div>
+</div>
+<script>
+const STORAGE_KEY = 'chess-clock-preset';
+let state = { running: false, paused: false, active: 'top', topTime: 300, bottomTime: 300, inc: 0, topMoves: 0, bottomMoves: 0, lastTick: 0, timer: null };
+const els = {
+top: document.getElementById('time-top'), bottom: document.getElementById('time-bottom'),
+incTop: document.getElementById('inc-top'), incBottom: document.getElementById('inc-bottom'),
+movesTop: document.getElementById('moves-top'), movesBottom: document.getElementById('moves-bottom'),
+clockTop: document.getElementById('clock-top'), clockBottom: document.getElementById('clock-bottom'),
+presets: document.getElementById('presets'),
+start: document.getElementById('btn-start'), pause: document.getElementById('btn-pause')
+};
+
+function fmt(sec) { const m = Math.floor(sec / 60); const s = Math.floor(sec % 60); return m + ':' + String(s).padStart(2, '0'); }
+
+function updateDisplay() {
+els.top.textContent = fmt(state.topTime);
+els.bottom.textContent = fmt(state.bottomTime);
+els.incTop.textContent = '+' + state.inc + 's';
+els.incBottom.textContent = '+' + state.inc + 's';
+els.movesTop.textContent = 'Moves: ' + state.topMoves;
+els.movesBottom.textContent = 'Moves: ' + state.bottomMoves;
+els.clockTop.classList.toggle('active', state.active === 'top');
+els.clockBottom.classList.toggle('active', state.active === 'bottom');
+els.clockTop.classList.toggle('low', state.topTime <= 10);
+els.clockBottom.classList.toggle('low', state.bottomTime <= 10);
+}
+
+function flagSound() { try { const ctx = new AudioContext(); const o = ctx.createOscillator(); const g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value = 440; g.gain.value = 0.3; o.start(); o.stop(ctx.currentTime + 0.3); } catch(e){} }
+
+function tick() {
+const now = Date.now();
+const dt = (now - state.lastTick) / 1000;
+state.lastTick = now;
+if (state.active === 'top') {
+state.topTime = Math.max(0, state.topTime - dt);
+if (state.topTime <= 0) { stop(); flagSound(); els.clockTop.classList.add('low'); updateDisplay(); return; }
+} else {
+state.bottomTime = Math.max(0, state.bottomTime - dt);
+if (state.bottomTime <= 0) { stop(); flagSound(); els.clockBottom.classList.add('low'); updateDisplay(); return; }
+}
+updateDisplay();
+}
+
+function startTimer() { if (!state.timer) { state.lastTick = Date.now(); state.timer = setInterval(tick, 50); } }
+function stopTimer() { clearInterval(state.timer); state.timer = null; }
+function stop() { state.running = false; state.paused = false; stopTimer(); els.start.textContent = 'Start'; }
+
+function switchSide() {
+const prev = state.active;
+state.active = prev === 'top' ? 'bottom' : 'top';
+if (prev === 'top') { state.topTime += state.inc; state.topMoves++; } else { state.bottomTime += state.inc; state.bottomMoves++; }
+updateDisplay();
+}
+
+function setPreset(min, inc) {
+state.topTime = min * 60; state.bottomTime = min * 60; state.inc = inc;
+state.topMoves = 0; state.bottomMoves = 0;
+stop(); state.active = 'top'; updateDisplay();
+document.querySelectorAll('.preset').forEach(b => b.classList.remove('active'));
+document.querySelector(`.preset[data-min="${min}"][data-inc="${inc}"]`)?.classList.add('active');
+try { localStorage.setItem(STORAGE_KEY, `${min}-${inc}`); } catch(e){}
+}
+
+els.clockTop.addEventListener('click', () => { if (state.running && !state.paused && state.active === 'top') switchSide(); });
+els.clockBottom.addEventListener('click', () => { if (state.running && !state.paused && state.active === 'bottom') switchSide(); });
+els.start.addEventListener('click', () => {
+if (state.paused) { state.paused = false; startTimer(); els.start.textContent = 'Pause'; return; }
+if (state.running) { state.paused = true; stopTimer(); els.start.textContent = 'Resume'; return; }
+state.running = true; state.paused = false; state.lastTick = Date.now(); startTimer(); els.start.textContent = 'Pause';
+});
+els.pause.addEventListener('click', () => { stop(); updateDisplay(); });
+document.getElementById('btn-reset').addEventListener('click', () => {
+const p = document.querySelector('.preset.active');
+if (p) setPreset(parseInt(p.dataset.min), parseInt(p.dataset.inc));
+});
+document.getElementById('btn-swap').addEventListener('click', () => {
+state.active = state.active === 'top' ? 'bottom' : 'top'; updateDisplay();
+});
+els.presets.addEventListener('click', e => {
+const b = e.target.closest('.preset');
+if (b) setPreset(parseInt(b.dataset.min), parseInt(b.dataset.inc));
+});
+document.addEventListener('keydown', e => { if (e.code === 'Space' && state.running && !state.paused) { e.preventDefault(); switchSide(); } });
+
+window.addEventListener('load', () => {
+try { const v = localStorage.getItem(STORAGE_KEY) || '5-0'; const [m,i] = v.split('-'); setPreset(parseInt(m), parseInt(i)); } catch(e){ setPreset(5,0); }
+});
+</script>
+</body>
+</html>
