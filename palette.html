@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Palette Generator</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px}
+.container{display:flex;flex-direction:column;gap:16px;width:100%;max-width:500px;align-items:center}
+.title{font-size:24px;font-weight:700;color:#00ff88;letter-spacing:2px}
+.colors{display:flex;width:100%;height:120px;border-radius:12px;overflow:hidden;box-shadow:0 0 30px rgba(0,255,136,.1)}
+.color{flex:1;position:relative;cursor:pointer;transition:flex .2s;display:flex;align-items:flex-end;justify-content:center;padding:10px}
+.color:hover{flex:1.5}
+.color .hex{font-size:11px;font-family:'Courier New',monospace;background:#0006;color:#fff;padding:3px 6px;border-radius:4px;opacity:0;transition:opacity .15s}
+.color:hover .hex{opacity:1}
+.info{display:flex;gap:12px;font-family:'Courier New',monospace;font-size:12px;color:#888}
+.controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.btn{background:#12121a;border:1px solid #1a1a2e;color:#888;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;transition:all .15s;font-family:inherit}
+.btn:hover{background:#1a1a2e;color:#ccc}
+.btn.primary{background:#00ff88;color:#0a0a0f;border-color:#00ff88;font-weight:600}
+.btn.primary:hover{background:#00cc6a}
+.btn.space{padding:8px 8px;font-size:20px;min-width:40px}
+.schemes{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.scheme{background:#12121a;border:1px solid #1a1a2e;color:#666;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:11px;transition:all .15s}
+.scheme:hover{color:#ccc}
+.scheme.active{background:#00ff8820;border-color:#00ff8844;color:#00ff88}
+.locked{display:flex;gap:2px}
+.lock{font-size:10px;color:#444;cursor:pointer;padding:2px 4px;border-radius:3px;transition:all .15s}
+.lock.active{color:#ffaa00;background:#ffaa0015}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="title">Palette Generator</div>
+<div class="schemes" id="schemes">
+<button class="scheme active" data-scheme="random">Random</button>
+<button class="scheme" data-scheme="complementary">Complementary</button>
+<button class="scheme" data-scheme="analogous">Analogous</button>
+<button class="scheme" data-scheme="triadic">Triadic</button>
+<button class="scheme" data-scheme="split-complementary">Split</button>
+<button class="scheme" data-scheme="monochromatic">Mono</button>
+</div>
+<div class="colors" id="colors"></div>
+<div class="locked" id="locks"></div>
+<div class="info" id="info"></div>
+<div class="controls">
+<button class="btn primary" id="btn-gen">Generate</button>
+<button class="btn" id="btn-copy">Copy All</button>
+<button class="btn space" id="btn-add">+</button>
+<button class="btn space" id="btn-rem">−</button>
+</div>
+</div>
+<script>
+let count = 5, scheme = 'random', locked = [];
+const colorsEl = document.getElementById('colors'), locksEl = document.getElementById('locks'), infoEl = document.getElementById('info');
+
+function hslToHex(h, s, l) {
+h = ((h % 360) + 360) % 360; s = Math.max(0, Math.min(100, s)); l = Math.max(0, Math.min(100, l));
+const a = s * Math.min(l, 100 - l) / 100;
+const f = n => { const k = (n + h / 30) % 12; const c = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1); return Math.round(255 * c / 100).toString(16).padStart(2, '0'); };
+return '#' + f(0) + f(8) + f(4);
+}
+
+function genScheme(baseH) {
+const s = 60 + Math.random() * 20, l = 40 + Math.random() * 20;
+switch (scheme) {
+case 'random': return Array.from({length: count}, () => hslToHex(Math.random() * 360, 50 + Math.random() * 30, 35 + Math.random() * 25));
+case 'complementary': return [hslToHex(baseH, s, l), hslToHex(baseH + 180, s, l)].concat(Array.from({length: Math.max(0,count-2)}, () => hslToHex(baseH, s + Math.random() * 20 - 10, l + Math.random() * 20 - 10)));
+case 'analogous': return Array.from({length: count}, (_, i) => hslToHex(baseH + (i - Math.floor(count / 2)) * 30, s + Math.random() * 10, l + Math.random() * 10));
+case 'triadic': return [hslToHex(baseH, s, l), hslToHex(baseH + 120, s, l), hslToHex(baseH + 240, s, l)].concat(Array.from({length: Math.max(0,count-3)}, () => hslToHex(Math.random() * 360, s, l)));
+case 'split-complementary': return [hslToHex(baseH, s, l), hslToHex(baseH + 150, s, l), hslToHex(baseH + 210, s, l)].concat(Array.from({length: Math.max(0,count-3)}, () => hslToHex(baseH + Math.random() * 60 - 30, s, l)));
+case 'monochromatic': return Array.from({length: count}, (_, i) => hslToHex(baseH, s - i * 8 + Math.random() * 5, 25 + i * 12 + Math.random() * 5));
+default: return genScheme(baseH);
+}
+}
+
+function generate() {
+const hexes = genScheme(Math.random() * 360);
+for (let i = 0; i < count; i++) {
+if (locked[i] && i < hexes.length) hexes[i] = locked[i];
+}
+locked = hexes.map((_, i) => locked[i] || null);
+render(hexes);
+}
+
+function render(hexes) {
+colorsEl.innerHTML = hexes.map((h, i) => `<div class="color" style="background:${h}" data-idx="${i}"><span class="hex">${h}</span></div>`).join('');
+locksEl.innerHTML = hexes.map((h, i) => `<span class="lock${locked[i] ? ' active' : ''}" data-idx="${i}">${locked[i] ? '🔒' : '🔓'}</span>`).join('');
+infoEl.textContent = hexes.join('  ');
+colorsEl.querySelectorAll('.color').forEach(el => el.addEventListener('click', () => {
+const hex = hexes[el.dataset.idx];
+navigator.clipboard.writeText(hex).then(() => {
+el.querySelector('.hex').textContent = 'Copied!';
+setTimeout(() => el.querySelector('.hex').textContent = hex, 800);
+});
+}));
+locksEl.querySelectorAll('.lock').forEach(el => el.addEventListener('click', () => {
+const i = parseInt(el.dataset.idx);
+locked[i] = locked[i] ? null : hexes[i];
+el.classList.toggle('active', !!locked[i]);
+el.textContent = locked[i] ? '🔒' : '🔓';
+}));
+}
+
+document.getElementById('btn-gen').addEventListener('click', generate);
+document.getElementById('btn-copy').addEventListener('click', () => navigator.clipboard.writeText(infoEl.textContent));
+document.getElementById('btn-add').addEventListener('click', () => { count = Math.min(10, count + 1); generate(); });
+document.getElementById('btn-rem').addEventListener('click', () => { count = Math.max(2, count - 1); locked = locked.slice(0, count); generate(); });
+document.getElementById('schemes').addEventListener('click', e => {
+const b = e.target.closest('.scheme');
+if (!b) return;
+scheme = b.dataset.scheme;
+document.querySelectorAll('.scheme').forEach(s => s.classList.remove('active'));
+b.classList.add('active');
+generate();
+});
+document.addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); generate(); } });
+
+window.addEventListener('load', generate);
+</script>
+</body>
+</html>

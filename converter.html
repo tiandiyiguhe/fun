@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Unit Converter</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px}
+.container{display:flex;flex-direction:column;gap:16px;width:100%;max-width:480px;align-items:center}
+.title{font-size:24px;font-weight:700;color:#00ff88;letter-spacing:2px}
+.tabs{display:flex;gap:4px;background:#12121a;border-radius:10px;overflow-x:auto;width:100%;padding:4px}
+.tab{background:transparent;border:none;color:#666;padding:6px 14px;cursor:pointer;font-size:11px;font-family:inherit;border-radius:8px;white-space:nowrap;transition:all .15s}
+.tab.active{background:#00ff88;color:#0a0a0f;font-weight:600}
+.converter{width:100%;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.input-group{flex:1;min-width:120px;display:flex;flex-direction:column;gap:4px}
+.input-group label{font-size:10px;color:#444;text-transform:uppercase;letter-spacing:2px}
+.input-group input{background:#0d0d14;border:1px solid #1a1a2e;color:#ccc;padding:10px 14px;border-radius:8px;font-family:'Courier New',monospace;font-size:18px;outline:none;width:100%;text-align:center}
+.input-group input:focus{border-color:#00ff8844}
+.input-group select{background:#0d0d14;border:1px solid #1a1a2e;color:#888;padding:8px 10px;border-radius:8px;font-size:13px;outline:none;font-family:inherit;cursor:pointer;width:100%}
+.input-group select:focus{border-color:#00ff8844}
+.swap{background:#12121a;border:1px solid #1a1a2e;color:#888;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;margin-top:16px}
+.swap:hover{background:#1a1a2e;color:#ccc}
+.result{font-size:13px;color:#666;font-family:'Courier New',monospace;text-align:center;min-height:20px}
+.formula{font-size:10px;color:#333}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="title">Unit Converter</div>
+<div class="tabs" id="tabs">
+<button class="tab active" data-cat="length">Length</button>
+<button class="tab" data-cat="weight">Weight</button>
+<button class="tab" data-cat="temperature">Temp</button>
+<button class="tab" data-cat="volume">Volume</button>
+<button class="tab" data-cat="area">Area</button>
+<button class="tab" data-cat="speed">Speed</button>
+<button class="tab" data-cat="data">Data</button>
+<button class="tab" data-cat="time">Time</button>
+</div>
+<div class="converter">
+<div class="input-group">
+<label>From</label>
+<input type="number" id="from-val" value="1" step="any">
+<select id="from-unit"></select>
+</div>
+<button class="swap" id="btn-swap" title="Swap">⇄</button>
+<div class="input-group">
+<label>To</label>
+<input type="number" id="to-val" readonly>
+<select id="to-unit"></select>
+</div>
+</div>
+<div class="result" id="result"></div>
+<div class="formula" id="formula"></div>
+</div>
+<script>
+const categories = {
+length: { units: ['meter','kilometer','centimeter','millimeter','mile','yard','foot','inch','nautical mile'],
+toBase: [1, 1000, 0.01, 0.001, 1609.344, 0.9144, 0.3048, 0.0254, 1852],
+labels: ['m','km','cm','mm','mi','yd','ft','in','nmi'] },
+weight: { units: ['kilogram','gram','milligram','pound','ounce','ton'],
+toBase: [1, 0.001, 0.000001, 0.453592, 0.0283495, 1000],
+labels: ['kg','g','mg','lb','oz','t'] },
+temperature: { units: ['celsius','fahrenheit','kelvin'], toBase: [1,0.555555,1], labels: ['°C','°F','K'], special: true },
+volume: { units: ['liter','milliliter','gallon','quart','pint','cup','fluid ounce','cubic meter'],
+toBase: [1, 0.001, 3.78541, 0.946353, 0.473176, 0.236588, 0.0295735, 1000],
+labels: ['L','mL','gal','qt','pt','cup','fl oz','m³'] },
+area: { units: ['sq meter','sq kilometer','hectare','acre','sq mile','sq foot'],
+toBase: [1, 1000000, 10000, 4046.86, 2589988, 0.092903],
+labels: ['m²','km²','ha','ac','mi²','ft²'] },
+speed: { units: ['m/s','km/h','mph','knot','ft/s'],
+toBase: [1, 0.277778, 0.44704, 0.514444, 0.3048],
+labels: ['m/s','km/h','mph','kn','ft/s'] },
+data: { units: ['byte','kilobyte','megabyte','gigabyte','terabyte','petabyte'],
+toBase: [1, 1024, 1048576, 1073741824, 1099511627776, 1125899906842624],
+labels: ['B','KB','MB','GB','TB','PB'] },
+time: { units: ['second','minute','hour','day','week','month','year'],
+toBase: [1, 60, 3600, 86400, 604800, 2629800, 31557600],
+labels: ['s','min','hr','day','wk','mo','yr'] }
+};
+
+let cat = 'length';
+const fromVal = document.getElementById('from-val'), toVal = document.getElementById('to-val'),
+fromUnit = document.getElementById('from-unit'), toUnit = document.getElementById('to-unit'),
+result = document.getElementById('result'), formula = document.getElementById('formula');
+
+function tempConvert(val, from, to) {
+if (from === to) return val;
+if (from === 'celsius' && to === 'fahrenheit') return val * 9/5 + 32;
+if (from === 'celsius' && to === 'kelvin') return val + 273.15;
+if (from === 'fahrenheit' && to === 'celsius') return (val - 32) * 5/9;
+if (from === 'fahrenheit' && to === 'kelvin') return (val - 32) * 5/9 + 273.15;
+if (from === 'kelvin' && to === 'celsius') return val - 273.15;
+if (from === 'kelvin' && to === 'fahrenheit') return (val - 273.15) * 9/5 + 32;
+return val;
+}
+
+function convert() {
+const data = categories[cat];
+const val = parseFloat(fromVal.value) || 0;
+const fi = fromUnit.selectedIndex, ti = toUnit.selectedIndex;
+let resultVal;
+if (data.special && cat === 'temperature') {
+resultVal = tempConvert(val, data.units[fi], data.units[ti]);
+} else {
+const base = val * data.toBase[fi];
+resultVal = base / data.toBase[ti];
+}
+toVal.value = parseFloat(resultVal.toPrecision(10));
+result.textContent = val + ' ' + data.labels[fi] + ' = ' + parseFloat(resultVal.toPrecision(10)) + ' ' + data.labels[ti];
+if (data.special && cat === 'temperature') formula.textContent = '';
+else formula.textContent = '1 ' + data.labels[fi] + ' = ' + data.toBase[fi] + ' base  ·  base = ' + data.toBase[ti] + ' ' + data.labels[ti];
+}
+
+function populateUnits() {
+const data = categories[cat];
+fromUnit.innerHTML = data.labels.map((l, i) => '<option value="' + i + '"' + (i === 0 ? ' selected' : '') + '>' + l + '</option>').join('');
+toUnit.innerHTML = data.labels.map((l, i) => '<option value="' + i + '"' + (i === 1 ? ' selected' : '') + '>' + l + '</option>').join('');
+convert();
+}
+
+function switchCat(c) {
+cat = c;
+document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.cat === c));
+populateUnits();
+}
+
+document.getElementById('tabs').addEventListener('click', e => {
+const t = e.target.closest('.tab');
+if (t) switchCat(t.dataset.cat);
+});
+document.getElementById('btn-swap').addEventListener('click', () => {
+const tmp = fromUnit.selectedIndex;
+fromUnit.selectedIndex = toUnit.selectedIndex;
+toUnit.selectedIndex = tmp;
+convert();
+});
+fromVal.addEventListener('input', convert);
+fromUnit.addEventListener('change', convert);
+toUnit.addEventListener('change', convert);
+document.addEventListener('keydown', e => { if (e.code === 'KeyS') { e.preventDefault(); document.getElementById('btn-swap').click(); } });
+
+window.addEventListener('load', populateUnits);
+</script>
+</body>
+</html>
