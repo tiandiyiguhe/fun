@@ -7,53 +7,52 @@
   <style>
     :root {
       color-scheme: dark;
-      --bg: #05070c;
-      --panel: rgba(9, 14, 25, 0.9);
-      --panel-strong: #0d1423;
-      --panel-deep: #060a12;
-      --line: rgba(156, 171, 193, 0.18);
-      --line-hot: rgba(111, 255, 233, 0.55);
-      --text: #f0f7ff;
-      --soft: #b8c7d9;
-      --muted: #78889e;
-      --faint: #506176;
-      --cyan: #6fffe9;
+      --bg: #06070b;
+      --panel: #0f141c;
+      --panel-2: #121925;
+      --panel-3: #172132;
+      --line: rgba(165, 255, 229, 0.16);
+      --line-strong: rgba(44, 238, 192, 0.46);
+      --text: #edf8ff;
+      --soft: #bfd0df;
+      --muted: #8191a3;
+      --faint: #536171;
+      --cyan: #30e8ff;
+      --mint: #2cf0bf;
       --pink: #ff4fd8;
-      --lime: #c6ff4a;
       --amber: #ffd166;
-      --red: #ff5d7a;
-      --shadow: 0 24px 80px rgba(0, 0, 0, 0.48);
+      --green: #8dff80;
+      --red: #ff5c7c;
       --radius: 8px;
-      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --shadow: 0 26px 70px rgba(0, 0, 0, 0.42);
       --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
     * {
       box-sizing: border-box;
     }
 
-    html,
-    body {
+    html {
       min-height: 100%;
-      margin: 0;
       background: var(--bg);
-      color: var(--text);
-      font-family: var(--sans);
     }
 
     body {
       min-height: 100vh;
-      overflow-x: hidden;
+      margin: 0;
+      overflow: hidden;
       background:
-        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.016) 1px, transparent 1px),
-        linear-gradient(135deg, rgba(111, 255, 233, 0.09), transparent 34%),
-        linear-gradient(225deg, rgba(255, 79, 216, 0.08), transparent 36%),
-        var(--bg);
-      background-size: 48px 48px, 48px 48px, auto, auto, auto;
+        linear-gradient(90deg, rgba(48, 232, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(44, 240, 191, 0.03) 1px, transparent 1px),
+        linear-gradient(135deg, #06070b 0%, #091017 42%, #080b10 100%);
+      background-size: 32px 32px, 32px 32px, auto;
+      color: var(--text);
+      font-family: var(--sans);
     }
 
     button,
+    input,
     textarea {
       font: inherit;
     }
@@ -64,9 +63,9 @@
 
     .app {
       display: grid;
-      min-height: 100vh;
-      grid-template-rows: auto 1fr;
+      grid-template-rows: auto minmax(0, 1fr);
       gap: 14px;
+      min-height: 100vh;
       padding: 16px;
     }
 
@@ -75,8 +74,7 @@
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      min-height: 58px;
-      padding: 0 4px;
+      min-height: 52px;
     }
 
     .brand {
@@ -90,478 +88,688 @@
       display: grid;
       width: 40px;
       height: 40px;
-      flex: 0 0 auto;
       place-items: center;
-      border: 1px solid rgba(111, 255, 233, 0.5);
+      border: 1px solid rgba(44, 240, 191, 0.48);
       border-radius: var(--radius);
       background:
-        linear-gradient(135deg, rgba(111, 255, 233, 0.18), rgba(255, 79, 216, 0.12)),
-        var(--panel-deep);
-      box-shadow: 0 0 28px rgba(111, 255, 233, 0.14);
-      color: var(--cyan);
+        linear-gradient(135deg, rgba(44, 240, 191, 0.2), rgba(255, 79, 216, 0.08)),
+        #0b1119;
+      box-shadow: 0 0 24px rgba(44, 240, 191, 0.13), inset 0 0 24px rgba(48, 232, 255, 0.06);
+      color: var(--mint);
       font-family: var(--mono);
-      font-size: 0.9rem;
       font-weight: 800;
       letter-spacing: 0;
     }
 
-    h1 {
+    .brand h1 {
       margin: 0;
-      font-size: clamp(1.08rem, 1.8vw, 1.48rem);
-      line-height: 1.1;
+      font-size: 1.12rem;
+      font-weight: 780;
       letter-spacing: 0;
     }
 
-    .meta {
-      margin: 4px 0 0;
+    .brand p {
+      margin: 2px 0 0;
       color: var(--muted);
-      font-family: var(--mono);
-      font-size: 0.78rem;
-      white-space: nowrap;
+      font-size: 0.82rem;
     }
 
-    .actions,
-    .pane-actions {
+    .top-actions,
+    .button-row,
+    .pane-title,
+    .tree-actions,
+    .status {
       display: flex;
       align-items: center;
-      flex-wrap: wrap;
-      justify-content: flex-end;
       gap: 8px;
     }
 
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 38px;
+    .top-actions {
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .btn,
+    .seg-btn {
+      display: inline-grid;
       height: 36px;
-      padding: 0 13px;
+      min-width: 38px;
+      place-items: center;
       border: 1px solid var(--line);
       border-radius: var(--radius);
-      background: rgba(14, 22, 38, 0.9);
+      background: rgba(15, 20, 28, 0.9);
       color: var(--soft);
       cursor: pointer;
-      font-size: 0.88rem;
-      font-weight: 720;
-      transition: transform 150ms ease, border-color 150ms ease, background 150ms ease, color 150ms ease, box-shadow 150ms ease;
+      transition: transform 160ms ease, border-color 160ms ease, color 160ms ease, background 160ms ease, box-shadow 160ms ease;
       user-select: none;
-      white-space: nowrap;
+    }
+
+    .btn {
+      padding: 0 12px;
+      font-weight: 720;
+    }
+
+    .seg-btn {
+      height: 30px;
+      padding: 0 12px;
+      border-color: transparent;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 720;
     }
 
     .btn:hover,
-    .btn:focus-visible {
-      border-color: rgba(111, 255, 233, 0.65);
-      background: rgba(111, 255, 233, 0.1);
+    .seg-btn:hover,
+    .btn:focus-visible,
+    .seg-btn:focus-visible {
+      border-color: rgba(48, 232, 255, 0.56);
+      background: rgba(48, 232, 255, 0.1);
       color: var(--text);
-      box-shadow: 0 10px 26px rgba(111, 255, 233, 0.08);
+      box-shadow: 0 0 24px rgba(48, 232, 255, 0.08);
       outline: none;
       transform: translateY(-1px);
     }
 
-    .btn:active {
+    .btn:active,
+    .seg-btn:active {
       transform: translateY(0);
     }
 
     .btn.primary {
-      border-color: rgba(198, 255, 74, 0.58);
-      background: linear-gradient(135deg, rgba(198, 255, 74, 0.96), rgba(111, 255, 233, 0.86));
-      color: #061012;
-      box-shadow: 0 16px 34px rgba(198, 255, 74, 0.14);
+      border-color: rgba(44, 240, 191, 0.48);
+      background: linear-gradient(135deg, rgba(44, 240, 191, 0.9), rgba(48, 232, 255, 0.82));
+      color: #031014;
+      box-shadow: 0 0 30px rgba(44, 240, 191, 0.14);
     }
 
-    .btn.danger:hover,
-    .btn.danger:focus-visible {
-      border-color: rgba(255, 93, 122, 0.72);
-      background: rgba(255, 93, 122, 0.12);
-      box-shadow: 0 10px 26px rgba(255, 93, 122, 0.09);
+    .segmented,
+    .view-switch {
+      display: flex;
+      min-width: 0;
+      padding: 3px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(6, 7, 11, 0.58);
+    }
+
+    .seg-btn.active,
+    .seg-btn[aria-pressed="true"] {
+      border-color: rgba(44, 240, 191, 0.34);
+      background: rgba(44, 240, 191, 0.14);
+      color: var(--text);
     }
 
     .workspace {
+      --left-pane: 48%;
       display: grid;
+      grid-template-columns: minmax(300px, var(--left-pane)) 10px minmax(320px, 1fr);
       min-height: 0;
-      grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
-      gap: 14px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(6, 7, 11, 0.76);
+      box-shadow: var(--shadow);
+      position: relative;
     }
 
     .pane {
       display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
       min-width: 0;
       min-height: 0;
-      grid-template-rows: auto 1fr auto;
-      overflow: hidden;
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012)),
-        var(--panel);
-      box-shadow: var(--shadow);
+      background: rgba(15, 20, 28, 0.86);
     }
 
-    .pane-head {
+    .pane-header,
+    .pane-footer {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      min-width: 0;
       gap: 12px;
-      min-height: 52px;
-      padding: 10px 12px;
+      padding: 12px;
       border-bottom: 1px solid var(--line);
-      background: rgba(6, 10, 18, 0.66);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent), rgba(18, 25, 37, 0.76);
+    }
+
+    .pane-footer {
+      min-height: 42px;
+      border-top: 1px solid var(--line);
+      border-bottom: 0;
+      color: var(--muted);
+      font-size: 0.78rem;
     }
 
     .pane-title {
-      display: flex;
-      align-items: center;
       min-width: 0;
-      gap: 9px;
-      color: var(--text);
-      font-size: 0.86rem;
-      font-weight: 800;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-    }
-
-    .pulse {
-      width: 8px;
-      height: 8px;
-      flex: 0 0 auto;
-      border-radius: 999px;
-      background: var(--muted);
-      box-shadow: 0 0 16px rgba(120, 136, 158, 0.34);
-    }
-
-    .pulse.ok {
-      background: var(--lime);
-      box-shadow: 0 0 18px rgba(198, 255, 74, 0.36);
-    }
-
-    .pulse.bad {
-      background: var(--red);
-      box-shadow: 0 0 18px rgba(255, 93, 122, 0.38);
-    }
-
-    .badge {
-      min-width: 86px;
-      padding: 6px 9px;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      color: var(--muted);
-      font-family: var(--mono);
-      font-size: 0.72rem;
-      text-align: center;
+      color: var(--soft);
+      font-weight: 740;
       white-space: nowrap;
     }
 
-    .badge.ok {
-      border-color: rgba(198, 255, 74, 0.42);
-      color: var(--lime);
-      background: rgba(198, 255, 74, 0.08);
-    }
-
-    .badge.bad {
-      border-color: rgba(255, 93, 122, 0.44);
-      color: var(--red);
-      background: rgba(255, 93, 122, 0.08);
-    }
-
-    .editor-shell {
-      position: relative;
-      min-height: 520px;
-      overflow: hidden;
-      background: rgba(5, 8, 15, 0.72);
-    }
-
-    textarea {
-      position: absolute;
-      inset: 0;
-      z-index: 2;
-      width: 100%;
-      height: 100%;
-      resize: none;
-      border: 0;
-      outline: none;
-      padding: 18px 18px 18px 72px;
-      background: transparent;
-      color: var(--text);
-      caret-color: var(--cyan);
+    .pane-title span:first-child {
+      color: var(--mint);
       font-family: var(--mono);
-      font-size: 0.92rem;
-      line-height: 1.55;
-      tab-size: 2;
-      white-space: pre;
-      overflow: auto;
     }
 
-    textarea::placeholder {
-      color: var(--faint);
+    .pane-title small {
+      overflow: hidden;
+      color: var(--muted);
+      font-weight: 620;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .input-shell,
+    .output-shell {
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .editor {
+      display: grid;
+      grid-template-columns: 56px minmax(0, 1fr);
+      height: 100%;
+      min-height: 0;
+      background: linear-gradient(90deg, rgba(44, 240, 191, 0.06), transparent 34%), var(--panel);
+      position: relative;
     }
 
     .line-gutter {
-      position: absolute;
-      inset: 0 auto 0 0;
-      z-index: 3;
-      width: 54px;
       overflow: hidden;
-      border-right: 1px solid rgba(156, 171, 193, 0.14);
-      background: rgba(6, 10, 18, 0.72);
-      pointer-events: none;
+      border-right: 1px solid rgba(165, 255, 229, 0.12);
+      background: rgba(6, 7, 11, 0.46);
+      color: var(--faint);
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 20px;
+      text-align: right;
+      user-select: none;
+      position: relative;
     }
 
     .line-gutter-inner {
-      padding-top: 18px;
-      padding-right: 10px;
-      color: var(--faint);
-      font-family: var(--mono);
-      font-size: 0.92rem;
-      line-height: 1.55;
-      text-align: right;
+      padding: 14px 10px 14px 0;
       will-change: transform;
     }
 
-    .line-gutter span {
+    .line-number {
       display: block;
-      height: 1.55em;
+      min-height: 20px;
     }
 
-    .line-gutter span.error {
+    .line-number.error {
       color: var(--red);
-      text-shadow: 0 0 14px rgba(255, 93, 122, 0.45);
-    }
-
-    .error-line-overlay {
-      position: absolute;
-      left: 54px;
-      right: 0;
-      z-index: 1;
-      border-top: 1px solid rgba(255, 93, 122, 0.28);
-      border-bottom: 1px solid rgba(255, 93, 122, 0.22);
-      background: rgba(255, 93, 122, 0.12);
-      pointer-events: none;
-    }
-
-    .error-panel {
-      display: grid;
-      gap: 4px;
-      min-height: 58px;
-      padding: 11px 14px;
-      border-top: 1px solid var(--line);
-      background: rgba(255, 93, 122, 0.07);
-    }
-
-    .error-panel[hidden],
-    .error-line-overlay[hidden] {
-      display: none;
-    }
-
-    .error-kicker {
-      color: var(--red);
-      font-size: 0.74rem;
       font-weight: 800;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
+      text-shadow: 0 0 14px rgba(255, 92, 124, 0.5);
     }
 
-    .error-message {
-      color: var(--soft);
-      font-family: var(--mono);
-      font-size: 0.82rem;
-      overflow-wrap: anywhere;
-    }
-
-    .tree-shell {
+    #json-input {
+      display: block;
+      width: 100%;
+      height: 100%;
       min-height: 0;
-      overflow: auto;
-      padding: 14px;
-      background: rgba(5, 8, 15, 0.72);
-    }
-
-    .tree {
-      display: grid;
-      gap: 4px;
-      min-width: max-content;
+      resize: none;
+      border: 0;
+      outline: 0;
+      padding: 14px 16px;
+      background: transparent;
+      color: var(--text);
+      caret-color: var(--mint);
       font-family: var(--mono);
-      font-size: 0.88rem;
-      line-height: 1.55;
+      font-size: 13px;
+      line-height: 20px;
+      tab-size: 2;
+      white-space: pre;
     }
 
-    .empty-tree {
-      display: grid;
-      min-height: 220px;
-      place-items: center;
-      border: 1px dashed rgba(156, 171, 193, 0.22);
-      border-radius: var(--radius);
-      color: var(--faint);
-      text-align: center;
+    #json-input::placeholder {
+      color: rgba(129, 145, 163, 0.62);
     }
 
-    details {
-      min-width: 0;
-    }
-
-    summary {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-height: 28px;
-      border-radius: 6px;
-      cursor: pointer;
-      list-style: none;
-      outline: none;
-    }
-
-    summary::-webkit-details-marker {
+    .error-line-beam {
       display: none;
+      position: absolute;
+      left: 56px;
+      right: 0;
+      height: 20px;
+      pointer-events: none;
+      background: linear-gradient(90deg, rgba(255, 92, 124, 0.2), rgba(255, 92, 124, 0.04));
+      border-left: 2px solid var(--red);
+      box-shadow: 0 0 24px rgba(255, 92, 124, 0.1);
+      z-index: 1;
     }
 
-    summary::before {
-      display: inline-grid;
-      width: 18px;
-      height: 18px;
-      flex: 0 0 auto;
-      place-items: center;
-      border: 1px solid rgba(111, 255, 233, 0.22);
-      border-radius: 5px;
-      color: var(--cyan);
-      content: "+";
-      font-size: 0.78rem;
-      line-height: 1;
+    .error-card {
+      display: none;
+      position: absolute;
+      right: 16px;
+      bottom: 16px;
+      left: 72px;
+      max-height: 42%;
+      overflow: auto;
+      border: 1px solid rgba(255, 92, 124, 0.42);
+      border-radius: var(--radius);
+      background: rgba(30, 11, 18, 0.94);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+      color: #ffd9e1;
+      z-index: 4;
     }
 
-    details[open] > summary::before {
-      content: "-";
+    .error-card.visible {
+      display: block;
     }
 
-    summary:hover,
-    summary:focus-visible,
-    .leaf:hover {
-      background: rgba(111, 255, 233, 0.06);
+    .error-card strong {
+      display: block;
+      padding: 10px 12px 0;
+      color: var(--red);
+      font-size: 0.82rem;
     }
 
-    .children {
-      margin-left: 24px;
-      padding-left: 12px;
-      border-left: 1px solid rgba(156, 171, 193, 0.14);
+    .error-card p {
+      margin: 6px 12px;
+      color: #ffc4d0;
+      font-size: 0.82rem;
     }
 
-    .leaf {
-      display: flex;
-      align-items: baseline;
-      gap: 8px;
-      min-height: 28px;
-      border-radius: 6px;
-      white-space: nowrap;
+    .error-card pre {
+      margin: 8px 12px 12px;
+      overflow: auto;
+      color: #fff1f4;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 18px;
+      white-space: pre;
     }
 
-    .key {
-      color: var(--cyan);
-      font-weight: 720;
+    .splitter {
+      cursor: col-resize;
+      background:
+        linear-gradient(180deg, transparent 0%, rgba(44, 240, 191, 0.46) 24%, rgba(255, 79, 216, 0.35) 52%, rgba(48, 232, 255, 0.43) 76%, transparent 100%),
+        rgba(6, 7, 11, 0.62);
+      position: relative;
     }
 
-    .index {
-      color: var(--amber);
-      font-weight: 720;
+    .splitter::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 2px;
+      height: 54px;
+      border-radius: 99px;
+      background: rgba(237, 248, 255, 0.28);
+      transform: translate(-50%, -50%);
     }
 
-    .type {
-      padding: 2px 6px;
-      border: 1px solid rgba(156, 171, 193, 0.18);
-      border-radius: 999px;
-      color: var(--muted);
-      font-size: 0.68rem;
-      text-transform: uppercase;
+    .splitter.dragging {
+      background:
+        linear-gradient(180deg, transparent, rgba(44, 240, 191, 0.78), rgba(255, 79, 216, 0.58), transparent),
+        rgba(44, 240, 191, 0.1);
     }
 
-    .value.string {
-      color: var(--lime);
+    .output-shell {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      background: var(--panel);
     }
 
-    .value.number {
-      color: var(--amber);
-    }
-
-    .value.boolean {
-      color: var(--pink);
-    }
-
-    .value.null {
-      color: var(--muted);
-      font-style: italic;
-    }
-
-    .footer {
+    .result-tools {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
-      min-height: 42px;
-      padding: 9px 12px;
-      border-top: 1px solid var(--line);
-      background: rgba(6, 10, 18, 0.66);
+      min-width: 0;
+      gap: 10px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(6, 7, 11, 0.38);
+    }
+
+    .search-wrap {
+      display: flex;
+      align-items: center;
+      min-width: 180px;
+      max-width: 320px;
+      flex: 1;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(6, 7, 11, 0.48);
+      padding: 0 10px;
+    }
+
+    .search-wrap span {
+      color: var(--mint);
+      font-family: var(--mono);
+      font-weight: 800;
+    }
+
+    #key-search {
+      width: 100%;
+      height: 34px;
+      min-width: 0;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--text);
+    }
+
+    #key-search::placeholder {
+      color: rgba(129, 145, 163, 0.68);
+    }
+
+    .tree-actions {
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .result-stage {
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .code-view,
+    .tree-view {
+      display: none;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+    }
+
+    .code-view.active,
+    .tree-view.active {
+      display: block;
+    }
+
+    #json-output {
+      min-height: 100%;
+      margin: 0;
+      padding: 16px 18px;
+      color: var(--soft);
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 20px;
+      tab-size: 2;
+      white-space: pre;
+    }
+
+    .empty-state {
+      display: grid;
+      min-height: 100%;
+      place-items: center;
+      padding: 24px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .empty-state strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--soft);
+      font-size: 0.95rem;
+    }
+
+    .token.key { color: var(--cyan); }
+    .token.string { color: var(--green); }
+    .token.number { color: var(--amber); }
+    .token.boolean { color: var(--pink); }
+    .token.null { color: #9fa9b8; }
+
+    .tree-view {
+      padding: 8px 0 18px;
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 20px;
+    }
+
+    .tree-node {
+      min-width: max-content;
+    }
+
+    .tree-row {
+      display: grid;
+      grid-template-columns: auto minmax(160px, auto) auto auto minmax(120px, 1fr);
+      align-items: center;
+      gap: 8px;
+      min-height: 28px;
+      padding: 2px 14px;
+      border-left: 2px solid transparent;
+      color: var(--soft);
+    }
+
+    .tree-row:hover {
+      background: rgba(48, 232, 255, 0.06);
+      border-left-color: rgba(44, 240, 191, 0.44);
+    }
+
+    .tree-toggle {
+      display: inline-grid;
+      width: 22px;
+      height: 22px;
+      place-items: center;
+      border: 1px solid rgba(165, 255, 229, 0.16);
+      border-radius: 6px;
+      background: rgba(6, 7, 11, 0.55);
+      color: var(--mint);
+      cursor: pointer;
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+
+    .tree-toggle:disabled {
+      border-color: transparent;
+      background: transparent;
+      color: var(--faint);
+      cursor: default;
+    }
+
+    .tree-key {
+      overflow: hidden;
+      max-width: 30ch;
+      color: var(--cyan);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .tree-key.root {
+      color: var(--mint);
+      font-weight: 800;
+    }
+
+    .tree-type {
+      color: var(--pink);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+    }
+
+    .tree-count {
+      color: var(--faint);
+      font-size: 0.76rem;
+    }
+
+    .tree-preview {
+      overflow: hidden;
+      max-width: 54ch;
+      color: var(--muted);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .tree-match {
+      color: var(--amber);
+      text-shadow: 0 0 10px rgba(255, 209, 102, 0.34);
+    }
+
+    .drop-overlay {
+      display: none;
+      position: absolute;
+      inset: 14px;
+      z-index: 8;
+      place-items: center;
+      border: 1px dashed rgba(44, 240, 191, 0.68);
+      border-radius: var(--radius);
+      background: rgba(6, 10, 14, 0.86);
+      color: var(--text);
+      text-align: center;
+      box-shadow: inset 0 0 50px rgba(44, 240, 191, 0.08);
+      pointer-events: none;
+    }
+
+    .workspace.drag-over .drop-overlay {
+      display: grid;
+    }
+
+    .drop-overlay strong {
+      display: block;
+      color: var(--mint);
+      font-size: 1.02rem;
+    }
+
+    .drop-overlay span {
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .status {
+      min-width: 0;
+      overflow: hidden;
       color: var(--muted);
       font-family: var(--mono);
-      font-size: 0.74rem;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    .footer strong {
-      color: var(--soft);
-      font-weight: 720;
+    .status.ok { color: var(--mint); }
+    .status.error { color: var(--red); }
+    .status.warn { color: var(--amber); }
+
+    .hidden-file {
+      position: fixed;
+      inset: auto auto -100px -100px;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
     }
 
-    @media (max-width: 980px) {
+    @media (max-width: 1060px) {
+      .workspace {
+        grid-template-columns: minmax(260px, var(--left-pane)) 10px minmax(280px, 1fr);
+      }
+
+      .pane-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .button-row,
+      .top-actions {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 820px) {
+      body {
+        overflow: auto;
+      }
+
       .app {
+        min-height: 100vh;
         padding: 12px;
       }
 
       .topbar {
-        align-items: flex-start;
+        align-items: stretch;
         flex-direction: column;
       }
 
-      .actions {
+      .top-actions {
         justify-content: flex-start;
       }
 
       .workspace {
-        grid-template-columns: minmax(0, 1fr);
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(340px, 46vh) minmax(420px, 1fr);
+        overflow: visible;
       }
 
-      .editor-shell {
-        min-height: 420px;
+      .splitter {
+        display: none;
+      }
+
+      .result-tools {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .search-wrap {
+        width: 100%;
+        max-width: none;
+      }
+
+      .tree-actions {
+        justify-content: flex-start;
+      }
+
+      .pane-footer {
+        align-items: flex-start;
+        flex-direction: column;
       }
     }
 
     @media (max-width: 560px) {
-      .pane-head,
-      .footer {
-        align-items: flex-start;
-        flex-direction: column;
+      .app {
+        padding: 8px;
+        gap: 10px;
       }
 
-      .pane-actions {
-        justify-content: flex-start;
+      .brand p {
+        display: none;
       }
 
-      .btn {
-        height: 34px;
+      .btn,
+      .seg-btn {
         padding: 0 10px;
-        font-size: 0.8rem;
       }
 
-      textarea {
-        padding-left: 62px;
-        font-size: 0.84rem;
+      .button-row,
+      .top-actions {
+        gap: 6px;
       }
 
-      .line-gutter {
-        width: 48px;
+      .editor {
+        grid-template-columns: 44px minmax(0, 1fr);
       }
 
       .line-gutter-inner {
-        padding-right: 8px;
-        font-size: 0.84rem;
+        padding-right: 7px;
       }
 
-      .error-line-overlay {
-        left: 48px;
+      .error-line-beam {
+        left: 44px;
+      }
+
+      .error-card {
+        left: 52px;
+        right: 8px;
+        bottom: 8px;
+      }
+
+      #json-input,
+      #json-output,
+      .tree-view {
+        font-size: 12px;
+      }
+
+      .tree-row {
+        grid-template-columns: auto minmax(110px, auto) auto auto minmax(90px, 1fr);
+        gap: 6px;
+        padding-right: 10px;
       }
     }
   </style>
@@ -569,467 +777,759 @@
 <body>
   <main class="app">
     <header class="topbar">
-      <div class="brand">
-        <div class="brand-mark" aria-hidden="true">{ }</div>
+      <div class="brand" aria-label="JSON Tool">
+        <div class="brand-mark">{ }</div>
         <div>
           <h1>JSON Tool</h1>
-          <p class="meta" id="docMeta">0 bytes / 1 line / 0 nodes</p>
+          <p>Formatter, validator, minifier, and tree inspector</p>
         </div>
       </div>
-      <div class="actions" aria-label="JSON actions">
-        <button class="btn primary" id="formatBtn" type="button">Format</button>
-        <button class="btn" id="minifyBtn" type="button">Minify</button>
-        <button class="btn" id="copyBtn" type="button">Copy</button>
-        <button class="btn" id="sampleBtn" type="button">Sample</button>
-        <button class="btn danger" id="clearBtn" type="button">Clear</button>
+      <div class="top-actions">
+        <button class="btn" id="open-file" type="button">Open file</button>
+        <button class="btn" id="load-sample" type="button">Sample</button>
+        <button class="btn" id="clear-input" type="button">Clear</button>
       </div>
     </header>
 
-    <section class="workspace" aria-label="JSON workspace">
-      <section class="pane" aria-labelledby="inputTitle">
-        <div class="pane-head">
-          <div class="pane-title" id="inputTitle">
-            <span class="pulse" id="statusPulse" aria-hidden="true"></span>
-            <span>Input</span>
+    <section class="workspace" id="drop-zone" aria-label="JSON workspace">
+      <section class="pane" aria-label="JSON input">
+        <div class="pane-header">
+          <div class="pane-title">
+            <span>INPUT</span>
+            <small id="input-meta">0 lines, 0 chars</small>
           </div>
-          <span class="badge" id="statusBadge" role="status" aria-live="polite">Ready</span>
-        </div>
-
-        <div class="editor-shell">
-          <div class="line-gutter" aria-hidden="true">
-            <div class="line-gutter-inner" id="lineGutter"></div>
+          <div class="button-row segmented" aria-label="Output format">
+            <button class="seg-btn active" id="format-btn" type="button" data-mode="format" aria-pressed="true">Format</button>
+            <button class="seg-btn" id="compact-btn" type="button" data-mode="compact" aria-pressed="false">Compact</button>
+            <button class="seg-btn" id="minify-btn" type="button" data-mode="minify" aria-pressed="false">Minify</button>
           </div>
-          <div class="error-line-overlay" id="errorLineOverlay" hidden></div>
-          <textarea id="jsonInput" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="Paste JSON"></textarea>
         </div>
-
-        <div class="error-panel" id="errorPanel" hidden>
-          <div class="error-kicker" id="errorTitle">Parse error</div>
-          <div class="error-message" id="errorMessage"></div>
+        <div class="input-shell">
+          <div class="editor" id="editor">
+            <div class="line-gutter" aria-hidden="true">
+              <div class="line-gutter-inner" id="line-numbers"><span class="line-number">1</span></div>
+            </div>
+            <div class="error-line-beam" id="error-line-beam"></div>
+            <textarea id="json-input" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder='Paste JSON here, or drop a .json file into the workspace.'></textarea>
+          </div>
+          <div class="error-card" id="error-card" role="alert" aria-live="polite">
+            <strong id="error-title">Syntax error</strong>
+            <p id="error-message"></p>
+            <pre id="error-snippet"></pre>
+          </div>
+        </div>
+        <div class="pane-footer">
+          <div class="status warn" id="parse-status">Waiting for JSON</div>
+          <div class="status" id="file-status">Drop JSON file anywhere in the split pane</div>
         </div>
       </section>
 
-      <section class="pane" aria-labelledby="treeTitle">
-        <div class="pane-head">
-          <div class="pane-title" id="treeTitle">
-            <span class="pulse ok" aria-hidden="true"></span>
-            <span>Tree</span>
+      <div class="splitter" id="splitter" role="separator" aria-orientation="vertical" aria-label="Resize panes"></div>
+
+      <section class="pane" aria-label="JSON output">
+        <div class="pane-header">
+          <div class="pane-title">
+            <span>OUTPUT</span>
+            <small id="output-meta">No parsed value</small>
           </div>
-          <div class="pane-actions">
-            <button class="btn" id="expandBtn" type="button">Expand</button>
-            <button class="btn" id="collapseBtn" type="button">Collapse</button>
+          <div class="button-row">
+            <div class="view-switch" aria-label="Result view">
+              <button class="seg-btn active" id="code-tab" type="button" data-view="code" aria-pressed="true">Code</button>
+              <button class="seg-btn" id="tree-tab" type="button" data-view="tree" aria-pressed="false">Tree</button>
+            </div>
+            <button class="btn primary" id="copy-output" type="button">Copy output</button>
           </div>
         </div>
-
-        <div class="tree-shell">
-          <div class="tree" id="treeView">
-            <div class="empty-tree">Valid JSON renders here.</div>
+        <div class="output-shell">
+          <div class="result-tools">
+            <label class="search-wrap" for="key-search">
+              <span>/</span>
+              <input id="key-search" type="search" placeholder="Filter keys or paths">
+            </label>
+            <div class="tree-actions">
+              <button class="btn" id="expand-all" type="button">Expand</button>
+              <button class="btn" id="collapse-all" type="button">Collapse</button>
+            </div>
+          </div>
+          <div class="result-stage">
+            <div class="code-view active" id="code-view">
+              <pre id="json-output"><code></code></pre>
+            </div>
+            <div class="tree-view" id="tree-view" aria-label="JSON tree"></div>
           </div>
         </div>
-
-        <div class="footer">
-          <span id="rootType">Root: empty</span>
-          <span><strong id="nodeCount">0</strong> nodes</span>
+        <div class="pane-footer">
+          <div class="status" id="tree-status">Tree ready after validation</div>
+          <div class="status" id="copy-status"></div>
         </div>
       </section>
+
+      <div class="drop-overlay" id="drop-overlay" aria-hidden="true">
+        <div>
+          <strong>Drop JSON file</strong>
+          <span>The editor will load and validate it immediately</span>
+        </div>
+      </div>
     </section>
+
+    <input class="hidden-file" id="file-input" type="file" accept=".json,application/json,text/json,text/plain">
   </main>
 
   <script>
-    const input = document.getElementById("jsonInput");
-    const lineGutter = document.getElementById("lineGutter");
-    const errorLineOverlay = document.getElementById("errorLineOverlay");
-    const errorPanel = document.getElementById("errorPanel");
-    const errorTitle = document.getElementById("errorTitle");
-    const errorMessage = document.getElementById("errorMessage");
-    const statusBadge = document.getElementById("statusBadge");
-    const statusPulse = document.getElementById("statusPulse");
-    const treeView = document.getElementById("treeView");
-    const docMeta = document.getElementById("docMeta");
-    const rootType = document.getElementById("rootType");
-    const nodeCount = document.getElementById("nodeCount");
+    (() => {
+      "use strict";
 
-    const state = {
-      parsed: undefined,
-      error: null
-    };
+      const SAMPLE_JSON = JSON.stringify({
+        service: "json-tool",
+        neon: true,
+        release: "2026-07-06",
+        checks: {
+          format: "2-space",
+          compact: "readable one-line",
+          minify: "zero whitespace",
+          tree: ["expand", "collapse", "filter"]
+        },
+        payload: [
+          { id: 1, key: "alpha", active: true },
+          { id: 2, key: "beta", active: false, meta: null }
+        ]
+      }, null, 2);
 
-    const sampleJson = {
-      project: "neon-json-tool",
-      valid: true,
-      version: 1,
-      colors: ["cyan", "pink", "lime"],
-      metrics: {
-        files: 1,
-        dependencies: 0,
-        formatted: null
-      }
-    };
-
-    function parseJson(options = {}) {
-      const selectError = options.selectError === true;
-      const text = input.value;
-      renderGutter();
-      updateStats(text, undefined);
-
-      if (text.trim() === "") {
-        state.parsed = undefined;
-        state.error = null;
-        renderEmptyTree("Valid JSON renders here.");
-        setStatus("Ready", "neutral");
-        clearError();
-        return { ok: false, empty: true };
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
       }
 
-      try {
-        const value = JSON.parse(text);
-        state.parsed = value;
-        state.error = null;
-        renderTree(value);
-        updateStats(text, value);
-        setStatus("Valid", "ok");
-        clearError();
-        return { ok: true, value };
-      } catch (error) {
-        const detail = analyzeParseError(error, text);
-        state.parsed = undefined;
-        state.error = detail;
-        renderEmptyTree("Fix JSON to refresh the tree.");
-        showError(detail);
-        setStatus("Invalid", "bad");
-        if (selectError && detail.position !== null) {
-          input.focus();
-          input.setSelectionRange(detail.position, Math.min(detail.position + 1, text.length));
+      function lineColumnFromIndex(source, index) {
+        const safeIndex = Math.max(0, Math.min(Number(index) || 0, source.length));
+        let line = 1;
+        let column = 1;
+        for (let i = 0; i < safeIndex; i += 1) {
+          if (source[i] === "\n") {
+            line += 1;
+            column = 1;
+          } else {
+            column += 1;
+          }
         }
-        return { ok: false, error: detail };
-      }
-    }
-
-    function analyzeParseError(error, text) {
-      const message = error && error.message ? error.message : "Invalid JSON";
-      const positionMatch = message.match(/position\s+(\d+)/i);
-      const lineMatch = message.match(/line\s+(\d+)\s+column\s+(\d+)/i);
-      let position = null;
-      let line = null;
-      let column = null;
-
-      if (positionMatch) {
-        position = Number(positionMatch[1]);
-        ({ line, column } = positionToLineColumn(text, position));
-      } else if (lineMatch) {
-        line = Number(lineMatch[1]);
-        column = Number(lineMatch[2]);
-        position = lineColumnToPosition(text, line, column);
+        return { line, column };
       }
 
-      return { message, position, line, column };
-    }
+      function extractErrorLocation(source, message) {
+        const lineColumn = String(message).match(/line\s+(\d+)\s+column\s+(\d+)/i);
+        if (lineColumn) {
+          const line = Number(lineColumn[1]);
+          const column = Number(lineColumn[2]);
+          const prefix = source.split("\n").slice(0, line - 1).join("\n");
+          const position = prefix.length + (line > 1 ? 1 : 0) + column - 1;
+          return { line, column, position };
+        }
 
-    function positionToLineColumn(text, position) {
-      const safePosition = Math.max(0, Math.min(position, text.length));
-      let line = 1;
-      let column = 1;
+        const positionMatch = String(message).match(/position\s+(\d+)/i);
+        if (positionMatch) {
+          const position = Number(positionMatch[1]);
+          return { ...lineColumnFromIndex(source, position), position };
+        }
 
-      for (let i = 0; i < safePosition; i += 1) {
-        if (text.charCodeAt(i) === 10) {
-          line += 1;
-          column = 1;
-        } else {
-          column += 1;
+        const lines = source.split("\n");
+        const firstNonEmpty = Math.max(0, lines.findIndex((line) => line.trim() !== ""));
+        return { line: firstNonEmpty + 1, column: 1, position: 0 };
+      }
+
+      function makeErrorSnippet(source, line, column) {
+        const lines = source.split("\n");
+        const text = lines[line - 1] ?? "";
+        return `${text}\n${" ".repeat(Math.max(0, column - 1))}^`;
+      }
+
+      function parseJson(source) {
+        const input = String(source ?? "");
+        try {
+          return {
+            ok: true,
+            value: JSON.parse(input),
+            lineCount: input.split("\n").length,
+            charCount: input.length
+          };
+        } catch (error) {
+          const location = extractErrorLocation(input, error && error.message ? error.message : "Invalid JSON");
+          return {
+            ok: false,
+            message: error && error.message ? error.message : "Invalid JSON",
+            line: location.line,
+            column: location.column,
+            position: location.position,
+            snippet: makeErrorSnippet(input, location.line, location.column),
+            lineCount: input.split("\n").length,
+            charCount: input.length
+          };
         }
       }
 
-      return { line, column };
-    }
-
-    function lineColumnToPosition(text, line, column) {
-      let currentLine = 1;
-      let currentColumn = 1;
-
-      for (let i = 0; i < text.length; i += 1) {
-        if (currentLine === line && currentColumn === column) {
-          return i;
-        }
-        if (text.charCodeAt(i) === 10) {
-          currentLine += 1;
-          currentColumn = 1;
-        } else {
-          currentColumn += 1;
-        }
+      function formatJson(value) {
+        return JSON.stringify(value, null, 2);
       }
 
-      return text.length;
-    }
-
-    function setStatus(label, mode) {
-      statusBadge.textContent = label;
-      statusBadge.classList.toggle("ok", mode === "ok");
-      statusBadge.classList.toggle("bad", mode === "bad");
-      statusPulse.classList.toggle("ok", mode === "ok");
-      statusPulse.classList.toggle("bad", mode === "bad");
-    }
-
-    function showError(detail) {
-      errorTitle.textContent = detail.line && detail.column ? `Line ${detail.line}, column ${detail.column}` : "Syntax error";
-      errorMessage.textContent = detail.message;
-      errorPanel.hidden = false;
-      renderGutter();
-      positionErrorOverlay();
-    }
-
-    function clearError() {
-      errorPanel.hidden = true;
-      errorLineOverlay.hidden = true;
-      renderGutter();
-    }
-
-    function updateStats(text, value) {
-      const bytes = new Blob([text]).size;
-      const lines = countLines(text);
-      const nodes = value === undefined ? 0 : countNodes(value);
-      docMeta.textContent = `${formatBytes(bytes)} / ${lines} ${lines === 1 ? "line" : "lines"} / ${nodes} ${nodes === 1 ? "node" : "nodes"}`;
-      nodeCount.textContent = String(nodes);
-      rootType.textContent = value === undefined ? "Root: empty" : `Root: ${getType(value)}`;
-    }
-
-    function countLines(text) {
-      return text === "" ? 1 : text.split("\n").length;
-    }
-
-    function countNodes(value) {
-      if (value === null || typeof value !== "object") {
-        return 1;
-      }
-      const children = Array.isArray(value) ? value : Object.values(value);
-      return 1 + children.reduce((total, child) => total + countNodes(child), 0);
-    }
-
-    function formatBytes(bytes) {
-      if (bytes < 1024) {
-        return `${bytes} ${bytes === 1 ? "byte" : "bytes"}`;
-      }
-      if (bytes < 1024 * 1024) {
-        return `${(bytes / 1024).toFixed(1)} KB`;
-      }
-      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-    }
-
-    function renderGutter() {
-      const lines = countLines(input.value);
-      const errorLine = state.error && state.error.line ? state.error.line : null;
-      let markup = "";
-      for (let i = 1; i <= lines; i += 1) {
-        markup += `<span${i === errorLine ? " class=\"error\"" : ""}>${i}</span>`;
-      }
-      lineGutter.innerHTML = markup;
-      lineGutter.style.transform = `translateY(${-input.scrollTop}px)`;
-      positionErrorOverlay();
-    }
-
-    function positionErrorOverlay() {
-      if (!state.error || !state.error.line) {
-        errorLineOverlay.hidden = true;
-        return;
+      function minifyJson(value) {
+        return JSON.stringify(value);
       }
 
-      const styles = window.getComputedStyle(input);
-      const lineHeight = Number.parseFloat(styles.lineHeight) || 22;
-      const paddingTop = Number.parseFloat(styles.paddingTop) || 18;
-      const top = paddingTop + ((state.error.line - 1) * lineHeight) - input.scrollTop;
+      function compactJson(value) {
+        const minified = minifyJson(value);
+        let result = "";
+        let inString = false;
+        let escaped = false;
 
-      if (top + lineHeight < 0 || top > input.clientHeight) {
-        errorLineOverlay.hidden = true;
-        return;
-      }
-
-      errorLineOverlay.hidden = false;
-      errorLineOverlay.style.top = `${top}px`;
-      errorLineOverlay.style.height = `${lineHeight}px`;
-    }
-
-    function renderTree(value) {
-      treeView.replaceChildren(createTreeNode("root", value, { root: true, arrayItem: false }));
-    }
-
-    function renderEmptyTree(message) {
-      const empty = document.createElement("div");
-      empty.className = "empty-tree";
-      empty.textContent = message;
-      treeView.replaceChildren(empty);
-      rootType.textContent = "Root: empty";
-      nodeCount.textContent = "0";
-    }
-
-    function createTreeNode(key, value, options = {}) {
-      const type = getType(value);
-      const root = options.root === true;
-      const arrayItem = options.arrayItem === true;
-
-      if (type === "object" || type === "array") {
-        const details = document.createElement("details");
-        details.open = root;
-
-        const summary = document.createElement("summary");
-        summary.append(createKey(key, root, arrayItem));
-        summary.append(createTypeBadge(type));
-        summary.append(createCount(type === "array" ? value.length : Object.keys(value).length));
-        details.append(summary);
-
-        const children = document.createElement("div");
-        children.className = "children";
-        const entries = type === "array" ? value.map((item, index) => [String(index), item, true]) : Object.entries(value).map(([name, item]) => [name, item, false]);
-
-        if (entries.length === 0) {
-          const empty = document.createElement("div");
-          empty.className = "leaf";
-          const label = document.createElement("span");
-          label.className = "value null";
-          label.textContent = type === "array" ? "empty array" : "empty object";
-          empty.append(label);
-          children.append(empty);
-        } else {
-          for (const [childKey, childValue, childArrayItem] of entries) {
-            children.append(createTreeNode(childKey, childValue, { arrayItem: childArrayItem }));
+        for (const char of minified) {
+          result += char;
+          if (escaped) {
+            escaped = false;
+            continue;
+          }
+          if (char === "\\") {
+            escaped = true;
+            continue;
+          }
+          if (char === "\"") {
+            inString = !inString;
+            continue;
+          }
+          if (!inString && (char === ":" || char === ",")) {
+            result += " ";
           }
         }
 
-        details.append(children);
-        return details;
+        return result;
       }
 
-      const row = document.createElement("div");
-      row.className = "leaf";
-      row.append(createKey(key, root, arrayItem));
-      row.append(createTypeBadge(type));
+      function highlightJson(jsonText) {
+        const source = String(jsonText ?? "");
+        const tokenPattern = /("(?:\\u[\da-fA-F]{4}|\\["\\/bfnrt]|[^\\"])*")(\s*:)?|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null/g;
+        let output = "";
+        let lastIndex = 0;
 
-      const valueSpan = document.createElement("span");
-      valueSpan.className = `value ${type}`;
-      valueSpan.textContent = formatPrimitive(value, type);
-      row.append(valueSpan);
-      return row;
-    }
+        source.replace(tokenPattern, (match, stringToken, keyColon, offset) => {
+          output += escapeHtml(source.slice(lastIndex, offset));
 
-    function createKey(key, root, arrayItem) {
-      const span = document.createElement("span");
-      span.className = arrayItem ? "index" : "key";
-      span.textContent = root ? key : arrayItem ? `[${key}]` : key;
-      return span;
-    }
+          if (stringToken) {
+            const tokenClass = keyColon ? "key" : "string";
+            output += `<span class="token ${tokenClass}">${escapeHtml(stringToken)}</span>${escapeHtml(keyColon || "")}`;
+          } else {
+            let tokenClass = "number";
+            if (match === "true" || match === "false") {
+              tokenClass = "boolean";
+            } else if (match === "null") {
+              tokenClass = "null";
+            }
+            output += `<span class="token ${tokenClass}">${escapeHtml(match)}</span>`;
+          }
 
-    function createTypeBadge(type) {
-      const span = document.createElement("span");
-      span.className = "type";
-      span.textContent = type;
-      return span;
-    }
+          lastIndex = offset + match.length;
+          return match;
+        });
 
-    function createCount(count) {
-      const span = document.createElement("span");
-      span.className = "value null";
-      span.textContent = count + " " + (count === 1 ? "item" : "items");
-      return span;
-    }
-
-    function getType(value) {
-      if (value === null) {
-        return "null";
-      }
-      if (Array.isArray(value)) {
-        return "array";
-      }
-      return typeof value;
-    }
-
-    function formatPrimitive(value, type) {
-      if (type === "string") {
-        return JSON.stringify(value);
-      }
-      if (type === "null") {
-        return "null";
-      }
-      return String(value);
-    }
-
-    function formatJson() {
-      const result = parseJson({ selectError: true });
-      if (!result.ok) {
-        return;
-      }
-      input.value = JSON.stringify(result.value, null, 2);
-      parseJson();
-    }
-
-    function minifyJson() {
-      const result = parseJson({ selectError: true });
-      if (!result.ok) {
-        return;
-      }
-      input.value = JSON.stringify(result.value);
-      parseJson();
-    }
-
-    async function copyJson() {
-      if (input.value === "") {
-        setStatus("Empty", "neutral");
-        return;
+        output += escapeHtml(source.slice(lastIndex));
+        return output;
       }
 
-      try {
-        if (navigator.clipboard && window.isSecureContext) {
-          await navigator.clipboard.writeText(input.value);
-        } else {
-          input.focus();
-          input.select();
-          document.execCommand("copy");
+      function valueType(value) {
+        if (Array.isArray(value)) return "array";
+        if (value === null) return "null";
+        return typeof value;
+      }
+
+      function primitivePreview(value) {
+        const type = valueType(value);
+        if (type === "string") return JSON.stringify(value);
+        if (type === "number" || type === "boolean" || type === "null") return String(value);
+        return "";
+      }
+
+      function describeCount(value) {
+        if (Array.isArray(value)) {
+          return `${value.length} ${value.length === 1 ? "item" : "items"}`;
         }
-        setStatus("Copied", state.error ? "bad" : "ok");
-      } catch (error) {
-        setStatus("Copy failed", "bad");
+        if (value && typeof value === "object") {
+          const count = Object.keys(value).length;
+          return `${count} ${count === 1 ? "key" : "keys"}`;
+        }
+        return "";
       }
-    }
 
-    function expandAll(open) {
-      treeView.querySelectorAll("details").forEach((details) => {
-        details.open = open;
-      });
-    }
+      function buildTreeModel(value, key = "$", path = "$") {
+        const type = valueType(value);
+        const node = {
+          key: String(key),
+          path,
+          type,
+          count: describeCount(value),
+          preview: primitivePreview(value),
+          children: []
+        };
 
-    function insertAtSelection(text) {
-      const start = input.selectionStart;
-      const end = input.selectionEnd;
-      input.setRangeText(text, start, end, "end");
-      parseJson();
-    }
+        if (Array.isArray(value)) {
+          node.children = value.map((child, index) => buildTreeModel(child, index, `${path}[${index}]`));
+        } else if (value && typeof value === "object") {
+          node.children = Object.entries(value).map(([childKey, childValue]) => {
+            const safeKey = /^[A-Za-z_$][\w$]*$/.test(childKey) ? `.${childKey}` : `[${JSON.stringify(childKey)}]`;
+            return buildTreeModel(childValue, childKey, `${path}${safeKey}`);
+          });
+        }
 
-    input.addEventListener("input", () => parseJson());
-    input.addEventListener("scroll", () => {
-      lineGutter.style.transform = `translateY(${-input.scrollTop}px)`;
-      positionErrorOverlay();
-    });
-    input.addEventListener("keydown", (event) => {
-      if (event.key === "Tab") {
-        event.preventDefault();
-        insertAtSelection("  ");
+        return node;
       }
-    });
 
-    document.getElementById("formatBtn").addEventListener("click", formatJson);
-    document.getElementById("minifyBtn").addEventListener("click", minifyJson);
-    document.getElementById("copyBtn").addEventListener("click", copyJson);
-    document.getElementById("clearBtn").addEventListener("click", () => {
-      input.value = "";
-      parseJson();
-      input.focus();
-    });
-    document.getElementById("sampleBtn").addEventListener("click", () => {
-      input.value = JSON.stringify(sampleJson, null, 2);
-      parseJson();
-      input.focus();
-    });
-    document.getElementById("expandBtn").addEventListener("click", () => expandAll(true));
-    document.getElementById("collapseBtn").addEventListener("click", () => expandAll(false));
+      function cloneTree(node) {
+        return {
+          key: node.key,
+          path: node.path,
+          type: node.type,
+          count: node.count,
+          preview: node.preview,
+          children: node.children.map(cloneTree)
+        };
+      }
 
-    parseJson();
+      function filterTreeModel(node, query) {
+        const needle = String(query ?? "").trim().toLowerCase();
+        if (!needle) return cloneTree(node);
+
+        const haystack = [node.key, node.path, node.preview, node.type].join(" ").toLowerCase();
+        if (haystack.includes(needle)) return cloneTree(node);
+
+        const children = node.children
+          .map((child) => filterTreeModel(child, needle))
+          .filter(Boolean);
+
+        if (!children.length) return null;
+
+        return {
+          key: node.key,
+          path: node.path,
+          type: node.type,
+          count: node.count,
+          preview: node.preview,
+          children
+        };
+      }
+
+      function outputForMode(value, mode) {
+        if (mode === "minify") return minifyJson(value);
+        if (mode === "compact") return compactJson(value);
+        return formatJson(value);
+      }
+
+      function nodeCount(node) {
+        if (!node) return 0;
+        return 1 + node.children.reduce((total, child) => total + nodeCount(child), 0);
+      }
+
+      window.JsonTool = {
+        parseJson,
+        formatJson,
+        compactJson,
+        minifyJson,
+        highlightJson,
+        buildTreeModel,
+        filterTreeModel,
+        lineColumnFromIndex
+      };
+
+      function init() {
+        const input = document.getElementById("json-input");
+        if (!input) return;
+
+        const workspace = document.getElementById("drop-zone");
+        const lineNumbers = document.getElementById("line-numbers");
+        const inputMeta = document.getElementById("input-meta");
+        const parseStatus = document.getElementById("parse-status");
+        const outputMeta = document.getElementById("output-meta");
+        const output = document.getElementById("json-output");
+        const treeView = document.getElementById("tree-view");
+        const treeStatus = document.getElementById("tree-status");
+        const copyStatus = document.getElementById("copy-status");
+        const errorCard = document.getElementById("error-card");
+        const errorTitle = document.getElementById("error-title");
+        const errorMessage = document.getElementById("error-message");
+        const errorSnippet = document.getElementById("error-snippet");
+        const errorBeam = document.getElementById("error-line-beam");
+        const keySearch = document.getElementById("key-search");
+        const fileInput = document.getElementById("file-input");
+        const fileStatus = document.getElementById("file-status");
+        const splitter = document.getElementById("splitter");
+        const codeView = document.getElementById("code-view");
+
+        const state = {
+          parse: null,
+          tree: null,
+          filteredTree: null,
+          mode: "format",
+          view: "code",
+          outputText: "",
+          collapsed: new Set()
+        };
+
+        function lineCount() {
+          return Math.max(1, input.value.split("\n").length);
+        }
+
+        function setStatus(element, text, tone = "") {
+          element.textContent = text;
+          element.classList.remove("ok", "error", "warn");
+          if (tone) element.classList.add(tone);
+        }
+
+        function updateLineNumbers(errorLine = 0) {
+          const count = lineCount();
+          let html = "";
+          for (let index = 1; index <= count; index += 1) {
+            html += `<span class="line-number${index === errorLine ? " error" : ""}">${index}</span>`;
+          }
+          lineNumbers.innerHTML = html;
+          lineNumbers.style.transform = `translateY(${-input.scrollTop}px)`;
+        }
+
+        function updateErrorBeam(errorLine = 0) {
+          if (!errorLine) {
+            errorBeam.style.display = "none";
+            return;
+          }
+
+          const styles = window.getComputedStyle(input);
+          const lineHeight = Number.parseFloat(styles.lineHeight) || 20;
+          const paddingTop = Number.parseFloat(styles.paddingTop) || 0;
+          const top = paddingTop + (errorLine - 1) * lineHeight - input.scrollTop;
+          const visible = top > -lineHeight && top < input.clientHeight + lineHeight;
+          errorBeam.style.display = visible ? "block" : "none";
+          errorBeam.style.transform = `translateY(${top}px)`;
+          errorBeam.style.height = `${lineHeight}px`;
+        }
+
+        function clearError() {
+          errorCard.classList.remove("visible");
+          errorTitle.textContent = "Syntax error";
+          errorMessage.textContent = "";
+          errorSnippet.textContent = "";
+          updateErrorBeam(0);
+        }
+
+        function showError(error) {
+          errorTitle.textContent = `Syntax error at line ${error.line}, column ${error.column}`;
+          errorMessage.textContent = error.message;
+          errorSnippet.textContent = error.snippet;
+          errorCard.classList.add("visible");
+          updateErrorBeam(error.line);
+        }
+
+        function selectedModeLabel() {
+          if (state.mode === "minify") return "Minified";
+          if (state.mode === "compact") return "Compacted";
+          return "Formatted";
+        }
+
+        function renderCode() {
+          if (!state.parse || !state.parse.ok) {
+            output.innerHTML = input.value.trim()
+              ? `<code>${escapeHtml("Invalid JSON. Fix the highlighted syntax error to render output.")}</code>`
+              : `<code>${escapeHtml("Paste JSON to format, validate, minify, and inspect it.")}</code>`;
+            state.outputText = "";
+            return;
+          }
+
+          state.outputText = outputForMode(state.parse.value, state.mode);
+          output.innerHTML = `<code>${highlightJson(state.outputText)}</code>`;
+          outputMeta.textContent = `${selectedModeLabel()} output, ${state.outputText.length} chars`;
+        }
+
+        function markerFor(node, query) {
+          const label = node.key === "$" ? "$" : JSON.stringify(node.key);
+          if (!query) return escapeHtml(label);
+          const lower = label.toLowerCase();
+          const needle = query.toLowerCase();
+          const index = lower.indexOf(needle);
+          if (index === -1) return escapeHtml(label);
+          return `${escapeHtml(label.slice(0, index))}<span class="tree-match">${escapeHtml(label.slice(index, index + query.length))}</span>${escapeHtml(label.slice(index + query.length))}`;
+        }
+
+        function renderTreeNode(node, depth, query) {
+          const isBranch = node.children.length > 0;
+          const isCollapsed = state.collapsed.has(node.path) && !query;
+          const keyClass = node.key === "$" ? "tree-key root" : "tree-key";
+          const spacer = depth * 18;
+          const toggleLabel = isBranch ? (isCollapsed ? "+" : "-") : "";
+          const disabled = isBranch ? "" : " disabled";
+          const count = node.count ? escapeHtml(node.count) : "";
+          const preview = node.preview ? escapeHtml(node.preview) : "";
+
+          let html = `<div class="tree-node" data-path="${escapeHtml(node.path)}">`;
+          html += `<div class="tree-row" style="padding-left: ${14 + spacer}px">`;
+          html += `<button class="tree-toggle" type="button" data-path="${escapeHtml(node.path)}" aria-label="${isCollapsed ? "Expand" : "Collapse"} ${escapeHtml(node.path)}"${disabled}>${toggleLabel}</button>`;
+          html += `<span class="${keyClass}" title="${escapeHtml(node.path)}">${markerFor(node, query)}</span>`;
+          html += `<span class="tree-type">${escapeHtml(node.type)}</span>`;
+          html += `<span class="tree-count">${count}</span>`;
+          html += `<span class="tree-preview">${preview}</span>`;
+          html += "</div>";
+
+          if (isBranch && !isCollapsed) {
+            for (const child of node.children) {
+              html += renderTreeNode(child, depth + 1, query);
+            }
+          }
+
+          html += "</div>";
+          return html;
+        }
+
+        function renderTree() {
+          if (!state.tree) {
+            treeView.innerHTML = '<div class="empty-state"><div><strong>No tree yet</strong><span>Valid JSON will appear here.</span></div></div>';
+            setStatus(treeStatus, "Tree ready after validation");
+            return;
+          }
+
+          const query = keySearch.value.trim();
+          state.filteredTree = filterTreeModel(state.tree, query);
+          if (!state.filteredTree) {
+            treeView.innerHTML = '<div class="empty-state"><div><strong>No matching keys</strong><span>Clear the filter to restore the full tree.</span></div></div>';
+            setStatus(treeStatus, `0 matches for "${query}"`, "warn");
+            return;
+          }
+
+          treeView.innerHTML = renderTreeNode(state.filteredTree, 0, query);
+          const total = nodeCount(state.filteredTree);
+          setStatus(treeStatus, query ? `${total} visible nodes for "${query}"` : `${total} visible nodes`, "ok");
+        }
+
+        function setView(view) {
+          state.view = view;
+          document.querySelectorAll("[data-view]").forEach((button) => {
+            const active = button.dataset.view === view;
+            button.classList.toggle("active", active);
+            button.setAttribute("aria-pressed", String(active));
+          });
+          codeView.classList.toggle("active", view === "code");
+          treeView.classList.toggle("active", view === "tree");
+        }
+
+        function renderAll() {
+          const source = input.value;
+          const lines = lineCount();
+          inputMeta.textContent = `${lines} ${lines === 1 ? "line" : "lines"}, ${source.length} chars`;
+          updateLineNumbers(0);
+
+          if (!source.trim()) {
+            state.parse = null;
+            state.tree = null;
+            state.outputText = "";
+            outputMeta.textContent = "No parsed value";
+            setStatus(parseStatus, "Waiting for JSON", "warn");
+            clearError();
+            renderCode();
+            renderTree();
+            return;
+          }
+
+          const parsed = parseJson(source);
+          state.parse = parsed;
+
+          if (!parsed.ok) {
+            state.tree = null;
+            state.outputText = "";
+            outputMeta.textContent = "Invalid JSON";
+            setStatus(parseStatus, `Invalid at line ${parsed.line}, column ${parsed.column}`, "error");
+            updateLineNumbers(parsed.line);
+            showError(parsed);
+            renderCode();
+            renderTree();
+            return;
+          }
+
+          state.tree = buildTreeModel(parsed.value);
+          setStatus(parseStatus, "Valid JSON", "ok");
+          clearError();
+          renderCode();
+          renderTree();
+        }
+
+        function setMode(mode) {
+          state.mode = mode;
+          document.querySelectorAll("[data-mode]").forEach((button) => {
+            const active = button.dataset.mode === mode;
+            button.classList.toggle("active", active);
+            button.setAttribute("aria-pressed", String(active));
+          });
+          renderCode();
+        }
+
+        async function copyOutput() {
+          if (!state.outputText) {
+            setStatus(copyStatus, "Nothing to copy", "warn");
+            return;
+          }
+
+          try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              await navigator.clipboard.writeText(state.outputText);
+            } else {
+              const scratch = document.createElement("textarea");
+              scratch.value = state.outputText;
+              scratch.setAttribute("readonly", "");
+              scratch.style.position = "fixed";
+              scratch.style.left = "-999px";
+              document.body.appendChild(scratch);
+              scratch.select();
+              document.execCommand("copy");
+              scratch.remove();
+            }
+            setStatus(copyStatus, "Copied", "ok");
+          } catch (error) {
+            setStatus(copyStatus, "Copy failed", "error");
+          }
+
+          window.setTimeout(() => {
+            copyStatus.textContent = "";
+            copyStatus.classList.remove("ok", "error", "warn");
+          }, 1600);
+        }
+
+        function loadText(text, label) {
+          input.value = text;
+          fileStatus.textContent = label || "Loaded text";
+          renderAll();
+          input.focus();
+        }
+
+        function handleFile(file) {
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => loadText(String(reader.result || ""), `Loaded ${file.name}`);
+          reader.onerror = () => setStatus(fileStatus, `Could not read ${file.name}`, "error");
+          reader.readAsText(file);
+        }
+
+        let dragDepth = 0;
+
+        function cancelDrag(event) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+
+        workspace.addEventListener("dragenter", (event) => {
+          cancelDrag(event);
+          dragDepth += 1;
+          workspace.classList.add("drag-over");
+        });
+
+        workspace.addEventListener("dragover", cancelDrag);
+
+        workspace.addEventListener("dragleave", (event) => {
+          cancelDrag(event);
+          dragDepth = Math.max(0, dragDepth - 1);
+          if (dragDepth === 0) workspace.classList.remove("drag-over");
+        });
+
+        workspace.addEventListener("drop", (event) => {
+          cancelDrag(event);
+          dragDepth = 0;
+          workspace.classList.remove("drag-over");
+          handleFile(event.dataTransfer.files[0]);
+        });
+
+        function startResize(event) {
+          event.preventDefault();
+          splitter.classList.add("dragging");
+          const rect = workspace.getBoundingClientRect();
+
+          function move(pointerEvent) {
+            const x = pointerEvent.clientX - rect.left;
+            const ratio = Math.min(72, Math.max(28, (x / rect.width) * 100));
+            workspace.style.setProperty("--left-pane", `${ratio}%`);
+          }
+
+          function stop() {
+            splitter.classList.remove("dragging");
+            window.removeEventListener("pointermove", move);
+            window.removeEventListener("pointerup", stop);
+          }
+
+          window.addEventListener("pointermove", move);
+          window.addEventListener("pointerup", stop);
+        }
+
+        input.addEventListener("input", renderAll);
+        input.addEventListener("scroll", () => {
+          lineNumbers.style.transform = `translateY(${-input.scrollTop}px)`;
+          if (state.parse && !state.parse.ok) updateErrorBeam(state.parse.line);
+        });
+
+        document.querySelectorAll("[data-mode]").forEach((button) => {
+          button.addEventListener("click", () => setMode(button.dataset.mode));
+        });
+
+        document.querySelectorAll("[data-view]").forEach((button) => {
+          button.addEventListener("click", () => setView(button.dataset.view));
+        });
+
+        treeView.addEventListener("click", (event) => {
+          const button = event.target.closest(".tree-toggle");
+          if (!button || button.disabled) return;
+          const path = button.dataset.path;
+          if (state.collapsed.has(path)) {
+            state.collapsed.delete(path);
+          } else {
+            state.collapsed.add(path);
+          }
+          renderTree();
+        });
+
+        keySearch.addEventListener("input", () => {
+          renderTree();
+          if (keySearch.value.trim()) setView("tree");
+        });
+
+        document.getElementById("expand-all").addEventListener("click", () => {
+          state.collapsed.clear();
+          renderTree();
+        });
+
+        document.getElementById("collapse-all").addEventListener("click", () => {
+          if (!state.tree) return;
+          const collect = (node) => {
+            if (node.children.length) state.collapsed.add(node.path);
+            node.children.forEach(collect);
+          };
+          state.collapsed.clear();
+          state.tree.children.forEach(collect);
+          renderTree();
+        });
+
+        document.getElementById("copy-output").addEventListener("click", copyOutput);
+        document.getElementById("load-sample").addEventListener("click", () => loadText(SAMPLE_JSON, "Loaded sample JSON"));
+        document.getElementById("clear-input").addEventListener("click", () => loadText("", "Cleared input"));
+        document.getElementById("open-file").addEventListener("click", () => fileInput.click());
+        fileInput.addEventListener("change", () => {
+          handleFile(fileInput.files[0]);
+          fileInput.value = "";
+        });
+        splitter.addEventListener("pointerdown", startResize);
+
+        window.addEventListener("resize", () => {
+          if (state.parse && !state.parse.ok) updateErrorBeam(state.parse.line);
+        });
+
+        renderAll();
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init);
+      } else {
+        init();
+      }
+    })();
   </script>
 </body>
 </html>
