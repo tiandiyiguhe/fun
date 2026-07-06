@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neon Memory Match</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #070711;
+      --panel: rgba(15, 18, 35, 0.78);
+      --panel-strong: rgba(19, 24, 46, 0.94);
+      --text: #f4fbff;
+      --muted: #9aa8c7;
+      --cyan: #38f8ff;
+      --pink: #ff47c7;
+      --lime: #9dff43;
+      --gold: #ffd166;
+      --violet: #9f7cff;
+      --danger: #ff5b7f;
+      --card-size: minmax(0, 1fr);
+      --grid-cols: 4;
+      --grid-rows: 4;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+    }
+
+    body {
+      margin: 0;
+      overflow-x: hidden;
+      background:
+        linear-gradient(rgba(56, 248, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 71, 199, 0.035) 1px, transparent 1px),
+        linear-gradient(135deg, #05060d 0%, #0b0a17 44%, #11091a 100%);
+      background-size: 32px 32px, 32px 32px, cover;
+      color: var(--text);
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1120px, calc(100vw - 28px));
+      min-height: 100svh;
+      margin: 0 auto;
+      padding: 24px 0 30px;
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 18px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      gap: 18px;
+    }
+
+    .brand {
+      min-width: 0;
+    }
+
+    .eyebrow {
+      margin: 0 0 6px;
+      color: var(--lime);
+      font-size: 0.76rem;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      text-shadow: 0 0 18px rgba(157, 255, 67, 0.45);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 6vw, 5rem);
+      line-height: 0.9;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      text-shadow:
+        0 0 10px rgba(56, 248, 255, 0.58),
+        0 0 26px rgba(255, 71, 199, 0.34);
+    }
+
+    .subline {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: clamp(0.92rem, 2vw, 1.02rem);
+      max-width: 58ch;
+    }
+
+    .status-pill {
+      display: inline-grid;
+      grid-auto-flow: column;
+      align-items: center;
+      gap: 8px;
+      min-height: 42px;
+      padding: 8px 12px;
+      border: 1px solid rgba(56, 248, 255, 0.35);
+      border-radius: 8px;
+      background: rgba(8, 14, 26, 0.72);
+      color: var(--cyan);
+      font-weight: 900;
+      box-shadow: 0 0 20px rgba(56, 248, 255, 0.16);
+      white-space: nowrap;
+    }
+
+    .pulse-dot {
+      width: 10px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: var(--lime);
+      box-shadow: 0 0 16px var(--lime);
+      animation: pulseDot 1.4s ease-in-out infinite;
+    }
+
+    .hud {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .stats,
+    .controls {
+      min-width: 0;
+      border: 1px solid rgba(154, 168, 199, 0.22);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 18px 52px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(16px);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(82px, 1fr));
+      overflow: hidden;
+    }
+
+    .stat {
+      min-width: 0;
+      padding: 13px 14px;
+      border-right: 1px solid rgba(154, 168, 199, 0.16);
+    }
+
+    .stat:last-child {
+      border-right: 0;
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.74rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 4px;
+      color: var(--text);
+      font-size: clamp(1rem, 2.3vw, 1.42rem);
+      line-height: 1.1;
+      text-shadow: 0 0 14px rgba(56, 248, 255, 0.25);
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(58px, 1fr));
+      gap: 6px;
+      padding: 4px;
+      border: 1px solid rgba(56, 248, 255, 0.22);
+      border-radius: 8px;
+      background: rgba(5, 8, 18, 0.7);
+    }
+
+    .difficulty,
+    .tool-btn {
+      border: 1px solid transparent;
+      border-radius: 7px;
+      min-height: 42px;
+      padding: 0 12px;
+      color: var(--muted);
+      background: transparent;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: transform 150ms ease, color 150ms ease, border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+    }
+
+    .difficulty {
+      font-weight: 900;
+    }
+
+    .difficulty:hover,
+    .tool-btn:hover {
+      color: var(--text);
+      transform: translateY(-1px);
+      border-color: rgba(56, 248, 255, 0.34);
+    }
+
+    .difficulty.is-active {
+      color: #061017;
+      background: linear-gradient(135deg, var(--cyan), var(--lime));
+      box-shadow: 0 0 22px rgba(56, 248, 255, 0.36);
+    }
+
+    .tool-btn {
+      display: inline-grid;
+      place-items: center;
+      min-width: 44px;
+      color: var(--text);
+      background: rgba(18, 23, 44, 0.86);
+      border-color: rgba(154, 168, 199, 0.22);
+      font-weight: 900;
+    }
+
+    .tool-btn[data-tone="peek"] {
+      color: var(--gold);
+    }
+
+    .tool-btn:active,
+    .difficulty:active,
+    .card:active {
+      transform: translateY(1px) scale(0.99);
+    }
+
+    .table {
+      position: relative;
+      min-height: 0;
+      display: grid;
+      place-items: center;
+      padding: clamp(8px, 2vw, 18px);
+    }
+
+    .board-wrap {
+      width: min(100%, 780px);
+      aspect-ratio: var(--grid-cols) / var(--grid-rows);
+      min-height: 0;
+      display: grid;
+      place-items: center;
+      filter: drop-shadow(0 22px 48px rgba(0, 0, 0, 0.42));
+    }
+
+    .board {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: repeat(var(--grid-cols), var(--card-size));
+      grid-template-rows: repeat(var(--grid-rows), var(--card-size));
+      gap: clamp(8px, 1.5vw, 14px);
+      perspective: 1200px;
+      user-select: none;
+    }
+
+    .card {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      min-width: 0;
+      min-height: 0;
+      border: 0;
+      padding: 0;
+      background: transparent;
+      cursor: pointer;
+      transform: translateZ(0);
+      touch-action: manipulation;
+      outline: none;
+    }
+
+    .card:focus-visible {
+      border-radius: 8px;
+      box-shadow: 0 0 0 3px rgba(255, 209, 102, 0.85), 0 0 26px rgba(255, 209, 102, 0.55);
+    }
+
+    .card-inner {
+      position: absolute;
+      inset: 0;
+      border-radius: 8px;
+      transform-style: preserve-3d;
+      transition: transform 520ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 220ms ease;
+    }
+
+    .card.is-flipped .card-inner,
+    .card.is-peeking .card-inner,
+    .card.is-matched .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card-face {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      overflow: hidden;
+      backface-visibility: hidden;
+    }
+
+    .card-back {
+      border: 1px solid rgba(56, 248, 255, 0.48);
+      background:
+        linear-gradient(135deg, rgba(56, 248, 255, 0.18), rgba(255, 71, 199, 0.16)),
+        repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.08) 0 2px, transparent 2px 8px),
+        #10162a;
+      box-shadow:
+        inset 0 0 26px rgba(56, 248, 255, 0.12),
+        0 0 20px rgba(56, 248, 255, 0.12);
+    }
+
+    .card-back::before {
+      content: "";
+      width: 42%;
+      aspect-ratio: 1;
+      border: 2px solid rgba(157, 255, 67, 0.62);
+      transform: rotate(45deg);
+      box-shadow:
+        0 0 12px rgba(157, 255, 67, 0.5),
+        inset 0 0 16px rgba(255, 71, 199, 0.22);
+    }
+
+    .card-back::after {
+      content: "";
+      position: absolute;
+      inset: 10%;
+      border: 1px solid rgba(255, 71, 199, 0.22);
+      border-radius: 6px;
+    }
+
+    .card-front {
+      transform: rotateY(180deg);
+      border: 1px solid rgba(255, 71, 199, 0.56);
+      background:
+        linear-gradient(145deg, rgba(255, 71, 199, 0.2), rgba(56, 248, 255, 0.16)),
+        #101321;
+      box-shadow:
+        inset 0 0 32px rgba(255, 71, 199, 0.14),
+        0 0 18px rgba(255, 71, 199, 0.14);
+      font-size: clamp(1.55rem, 7vw, 3.7rem);
+      text-shadow:
+        0 0 12px rgba(255, 255, 255, 0.68),
+        0 0 30px var(--face-glow, rgba(56, 248, 255, 0.6));
+    }
+
+    .card.is-matched .card-inner {
+      filter: saturate(1.35) brightness(1.1);
+      animation: matchedGlow 1.2s ease-in-out infinite alternate;
+    }
+
+    .card.is-disabled {
+      cursor: default;
+    }
+
+    .board.is-shuffling .card {
+      animation: shufflePop 620ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+      animation-delay: calc(var(--deal-index) * 16ms);
+    }
+
+    .board.is-locked .card:not(.is-matched) {
+      pointer-events: none;
+    }
+
+    .message {
+      position: absolute;
+      left: 50%;
+      bottom: 10px;
+      transform: translateX(-50%);
+      width: min(520px, calc(100% - 26px));
+      min-height: 42px;
+      display: grid;
+      place-items: center;
+      padding: 9px 14px;
+      border: 1px solid rgba(255, 209, 102, 0.26);
+      border-radius: 8px;
+      background: rgba(10, 12, 24, 0.78);
+      color: var(--gold);
+      font-weight: 800;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    .message.is-visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-6px);
+    }
+
+    .victory {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: none;
+      place-items: center;
+      padding: 22px;
+      background: rgba(2, 3, 10, 0.78);
+      backdrop-filter: blur(10px);
+    }
+
+    .victory.is-open {
+      display: grid;
+    }
+
+    .victory-panel {
+      position: relative;
+      z-index: 2;
+      width: min(480px, 100%);
+      border: 1px solid rgba(56, 248, 255, 0.38);
+      border-radius: 8px;
+      padding: clamp(22px, 5vw, 34px);
+      background:
+        linear-gradient(135deg, rgba(56, 248, 255, 0.12), rgba(255, 71, 199, 0.12)),
+        var(--panel-strong);
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.04),
+        0 24px 84px rgba(0, 0, 0, 0.55),
+        0 0 48px rgba(56, 248, 255, 0.18);
+      text-align: center;
+    }
+
+    .victory-panel h2 {
+      margin: 0 0 10px;
+      font-size: clamp(2rem, 8vw, 4rem);
+      line-height: 0.9;
+      text-transform: uppercase;
+      text-shadow: 0 0 24px rgba(255, 71, 199, 0.55);
+    }
+
+    .victory-panel p {
+      margin: 0 0 18px;
+      color: var(--muted);
+    }
+
+    .victory-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin: 20px 0;
+    }
+
+    .metric {
+      padding: 11px 8px;
+      border: 1px solid rgba(154, 168, 199, 0.22);
+      border-radius: 8px;
+      background: rgba(5, 8, 18, 0.7);
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 1.15rem;
+    }
+
+    .primary-action {
+      width: 100%;
+      min-height: 48px;
+      border: 1px solid rgba(157, 255, 67, 0.34);
+      border-radius: 8px;
+      color: #061017;
+      background: linear-gradient(135deg, var(--lime), var(--cyan));
+      font-weight: 950;
+      cursor: pointer;
+      box-shadow: 0 0 26px rgba(157, 255, 67, 0.26);
+    }
+
+    .confetti-layer {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .confetti {
+      position: absolute;
+      top: -18px;
+      left: var(--x);
+      width: var(--w);
+      height: var(--h);
+      border-radius: 2px;
+      background: var(--c);
+      box-shadow: 0 0 12px var(--c);
+      animation: confettiFall var(--duration) linear forwards;
+      animation-delay: var(--delay);
+      transform: translate3d(0, 0, 0) rotate(var(--spin));
+    }
+
+    @keyframes pulseDot {
+      0%,
+      100% {
+        transform: scale(0.8);
+        opacity: 0.62;
+      }
+
+      50% {
+        transform: scale(1.08);
+        opacity: 1;
+      }
+    }
+
+    @keyframes shufflePop {
+      0% {
+        opacity: 0;
+        transform: translateY(20px) rotateZ(-4deg) scale(0.82);
+      }
+
+      50% {
+        transform: translateY(-8px) rotateZ(3deg) scale(1.04);
+      }
+
+      100% {
+        opacity: 1;
+        transform: translateY(0) rotateZ(0) scale(1);
+      }
+    }
+
+    @keyframes matchedGlow {
+      from {
+        box-shadow: 0 0 16px rgba(157, 255, 67, 0.3), 0 0 24px rgba(56, 248, 255, 0.18);
+      }
+
+      to {
+        box-shadow: 0 0 28px rgba(157, 255, 67, 0.65), 0 0 42px rgba(255, 71, 199, 0.35);
+      }
+    }
+
+    @keyframes confettiFall {
+      0% {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) rotate(var(--spin));
+      }
+
+      100% {
+        opacity: 0;
+        transform: translate3d(var(--drift), 112vh, 0) rotate(calc(var(--spin) + 680deg));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .app {
+        width: min(100vw - 18px, 680px);
+        padding-top: 14px;
+        gap: 12px;
+      }
+
+      .topbar,
+      .hud {
+        grid-template-columns: 1fr;
+      }
+
+      .status-pill {
+        justify-self: start;
+      }
+
+      .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .stat:nth-child(2) {
+        border-right: 0;
+      }
+
+      .stat:nth-child(1),
+      .stat:nth-child(2) {
+        border-bottom: 1px solid rgba(154, 168, 199, 0.16);
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+      }
+
+      .board-wrap {
+        width: min(100%, 96svw);
+      }
+
+      .table {
+        padding: 4px 0 52px;
+      }
+    }
+
+    @media (max-width: 460px) {
+      .controls {
+        grid-template-columns: 1fr 44px 44px;
+        gap: 8px;
+      }
+
+      .difficulty {
+        padding: 0 7px;
+        min-height: 40px;
+        font-size: 0.88rem;
+      }
+
+      .tool-btn {
+        min-width: 40px;
+        min-height: 40px;
+      }
+
+      .board {
+        gap: 7px;
+      }
+
+      .card-front {
+        font-size: clamp(1.26rem, 8vw, 2.5rem);
+      }
+
+      .victory-metrics {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 1ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" aria-label="Neon memory card matching game">
+    <header class="topbar">
+      <div class="brand">
+        <p class="eyebrow">taste skill neon deck</p>
+        <h1>Memory Match</h1>
+        <p class="subline">Flip pairs fast, chain clean reads, and keep your best time lit for each grid.</p>
+      </div>
+      <div class="status-pill" aria-live="polite">
+        <span class="pulse-dot" aria-hidden="true"></span>
+        <span id="gameStatus">Ready</span>
+      </div>
+    </header>
+
+    <section class="hud" aria-label="Game controls and score">
+      <div class="stats">
+        <div class="stat">
+          <span>Moves</span>
+          <strong id="moves">0</strong>
+        </div>
+        <div class="stat">
+          <span>Timer</span>
+          <strong id="timer">00:00</strong>
+        </div>
+        <div class="stat">
+          <span>Best</span>
+          <strong id="best">--:--</strong>
+        </div>
+        <div class="stat">
+          <span>Pairs</span>
+          <strong id="pairs">0/8</strong>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="segmented" aria-label="Difficulty selector">
+          <button class="difficulty is-active" type="button" data-size="4x4" aria-pressed="true">4x4</button>
+          <button class="difficulty" type="button" data-size="4x6" aria-pressed="false">4x6</button>
+          <button class="difficulty" type="button" data-size="6x6" aria-pressed="false">6x6</button>
+        </div>
+        <button class="tool-btn" type="button" id="restart" title="Shuffle a fresh deck" aria-label="Shuffle a fresh deck">↻</button>
+        <button class="tool-btn" type="button" id="peek" data-tone="peek" title="Press H for hint" aria-label="Peek at unmatched cards">H</button>
+      </div>
+    </section>
+
+    <section class="table" aria-label="Card table">
+      <div class="board-wrap">
+        <div class="board" id="board" role="grid" aria-label="Memory cards"></div>
+      </div>
+      <div class="message" id="message" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <section class="victory" id="victory" aria-modal="true" role="dialog" aria-labelledby="victoryTitle" aria-hidden="true">
+    <div class="confetti-layer" id="confettiLayer" aria-hidden="true"></div>
+    <div class="victory-panel">
+      <h2 id="victoryTitle">Matched</h2>
+      <p id="victoryCopy">Neon recall locked in.</p>
+      <div class="victory-metrics">
+        <div class="metric">
+          <span>Time</span>
+          <strong id="winTime">00:00</strong>
+        </div>
+        <div class="metric">
+          <span>Moves</span>
+          <strong id="winMoves">0</strong>
+        </div>
+        <div class="metric">
+          <span>Best</span>
+          <strong id="winBest">--:--</strong>
+        </div>
+      </div>
+      <button class="primary-action" type="button" id="playAgain">Shuffle Again</button>
+    </div>
+  </section>
+
+  <script>
+    (() => {
+      const ICONS = [
+        "⚡", "💎", "🔥", "🌙", "🛸", "🎧", "👾", "🧠", "🪩",
+        "🚀", "🧬", "🕹️", "🍒", "🧿", "🌈", "💿", "🔮", "✨"
+      ];
+      const GLOWS = [
+        "#38f8ff", "#ff47c7", "#9dff43", "#ffd166", "#9f7cff", "#ff5b7f"
+      ];
+      const SIZE_CONFIG = {
+        "4x4": { rows: 4, cols: 4 },
+        "4x6": { rows: 4, cols: 6 },
+        "6x6": { rows: 6, cols: 6 }
+      };
+
+      const board = document.getElementById("board");
+      const movesEl = document.getElementById("moves");
+      const timerEl = document.getElementById("timer");
+      const bestEl = document.getElementById("best");
+      const pairsEl = document.getElementById("pairs");
+      const statusEl = document.getElementById("gameStatus");
+      const messageEl = document.getElementById("message");
+      const victory = document.getElementById("victory");
+      const confettiLayer = document.getElementById("confettiLayer");
+      const winTimeEl = document.getElementById("winTime");
+      const winMovesEl = document.getElementById("winMoves");
+      const winBestEl = document.getElementById("winBest");
+      const victoryCopy = document.getElementById("victoryCopy");
+      const difficultyButtons = [...document.querySelectorAll(".difficulty")];
+
+      let currentSize = "4x4";
+      let deck = [];
+      let flipped = [];
+      let matchedCount = 0;
+      let moves = 0;
+      let startedAt = 0;
+      let elapsedBeforeStop = 0;
+      let rafId = 0;
+      let isLocked = false;
+      let isPeeking = false;
+      let messageTimer = 0;
+
+      function bestKey() {
+        return `neonMemoryBest-${currentSize}`;
+      }
+
+      function formatTime(ms) {
+        const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+      }
+
+      function readBest() {
+        const value = Number(localStorage.getItem(bestKey()));
+        return Number.isFinite(value) && value > 0 ? value : 0;
+      }
+
+      function setBestDisplay() {
+        const best = readBest();
+        bestEl.textContent = best ? formatTime(best) : "--:--";
+      }
+
+      function updateTimer() {
+        const elapsed = startedAt ? performance.now() - startedAt : elapsedBeforeStop;
+        timerEl.textContent = formatTime(elapsed);
+        if (startedAt) {
+          rafId = requestAnimationFrame(updateTimer);
+        }
+      }
+
+      function startTimer() {
+        if (startedAt) return;
+        startedAt = performance.now() - elapsedBeforeStop;
+        rafId = requestAnimationFrame(updateTimer);
+      }
+
+      function stopTimer() {
+        if (!startedAt) return elapsedBeforeStop;
+        elapsedBeforeStop = performance.now() - startedAt;
+        startedAt = 0;
+        cancelAnimationFrame(rafId);
+        updateTimer();
+        return elapsedBeforeStop;
+      }
+
+      function shuffle(items) {
+        const copy = [...items];
+        for (let i = copy.length - 1; i > 0; i -= 1) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        return copy;
+      }
+
+      function buildDeck(size) {
+        const { rows, cols } = SIZE_CONFIG[size];
+        const pairCount = (rows * cols) / 2;
+        const faces = shuffle(ICONS).slice(0, pairCount);
+        return shuffle(faces.flatMap((face, pairId) => ([
+          { id: `${size}-${pairId}-a`, pairId, face, glow: GLOWS[pairId % GLOWS.length] },
+          { id: `${size}-${pairId}-b`, pairId, face, glow: GLOWS[pairId % GLOWS.length] }
+        ])));
+      }
+
+      function showMessage(text, duration = 1200) {
+        window.clearTimeout(messageTimer);
+        messageEl.textContent = text;
+        messageEl.classList.add("is-visible");
+        messageTimer = window.setTimeout(() => {
+          messageEl.classList.remove("is-visible");
+        }, duration);
+      }
+
+      function setStatus(text) {
+        statusEl.textContent = text;
+      }
+
+      function setDifficulty(size) {
+        currentSize = size;
+        difficultyButtons.forEach((button) => {
+          const isActive = button.dataset.size === size;
+          button.classList.toggle("is-active", isActive);
+          button.setAttribute("aria-pressed", String(isActive));
+        });
+      }
+
+      function resetState() {
+        cancelAnimationFrame(rafId);
+        flipped = [];
+        matchedCount = 0;
+        moves = 0;
+        elapsedBeforeStop = 0;
+        startedAt = 0;
+        isLocked = false;
+        isPeeking = false;
+        movesEl.textContent = "0";
+        timerEl.textContent = "00:00";
+        setBestDisplay();
+        setStatus("Ready");
+        victory.classList.remove("is-open");
+        victory.setAttribute("aria-hidden", "true");
+        confettiLayer.replaceChildren();
+        messageEl.classList.remove("is-visible");
+      }
+
+      function renderBoard() {
+        const { rows, cols } = SIZE_CONFIG[currentSize];
+        const pairTotal = deck.length / 2;
+        document.documentElement.style.setProperty("--grid-cols", cols);
+        document.documentElement.style.setProperty("--grid-rows", rows);
+        pairsEl.textContent = `0/${pairTotal}`;
+        board.replaceChildren();
+        board.classList.add("is-shuffling", "is-locked");
+
+        deck.forEach((card, index) => {
+          const button = document.createElement("button");
+          button.className = "card";
+          button.type = "button";
+          button.dataset.id = card.id;
+          button.dataset.pairId = String(card.pairId);
+          button.style.setProperty("--deal-index", index);
+          button.style.setProperty("--face-glow", card.glow);
+          button.setAttribute("role", "gridcell");
+          button.setAttribute("aria-label", "Hidden card");
+          button.setAttribute("aria-pressed", "false");
+          button.innerHTML = `
+            <span class="card-inner">
+              <span class="card-face card-back" aria-hidden="true"></span>
+              <span class="card-face card-front" aria-hidden="true">${card.face}</span>
+            </span>
+          `;
+          button.addEventListener("click", () => handleCardClick(button));
+          board.appendChild(button);
+        });
+
+        window.setTimeout(() => {
+          board.classList.remove("is-shuffling", "is-locked");
+        }, 820);
+      }
+
+      function newGame(size = currentSize) {
+        setDifficulty(size);
+        resetState();
+        deck = buildDeck(currentSize);
+        renderBoard();
+        showMessage("Deck shuffled", 850);
+      }
+
+      function getCardData(cardEl) {
+        return deck.find((card) => card.id === cardEl.dataset.id);
+      }
+
+      function flipCard(cardEl) {
+        const card = getCardData(cardEl);
+        cardEl.classList.add("is-flipped");
+        cardEl.setAttribute("aria-label", `Revealed ${card.face}`);
+        cardEl.setAttribute("aria-pressed", "true");
+        flipped.push(cardEl);
+      }
+
+      function hideCards(cards) {
+        cards.forEach((cardEl) => {
+          cardEl.classList.remove("is-flipped");
+          cardEl.setAttribute("aria-label", "Hidden card");
+          cardEl.setAttribute("aria-pressed", "false");
+        });
+      }
+
+      function markMatched(cards) {
+        cards.forEach((cardEl) => {
+          cardEl.classList.add("is-matched", "is-disabled");
+          cardEl.disabled = true;
+          cardEl.setAttribute("aria-label", "Matched card");
+        });
+        matchedCount += 1;
+        pairsEl.textContent = `${matchedCount}/${deck.length / 2}`;
+        setStatus("Matched");
+        showMessage("Pair locked", 760);
+        if (matchedCount === deck.length / 2) {
+          window.setTimeout(showVictory, 620);
+        }
+      }
+
+      function handleCardClick(cardEl) {
+        if (isLocked || isPeeking || cardEl.disabled || cardEl.classList.contains("is-flipped")) return;
+        startTimer();
+        flipCard(cardEl);
+        setStatus("Reading");
+
+        if (flipped.length < 2) return;
+
+        isLocked = true;
+        board.classList.add("is-locked");
+        moves += 1;
+        movesEl.textContent = String(moves);
+        const [first, second] = flipped;
+        const isMatch = first.dataset.pairId === second.dataset.pairId;
+
+        if (isMatch) {
+          flipped = [];
+          window.setTimeout(() => {
+            markMatched([first, second]);
+            isLocked = false;
+            board.classList.remove("is-locked");
+          }, 340);
+        } else {
+          setStatus("Miss");
+          window.setTimeout(() => {
+            hideCards([first, second]);
+            flipped = [];
+            isLocked = false;
+            board.classList.remove("is-locked");
+            setStatus("Focus");
+          }, 820);
+        }
+      }
+
+      function peekHint() {
+        if (isLocked || isPeeking || matchedCount === deck.length / 2) return;
+        startTimer();
+        isPeeking = true;
+        board.classList.add("is-locked");
+        const hiddenCards = [...board.querySelectorAll(".card:not(.is-matched):not(.is-flipped)")];
+        hiddenCards.forEach((card) => card.classList.add("is-peeking"));
+        setStatus("Peek");
+        showMessage("Hint reveal", 760);
+        window.setTimeout(() => {
+          hiddenCards.forEach((card) => card.classList.remove("is-peeking"));
+          isPeeking = false;
+          board.classList.remove("is-locked");
+          setStatus("Focus");
+        }, 900);
+      }
+
+      function showVictory() {
+        const finalTime = stopTimer();
+        const oldBest = readBest();
+        const isNewBest = !oldBest || finalTime < oldBest;
+        if (isNewBest) {
+          localStorage.setItem(bestKey(), String(Math.round(finalTime)));
+        }
+        setBestDisplay();
+        winTimeEl.textContent = formatTime(finalTime);
+        winMovesEl.textContent = String(moves);
+        winBestEl.textContent = formatTime(readBest());
+        victoryCopy.textContent = isNewBest ? "New best time saved." : "Board cleared clean.";
+        setStatus("Cleared");
+        victory.classList.add("is-open");
+        victory.setAttribute("aria-hidden", "false");
+        launchConfetti();
+      }
+
+      function launchConfetti() {
+        confettiLayer.replaceChildren();
+        const palette = ["#38f8ff", "#ff47c7", "#9dff43", "#ffd166", "#9f7cff", "#ff5b7f"];
+        const fragment = document.createDocumentFragment();
+        for (let i = 0; i < 150; i += 1) {
+          const piece = document.createElement("span");
+          piece.className = "confetti";
+          piece.style.setProperty("--x", `${Math.random() * 100}%`);
+          piece.style.setProperty("--w", `${5 + Math.random() * 7}px`);
+          piece.style.setProperty("--h", `${8 + Math.random() * 16}px`);
+          piece.style.setProperty("--c", palette[i % palette.length]);
+          piece.style.setProperty("--duration", `${2.2 + Math.random() * 2.3}s`);
+          piece.style.setProperty("--delay", `${Math.random() * 0.65}s`);
+          piece.style.setProperty("--drift", `${(Math.random() - 0.5) * 220}px`);
+          piece.style.setProperty("--spin", `${Math.random() * 360}deg`);
+          fragment.appendChild(piece);
+        }
+        confettiLayer.appendChild(fragment);
+      }
+
+      difficultyButtons.forEach((button) => {
+        button.addEventListener("click", () => newGame(button.dataset.size));
+      });
+
+      document.getElementById("restart").addEventListener("click", () => newGame());
+      document.getElementById("peek").addEventListener("click", peekHint);
+      document.getElementById("playAgain").addEventListener("click", () => newGame());
+
+      window.addEventListener("keydown", (event) => {
+        if (event.key.toLowerCase() === "h" && !event.repeat) {
+          event.preventDefault();
+          peekHint();
+        }
+        if (event.key === "Escape" && victory.classList.contains("is-open")) {
+          newGame();
+        }
+      });
+
+      newGame("4x4");
+    })();
+  </script>
+</body>
+</html>
