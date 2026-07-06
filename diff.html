@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Text Diff</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px}
+.container{display:flex;flex-direction:column;gap:12px;width:100%;max-width:700px}
+.title{font-size:24px;font-weight:700;color:#00ff88;letter-spacing:2px;text-align:center}
+.editors{display:flex;gap:12px}
+@media(max-width:600px){.editors{flex-direction:column}}
+.editor{flex:1;display:flex;flex-direction:column;gap:6px}
+.editor label{font-size:11px;color:#444;text-transform:uppercase;letter-spacing:2px}
+.editor textarea{flex:1;min-height:120px;background:#0d0d14;border:1px solid #1a1a2e;color:#ccc;border-radius:8px;padding:10px;font-family:'Courier New',monospace;font-size:12px;resize:none;outline:none;line-height:1.5}
+.editor textarea:focus{border-color:#00ff8844}
+.controls{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.btn{background:#12121a;border:1px solid #1a1a2e;color:#888;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:12px;transition:all .15s;font-family:inherit}
+.btn:hover{background:#1a1a2e;color:#ccc}
+.btn.primary{background:#00ff88;color:#0a0a0f;border-color:#00ff88;font-weight:600}
+.btn.primary:hover{background:#00cc6a}
+.diff-output{width:100%;background:#0d0d14;border:1px solid #1a1a2e;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:12px;min-height:100px;max-height:300px;overflow:auto;line-height:1.6;white-space:pre-wrap;word-break:break-all}
+.added{background:#00ff8812;color:#00ff88}
+.removed{background:#ff336612;color:#ff3366}
+.line-num{color:#444;margin-right:8px;font-size:10px;user-select:none}
+.stats{display:flex;gap:16px;font-size:12px;color:#666;justify-content:center}
+.stats .added{background:transparent}
+.stats .removed{background:transparent}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="title">Text Diff</div>
+<div class="editors">
+<div class="editor"><label>Original</label><textarea id="left" placeholder="Paste original text..."></textarea></div>
+<div class="editor"><label>Modified</label><textarea id="right" placeholder="Paste modified text..."></textarea></div>
+</div>
+<div class="controls">
+<button class="btn primary" id="btn-diff">Compare</button>
+<button class="btn" id="btn-swap">⇅ Swap</button>
+<button class="btn" id="btn-clear">Clear</button>
+</div>
+<div class="stats" id="stats"></div>
+<div class="diff-output" id="output"></div>
+</div>
+<script>
+const leftEl = document.getElementById('left'), rightEl = document.getElementById('right'), outputEl = document.getElementById('output'), statsEl = document.getElementById('stats');
+
+function lcs(a, b) {
+const m = a.length, n = b.length;
+const dp = Array.from({length: m + 1}, () => new Array(n + 1).fill(0));
+for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] + 1 : Math.max(dp[i-1][j], dp[i][j-1]);
+const result = [];
+let i = m, j = n;
+while (i > 0 && j > 0) {
+if (a[i-1] === b[j-1]) { result.push(a[i-1]); i--; j--; }
+else if (dp[i-1][j] >= dp[i][j-1]) i--;
+else j--;
+}
+return result.reverse();
+}
+
+function myersDiff(a, b) {
+const eq = [];
+let i = 0, j = 0;
+const lcsRes = lcs(a, b);
+let li = 0;
+const result = [];
+while (i < a.length || j < b.length) {
+if (li < lcsRes.length && i < a.length && j < b.length && a[i] === lcsRes[li] && b[j] === lcsRes[li]) {
+result.push({type: 'equal', text: a[i]});
+i++; j++; li++;
+} else if (i < a.length && (j >= b.length || a[i] !== b[j])) {
+result.push({type: 'remove', text: a[i]});
+i++;
+} else if (j < b.length) {
+result.push({type: 'add', text: b[j]});
+j++;
+}
+}
+return result;
+}
+
+function diffWords(left, right) {
+const la = left.match(/[\w']+|[^\w\s]|\s+/g) || [];
+const ra = right.match(/[\w']+|[^\w\s]|\s+/g) || [];
+return myersDiff(la, ra);
+}
+
+function diffLines(left, right) {
+const la = left.split('\n');
+const ra = right.split('\n');
+return myersDiff(la, ra);
+}
+
+function compute() {
+const left = leftEl.value, right = rightEl.value;
+if (!left && !right) { outputEl.textContent = ''; statsEl.innerHTML = ''; return; }
+
+const lineDiff = diffLines(left, right);
+let html = '';
+let additions = 0, deletions = 0;
+lineDiff.forEach(d => {
+if (d.type === 'remove') { html += '<span class="removed">- ' + d.text + '</span>\n'; deletions++; }
+else if (d.type === 'add') { html += '<span class="added">+ ' + d.text + '</span>\n'; additions++; }
+else html += '  ' + d.text + '\n';
+});
+outputEl.innerHTML = html || '(identical)';
+statsEl.innerHTML = '<span class="added">+ ' + additions + ' added</span><span class="removed">- ' + deletions + ' removed</span>';
+}
+
+document.getElementById('btn-diff').addEventListener('click', compute);
+document.getElementById('btn-swap').addEventListener('click', () => { const t = leftEl.value; leftEl.value = rightEl.value; rightEl.value = t; compute(); });
+document.getElementById('btn-clear').addEventListener('click', () => { leftEl.value = ''; rightEl.value = ''; outputEl.textContent = ''; statsEl.innerHTML = ''; });
+document.addEventListener('keydown', e => { if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); compute(); } });
+</script>
+</body>
+</html>

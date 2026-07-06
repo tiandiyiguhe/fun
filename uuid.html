@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UUID Generator</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px}
+.container{display:flex;flex-direction:column;gap:20px;width:100%;max-width:480px;align-items:center}
+.title{font-size:24px;font-weight:700;color:#00ff88;letter-spacing:2px}
+.uuid-display{font-size:22px;font-family:'Courier New',monospace;color:#00ff88;background:#0d0d14;padding:16px 20px;border-radius:10px;border:1px solid #1a1a2e;text-align:center;word-break:break-all;width:100%;min-height:60px;display:flex;align-items:center;justify-content:center}
+.version-row{display:flex;gap:4px}
+.v-btn{background:#12121a;border:1px solid #1a1a2e;color:#666;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:11px;font-family:'Courier New',monospace;transition:all .15s}
+.v-btn:hover{color:#ccc}
+.v-btn.active{background:#00ff8820;border-color:#00ff8844;color:#00ff88}
+.controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.btn{background:#12121a;border:1px solid #1a1a2e;color:#888;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:14px;transition:all .15s;font-family:inherit}
+.btn:hover{background:#1a1a2e;color:#ccc}
+.btn.primary{background:#00ff88;color:#0a0a0f;border-color:#00ff88;font-weight:600}
+.btn.primary:hover{background:#00cc6a}
+.count-row{display:flex;align-items:center;gap:8px}
+.count-row input{background:#0d0d14;border:1px solid #1a1a2e;color:#ccc;padding:6px 10px;border-radius:6px;width:60px;text-align:center;font-family:'Courier New',monospace;font-size:14px;outline:none}
+.count-row input:focus{border-color:#00ff8844}
+.count-row label{font-size:12px;color:#666}
+.list{width:100%;display:flex;flex-direction:column;gap:4px;max-height:300px;overflow-y:auto}
+.list-item{background:#0d0d14;padding:8px 12px;border-radius:6px;font-family:'Courier New',monospace;font-size:12px;color:#888;cursor:pointer;transition:all .15s;display:flex;justify-content:space-between;align-items:center}
+.list-item:hover{background:#12121a;color:#00ff88}
+.list-item .copy-icon{opacity:0;transition:opacity .15s;font-size:14px}
+.list-item:hover .copy-icon{opacity:1}
+.format-row{display:flex;gap:8px;align-items:center;font-size:11px;color:#666}
+.format-row select{background:#0d0d14;border:1px solid #1a1a2e;color:#888;padding:4px 8px;border-radius:4px;font-size:11px;font-family:inherit;outline:none}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="title">UUID Generator</div>
+<div class="uuid-display" id="display">Click Generate</div>
+<div class="version-row">
+<button class="v-btn active" data-ver="v4">v4 (random)</button>
+<button class="v-btn" data-ver="v7">v7 (time)</button>
+<button class="v-btn" data-ver="nil">nil</button>
+</div>
+<div class="format-row">
+<label>Format:</label>
+<select id="format">
+<option value="standard">standard (xxxxxxxx-xxxx-...)</option>
+<option value="nohyphen">no hyphens</option>
+<option value="uppercase">UPPERCASE</option>
+<option value="braces">{braces}</option>
+<option value="urn">urn:uuid:</option>
+</select>
+</div>
+<div class="controls">
+<button class="btn primary" id="btn-gen">Generate</button>
+<button class="btn" id="btn-copy">Copy Last</button>
+<button class="btn" id="btn-bulk">Bulk Generate</button>
+</div>
+<div class="count-row">
+<label>Bulk count:</label><input type="number" id="bulk-count" value="5" min="1" max="50">
+</div>
+<div class="list" id="list"></div>
+</div>
+<script>
+let version = 'v4', format = 'standard', history = [];
+const display = document.getElementById('display'), list = document.getElementById('list');
+
+function hex(n, len = 2) { return n.toString(16).padStart(len, '0'); }
+
+function v4() {
+const bytes = new Uint8Array(16);
+crypto.getRandomValues(bytes);
+bytes[6] = (bytes[6] & 0x0f) | 0x40;
+bytes[8] = (bytes[8] & 0x3f) | 0x80;
+return [...bytes].map(b => hex(b)).join('');
+}
+
+function v7() {
+const bytes = new Uint8Array(16);
+const ms = BigInt(Date.now());
+const view = new DataView(bytes.buffer);
+view.setBigUint64(0, ms << 16n);
+crypto.getRandomValues(new Uint8Array(bytes.buffer, 6, 10));
+bytes[6] = (bytes[6] & 0x0f) | 0x70;
+bytes[8] = (bytes[8] & 0x3f) | 0x80;
+return [...bytes].map(b => hex(b)).join('');
+}
+
+function nil() { return '00000000000000000000000000000000'; }
+
+function rawToUUID(raw) {
+return raw.slice(0,8) + '-' + raw.slice(8,12) + '-' + raw.slice(12,16) + '-' + raw.slice(16,20) + '-' + raw.slice(20);
+}
+
+function formatUUID(uuid) {
+if (format === 'nohyphen') return uuid.replace(/-/g, '');
+if (format === 'uppercase') return uuid.toUpperCase();
+if (format === 'braces') return '{' + uuid + '}';
+if (format === 'urn') return 'urn:uuid:' + uuid;
+return uuid;
+}
+
+function generate() {
+const raw = version === 'v4' ? v4() : version === 'v7' ? v7() : nil();
+const uuid = rawToUUID(raw);
+const formatted = formatUUID(uuid);
+display.textContent = formatted;
+history.unshift(formatted);
+if (history.length > 50) history.pop();
+renderList();
+}
+
+function bulkGen() {
+const count = Math.min(50, Math.max(1, parseInt(document.getElementById('bulk-count').value) || 5));
+for (let i = 0; i < count; i++) {
+const raw = version === 'v4' ? v4() : version === 'v7' ? v7() : nil();
+history.unshift(formatUUID(rawToUUID(raw)));
+}
+if (history.length > 50) history = history.slice(0, 50);
+renderList();
+if (history.length > 0) display.textContent = history[0];
+}
+
+function renderList() {
+list.innerHTML = history.map((h, i) =>
+`<div class="list-item" onclick="copyUUID('${h}')"><span>${h}</span><span class="copy-icon">📋</span></div>`
+).join('');
+}
+
+function copyUUID(text) {
+navigator.clipboard.writeText(text);
+display.textContent = text;
+}
+
+document.getElementById('btn-gen').addEventListener('click', generate);
+document.getElementById('btn-copy').addEventListener('click', () => navigator.clipboard.writeText(display.textContent));
+document.getElementById('btn-bulk').addEventListener('click', bulkGen);
+document.getElementById('format').addEventListener('change', e => { format = e.target.value; if (history.length > 0) display.textContent = formatUUID(history[0]); });
+document.querySelectorAll('.v-btn').forEach(b => b.addEventListener('click', () => {
+version = b.dataset.ver;
+document.querySelectorAll('.v-btn').forEach(x => x.classList.remove('active'));
+b.classList.add('active');
+}));
+document.addEventListener('keydown', e => { if (e.code === 'Space' && document.activeElement === document.body) { e.preventDefault(); generate(); } });
+
+window.addEventListener('load', generate);
+</script>
+</body>
+</html>
