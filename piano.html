@@ -1,189 +1,1228 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Neon Piano</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#0a0a0f;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:system-ui,sans-serif;user-select:none}
-.piano-wrap{display:flex;flex-direction:column;align-items:center;gap:20px;padding:20px}
-.title{font-size:24px;font-weight:700;color:#00ff88;letter-spacing:2px}
-.piano{display:flex;position:relative;border-radius:8px;overflow:hidden;box-shadow:0 0 40px rgba(0,255,136,.1)}
-.key{position:relative;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;cursor:pointer;transition:all .08s;font-size:10px;color:#0006}
-.white{width:48px;height:180px;background:#e8e8e8;border:1px solid #1a1a2e;border-radius:0 0 6px 6px;z-index:1}
-.white:active,.white.active{background:#00ff88;box-shadow:0 0 20px rgba(0,255,136,.4);color:#0a0a0f}
-.white .note{font-size:9px;color:#888;font-family:'Courier New',monospace}
-.white.active .note{color:#0a0a0f}
-.black{width:32px;height:110px;background:#12121a;border:1px solid #0a0a0f;border-radius:0 0 4px 4px;margin:0 -16px;z-index:2;color:#666}
-.black:active,.black.active{background:#00ff88;box-shadow:0 0 15px rgba(0,255,136,.5),0 4px 0 #00cc6a;color:#0a0a0f}
-.black .note{font-size:8px;color:#444;margin-bottom:2px}
-.black.active .note{color:#0a0a0f}
-.controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
-.btn{background:#12121a;border:1px solid #1a1a2e;color:#888;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;transition:all .15s;font-family:inherit}
-.btn:hover{background:#1a1a2e;color:#ccc}
-.btn.primary{background:#00ff88;color:#0a0a0f;border-color:#00ff88;font-weight:600}
-.btn.primary:hover{background:#00cc6a}
-.btn.recording{background:#ff3366;border-color:#ff3366;color:#fff;animation:pulse .8s ease-in-out infinite alternate}
-.recorded{font-size:12px;color:#666;padding:4px 12px;background:#12121a;border-radius:6px;font-family:'Courier New',monospace}
-.sustain-label{display:flex;align-items:center;gap:8px;font-size:12px;color:#666}
-.sustain-label input{accent-color:#00ff88}
-@keyframes pulse{from{opacity:1}to{opacity:.7}}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Neon Piano</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #05060a;
+      --panel: rgba(11, 14, 22, 0.88);
+      --panel-strong: rgba(16, 20, 31, 0.96);
+      --line: rgba(234, 244, 255, 0.14);
+      --line-hot: rgba(0, 245, 255, 0.58);
+      --text: #f5f8ff;
+      --text-soft: #aab8cf;
+      --muted: #64718a;
+      --cyan: #00f5ff;
+      --pink: #ff3df2;
+      --lime: #baff42;
+      --amber: #ffd166;
+      --red: #ff456d;
+      --green: #59ff9c;
+      --black-key: #090b11;
+      --black-key-top: #171b28;
+      --white-key: #e9fbff;
+      --white-key-low: #aebfcc;
+      --radius: 8px;
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      letter-spacing: 0;
+    }
+
+    body {
+      min-height: 100dvh;
+      overflow-x: hidden;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 25%),
+        linear-gradient(135deg, #05060a 0%, #0b0711 34%, #061014 66%, #05060a 100%);
+    }
+
+    body::before {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      content: "";
+      pointer-events: none;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.026) 1px, transparent 1px);
+      background-size: 44px 44px;
+      opacity: 0.42;
+    }
+
+    body::after {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      content: "";
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(0, 245, 255, 0.08), transparent 28%, transparent 72%, rgba(255, 61, 242, 0.07)),
+        linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.46));
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      color: inherit;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    .app {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 18px;
+      width: min(1280px, 100%);
+      min-height: 100dvh;
+      margin: 0 auto;
+      padding: 18px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) auto minmax(220px, 0.75fr);
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .brand,
+    .transport,
+    .readout {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.015)), var(--panel);
+      box-shadow: 0 22px 64px rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(18px) saturate(1.2);
+    }
+
+    .brand {
+      display: grid;
+      align-content: center;
+      min-height: 88px;
+      padding: 16px 18px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      color: var(--text);
+      font-size: 2rem;
+      line-height: 1;
+      text-shadow:
+        0 0 18px rgba(0, 245, 255, 0.34),
+        0 0 34px rgba(255, 61, 242, 0.16);
+    }
+
+    .brand p {
+      margin: 8px 0 0;
+      color: var(--text-soft);
+      font-size: 0.9rem;
+    }
+
+    .transport {
+      display: grid;
+      grid-template-columns: repeat(4, auto);
+      gap: 9px;
+      align-items: center;
+      justify-content: center;
+      min-width: 468px;
+      padding: 14px;
+    }
+
+    .readout {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      min-height: 88px;
+      padding: 14px 16px;
+    }
+
+    .readout-note {
+      min-width: 68px;
+      color: var(--cyan);
+      font-family: var(--mono);
+      font-size: 1.25rem;
+      font-weight: 800;
+      text-align: right;
+      text-shadow: 0 0 18px rgba(0, 245, 255, 0.4);
+    }
+
+    .status {
+      min-width: 0;
+      color: var(--text-soft);
+      font-size: 0.9rem;
+      line-height: 1.35;
+    }
+
+    .status strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .action,
+    .toggle {
+      display: inline-grid;
+      grid-template-columns: auto auto;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.045);
+      transition: transform 120ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+    }
+
+    .action {
+      min-width: 104px;
+      padding: 0 14px;
+      font-weight: 800;
+    }
+
+    .toggle {
+      min-width: 122px;
+      padding: 0 12px;
+      font-weight: 700;
+    }
+
+    .action:hover,
+    .toggle:hover {
+      transform: translateY(-1px);
+      border-color: var(--line-hot);
+      background: rgba(0, 245, 255, 0.09);
+      box-shadow: 0 0 24px rgba(0, 245, 255, 0.12);
+    }
+
+    .action:focus-visible,
+    .toggle:focus-visible,
+    .key:focus-visible {
+      outline: 2px solid var(--amber);
+      outline-offset: 3px;
+    }
+
+    .action-primary {
+      color: #061014;
+      border-color: rgba(0, 245, 255, 0.7);
+      background: linear-gradient(135deg, var(--cyan), #66ffaf 70%, var(--lime));
+      box-shadow: 0 0 28px rgba(0, 245, 255, 0.16);
+    }
+
+    .action-danger[data-active="true"] {
+      color: #fff;
+      border-color: rgba(255, 69, 109, 0.8);
+      background: linear-gradient(135deg, var(--red), #ff7a59);
+      box-shadow: 0 0 28px rgba(255, 69, 109, 0.28);
+    }
+
+    .action-play[data-active="true"] {
+      color: #080b11;
+      border-color: rgba(255, 209, 102, 0.8);
+      background: linear-gradient(135deg, var(--amber), #ffef8a);
+      box-shadow: 0 0 28px rgba(255, 209, 102, 0.24);
+    }
+
+    .icon {
+      position: relative;
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      flex: 0 0 16px;
+    }
+
+    .icon-record {
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 14px currentColor;
+      transform: scale(0.72);
+    }
+
+    .icon-stop {
+      border-radius: 3px;
+      background: currentColor;
+      transform: scale(0.72);
+    }
+
+    .icon-play::before {
+      position: absolute;
+      left: 4px;
+      top: 1px;
+      width: 0;
+      height: 0;
+      content: "";
+      border-block: 7px solid transparent;
+      border-left: 10px solid currentColor;
+    }
+
+    .icon-clear::before,
+    .icon-clear::after {
+      position: absolute;
+      left: 7px;
+      top: 1px;
+      width: 2px;
+      height: 14px;
+      content: "";
+      border-radius: 2px;
+      background: currentColor;
+    }
+
+    .icon-clear::before {
+      transform: rotate(45deg);
+    }
+
+    .icon-clear::after {
+      transform: rotate(-45deg);
+    }
+
+    .icon-sustain {
+      border: 2px solid currentColor;
+      border-radius: 50%;
+    }
+
+    .icon-sustain::after {
+      position: absolute;
+      left: 6px;
+      bottom: -5px;
+      width: 2px;
+      height: 8px;
+      content: "";
+      border-radius: 2px;
+      background: currentColor;
+    }
+
+    .toggle[data-active="true"] {
+      color: #07110d;
+      border-color: rgba(89, 255, 156, 0.78);
+      background: linear-gradient(135deg, var(--green), #d6ff69);
+      box-shadow: 0 0 28px rgba(89, 255, 156, 0.18);
+    }
+
+    .stage {
+      display: grid;
+      align-items: end;
+      min-height: 0;
+      padding: 8px 0 20px;
+    }
+
+    .keyboard-shell {
+      overflow-x: auto;
+      overflow-y: visible;
+      padding: 22px 0 14px;
+      scrollbar-color: rgba(0, 245, 255, 0.5) rgba(255, 255, 255, 0.08);
+    }
+
+    .keyboard {
+      --white-count: 14;
+      --key-height: 288px;
+      --white-width: calc(100% / var(--white-count));
+      --black-width: min(52px, calc(var(--white-width) * 0.68));
+      position: relative;
+      width: clamp(780px, calc(100vw - 36px), 1120px);
+      height: var(--key-height);
+      margin: 0 auto;
+      border-radius: var(--radius);
+      filter: drop-shadow(0 24px 46px rgba(0, 0, 0, 0.58));
+    }
+
+    .keyboard::before {
+      position: absolute;
+      inset: -20px -18px -22px;
+      z-index: -2;
+      content: "";
+      border: 1px solid rgba(0, 245, 255, 0.2);
+      border-radius: 10px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.01)),
+        rgba(8, 11, 18, 0.72);
+      box-shadow:
+        0 0 42px rgba(0, 245, 255, 0.12),
+        0 0 72px rgba(255, 61, 242, 0.08),
+        inset 0 0 44px rgba(0, 0, 0, 0.48);
+    }
+
+    .keyboard::after {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -12px;
+      z-index: -1;
+      height: 28px;
+      content: "";
+      border-radius: 0 0 10px 10px;
+      background: linear-gradient(90deg, rgba(0, 245, 255, 0.38), rgba(255, 61, 242, 0.34), rgba(186, 255, 66, 0.22));
+      filter: blur(18px);
+      opacity: 0.78;
+    }
+
+    .white-keys {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-columns: repeat(14, 1fr);
+      height: 100%;
+    }
+
+    .key {
+      position: relative;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      touch-action: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .key-content {
+      position: absolute;
+      inset: auto 0 14px;
+      display: grid;
+      gap: 6px;
+      justify-items: center;
+      pointer-events: none;
+    }
+
+    .note-label {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      font-weight: 800;
+    }
+
+    .key-label {
+      display: grid;
+      min-width: 24px;
+      height: 22px;
+      place-items: center;
+      border-radius: 5px;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .white-key {
+      height: 100%;
+      border-right: 1px solid rgba(2, 7, 12, 0.4);
+      border-bottom: 1px solid rgba(0, 245, 255, 0.22);
+      border-left: 1px solid rgba(255, 255, 255, 0.5);
+      border-radius: 0 0 7px 7px;
+      color: rgba(5, 8, 14, 0.72);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(226, 248, 255, 0.94) 42%, var(--white-key-low) 100%),
+        var(--white-key);
+      box-shadow:
+        inset 0 -18px 28px rgba(0, 0, 0, 0.13),
+        inset 0 3px 0 rgba(255, 255, 255, 0.82);
+      transition: transform 70ms ease, background 90ms ease, box-shadow 90ms ease, color 90ms ease;
+    }
+
+    .white-key:first-child {
+      border-top-left-radius: 7px;
+    }
+
+    .white-key:last-child {
+      border-top-right-radius: 7px;
+    }
+
+    .white-key .key-label {
+      color: #071119;
+      background: rgba(0, 245, 255, 0.16);
+      box-shadow: inset 0 0 0 1px rgba(0, 245, 255, 0.16);
+    }
+
+    .white-key[data-active="true"] {
+      color: #041015;
+      background: linear-gradient(180deg, #f2feff, #93fbff 54%, #0ff0f8 100%);
+      box-shadow:
+        inset 0 -18px 34px rgba(0, 245, 255, 0.24),
+        0 0 26px rgba(0, 245, 255, 0.58),
+        0 0 48px rgba(0, 245, 255, 0.24);
+      transform: translateY(5px);
+    }
+
+    .white-key[data-held="true"] .key-label {
+      background: var(--cyan);
+    }
+
+    .black-keys {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .black-key {
+      position: absolute;
+      left: calc((var(--slot) * var(--white-width)) - (var(--black-width) / 2));
+      z-index: 3;
+      width: var(--black-width);
+      height: calc(var(--key-height) * 0.62);
+      pointer-events: auto;
+      border: 1px solid rgba(0, 0, 0, 0.92);
+      border-radius: 0 0 6px 6px;
+      color: rgba(255, 255, 255, 0.74);
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.06), transparent 22%, transparent 72%, rgba(255, 255, 255, 0.07)),
+        linear-gradient(180deg, var(--black-key-top), var(--black-key) 72%, #010205);
+      box-shadow:
+        0 10px 18px rgba(0, 0, 0, 0.58),
+        inset 0 -12px 18px rgba(0, 0, 0, 0.6),
+        inset 0 2px 0 rgba(255, 255, 255, 0.08);
+      transition: transform 70ms ease, background 90ms ease, box-shadow 90ms ease, color 90ms ease;
+    }
+
+    .black-key .key-content {
+      bottom: 12px;
+      gap: 5px;
+    }
+
+    .black-key .note-label {
+      color: rgba(255, 255, 255, 0.46);
+      font-size: 0.64rem;
+    }
+
+    .black-key .key-label {
+      min-width: 22px;
+      height: 20px;
+      color: rgba(255, 255, 255, 0.86);
+      background: rgba(255, 61, 242, 0.16);
+      box-shadow: inset 0 0 0 1px rgba(255, 61, 242, 0.18);
+    }
+
+    .black-key[data-active="true"] {
+      color: #fff;
+      background: linear-gradient(180deg, #6a165f, #ff3df2 54%, #611e72 100%);
+      box-shadow:
+        0 10px 18px rgba(0, 0, 0, 0.5),
+        0 0 24px rgba(255, 61, 242, 0.66),
+        0 0 46px rgba(255, 61, 242, 0.26);
+      transform: translateY(4px);
+    }
+
+    .black-key[data-held="true"] .key-label {
+      background: var(--pink);
+      color: #140017;
+    }
+
+    .key[data-playback="true"]::after {
+      position: absolute;
+      inset: 8px;
+      content: "";
+      border-radius: inherit;
+      border: 2px solid rgba(255, 209, 102, 0.8);
+      box-shadow: 0 0 18px rgba(255, 209, 102, 0.34);
+      pointer-events: none;
+    }
+
+    .black-key[data-playback="true"]::after {
+      inset: 6px;
+    }
+
+    @media (max-width: 980px) {
+      .app {
+        padding: 14px;
+      }
+
+      .topbar {
+        grid-template-columns: 1fr;
+      }
+
+      .transport {
+        min-width: 0;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .readout {
+        grid-template-columns: 1fr auto;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .app {
+        gap: 12px;
+        padding: 10px;
+      }
+
+      .brand,
+      .transport,
+      .readout {
+        border-radius: 7px;
+      }
+
+      .brand {
+        min-height: 74px;
+        padding: 13px 14px;
+      }
+
+      .brand h1 {
+        font-size: 1.55rem;
+      }
+
+      .brand p,
+      .status {
+        font-size: 0.82rem;
+      }
+
+      .transport {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        padding: 10px;
+      }
+
+      .action,
+      .toggle {
+        width: 100%;
+        min-width: 0;
+        min-height: 40px;
+        padding-inline: 10px;
+      }
+
+      .keyboard {
+        --key-height: 248px;
+        width: 780px;
+      }
+
+      .keyboard-shell {
+        margin-inline: -10px;
+        padding-inline: 10px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
+  </style>
 </head>
 <body>
-<div class="piano-wrap">
-<div class="title">Neon Piano</div>
-<div class="piano" id="piano"></div>
-<div class="controls">
-<button class="btn primary" id="btn-record">⏺ Record</button>
-<button class="btn" id="btn-play">▶ Play</button>
-<button class="btn" id="btn-clear">Clear</button>
-<label class="sustain-label"><input type="checkbox" id="sustain">Sustain</label>
-</div>
-<div class="recorded" id="rec-status"></div>
-</div>
-<script>
-const notes = [
-{ note: 'C3', freq: 130.81, black: false, key: 'A' },
-{ note: 'C#3', freq: 138.59, black: true, key: 'W' },
-{ note: 'D3', freq: 146.83, black: false, key: 'S' },
-{ note: 'D#3', freq: 155.56, black: true, key: 'E' },
-{ note: 'E3', freq: 164.81, black: false, key: 'D' },
-{ note: 'F3', freq: 174.61, black: false, key: 'F' },
-{ note: 'F#3', freq: 185.00, black: true, key: 'T' },
-{ note: 'G3', freq: 196.00, black: false, key: 'G' },
-{ note: 'G#3', freq: 207.65, black: true, key: 'Y' },
-{ note: 'A3', freq: 220.00, black: false, key: 'H' },
-{ note: 'A#3', freq: 233.08, black: true, key: 'U' },
-{ note: 'B3', freq: 246.94, black: false, key: 'J' },
-{ note: 'C4', freq: 261.63, black: false, key: 'K' },
-{ note: 'C#4', freq: 277.18, black: true, key: 'O' },
-{ note: 'D4', freq: 293.66, black: false, key: 'L' },
-{ note: 'D#4', freq: 311.13, black: true, key: 'P' },
-{ note: 'E4', freq: 329.63, black: false, key: ';' },
-{ note: 'F4', freq: 349.23, black: false }
-];
+  <main class="app" aria-label="Neon piano">
+    <section class="topbar" aria-label="Controls">
+      <div class="brand">
+        <h1>Neon Piano</h1>
+        <p>Two octaves, live synth, recordable performance.</p>
+      </div>
 
-let audioCtx = null, recording = false, recorded = [], playIndex = -1, playing = false, activeOsc = {};
+      <div class="transport">
+        <button class="action action-danger" id="recordButton" type="button" aria-label="Record">
+          <span class="icon icon-record" aria-hidden="true"></span>
+          <span id="recordLabel">REC</span>
+        </button>
+        <button class="action action-play" id="playButton" type="button" aria-label="Play recording" disabled>
+          <span class="icon icon-play" aria-hidden="true"></span>
+          <span id="playLabel">PLAY</span>
+        </button>
+        <button class="action" id="clearButton" type="button" aria-label="Clear recording" disabled>
+          <span class="icon icon-clear" aria-hidden="true"></span>
+          <span>CLEAR</span>
+        </button>
+        <button class="toggle" id="sustainButton" type="button" aria-pressed="false" aria-label="Toggle sustain">
+          <span class="icon icon-sustain" aria-hidden="true"></span>
+          <span>SUSTAIN</span>
+        </button>
+      </div>
 
-function getCtx() {
-if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-return audioCtx;
-}
+      <div class="readout">
+        <div class="status" id="status"><strong>Ready</strong><br>Tap a key or use the labeled keyboard keys.</div>
+        <div class="readout-note" id="noteReadout">--</div>
+      </div>
+    </section>
 
-function playNote(noteObj, time = 0) {
-const ctx = getCtx();
-const osc = ctx.createOscillator(), gain = ctx.createGain();
-osc.type = 'triangle'; osc.frequency.value = noteObj.freq;
-gain.gain.setValueAtTime(0.3, time);
-gain.gain.exponentialRampToValueAtTime(0.001, time + (document.getElementById('sustain').checked ? 1.5 : 0.4));
-osc.connect(gain); gain.connect(ctx.destination);
-osc.start(time); osc.stop(time + 2);
-return { osc, gain };
-}
+    <section class="stage" aria-label="Piano keyboard">
+      <div class="keyboard-shell">
+        <div class="keyboard" id="keyboard"></div>
+      </div>
+    </section>
+  </main>
 
-function playNoteNow(noteObj) {
-const ctx = getCtx();
-const osc = ctx.createOscillator(), gain = ctx.createGain();
-osc.type = 'triangle'; osc.frequency.value = noteObj.freq;
-gain.gain.setValueAtTime(0.3, ctx.currentTime);
-gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (document.getElementById('sustain').checked ? 1.5 : 0.4));
-osc.connect(gain); gain.connect(ctx.destination);
-osc.start(); osc.stop(ctx.currentTime + 2);
-activeOsc[noteObj.note] = { osc, gain };
-}
+  <script>
+    // PIANO_ENGINE_START
+    const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    const KEY_SEQUENCE = [
+      "a", "w", "s", "e", "d", "f", "t", "g", "y", "h", "u", "j",
+      "k", "o", "l", "p", ";", "'", "[", "]", "z", "x", "c", "v"
+    ];
 
-function stopNote(noteObj) {
-if (activeOsc[noteObj.note]) {
-try { activeOsc[noteObj.note].gain.gain.exponentialRampToValueAtTime(0.001, getCtx().currentTime + 0.05); } catch(e) {}
-delete activeOsc[noteObj.note];
-}
-}
+    function frequencyFor(noteName, octave) {
+      const semitone = NOTE_NAMES.indexOf(noteName);
+      const midi = (octave + 1) * 12 + semitone;
+      return Number((440 * Math.pow(2, (midi - 69) / 12)).toFixed(2));
+    }
 
-function buildPiano() {
-const piano = document.getElementById('piano');
-piano.innerHTML = notes.map(n => {
-const cls = n.black ? 'black' : 'white';
-return `<div class="key ${cls}" data-note="${n.note}" data-key="${n.key}"><span class="note">${n.key}</span></div>`;
-}).join('');
+    function buildNotes(startOctave = 4, octaveCount = 2) {
+      const notes = [];
+      let whiteIndex = 0;
 
-const noteMap = {};
-notes.forEach(n => noteMap[n.note] = n);
-noteMap.byKey = {};
-notes.forEach(n => noteMap.byKey[n.key.toLowerCase()] = n);
+      for (let octave = startOctave; octave < startOctave + octaveCount; octave += 1) {
+        for (const noteName of NOTE_NAMES) {
+          const isBlack = noteName.includes("#");
+          const key = KEY_SEQUENCE[notes.length];
+          const note = {
+            id: `${noteName}${octave}`,
+            name: noteName,
+            octave,
+            frequency: frequencyFor(noteName, octave),
+            isBlack,
+            key,
+            label: key === " " ? "Space" : key.toUpperCase()
+          };
 
-piano.querySelectorAll('.key').forEach(el => {
-el.addEventListener('pointerdown', e => {
-e.preventDefault();
-const n = noteMap[el.dataset.note];
-playNoteNow(n);
-el.classList.add('active');
-if (recording) recorded.push({ note: n.note, time: Date.now() });
-});
-el.addEventListener('pointerup', () => { stopNote(noteMap[el.dataset.note]); el.classList.remove('active'); });
-el.addEventListener('pointerleave', () => { stopNote(noteMap[el.dataset.note]); el.classList.remove('active'); });
-});
+          if (isBlack) {
+            note.slot = whiteIndex;
+          } else {
+            note.whiteIndex = whiteIndex;
+            whiteIndex += 1;
+          }
 
-document.addEventListener('keydown', e => {
-if (e.repeat) return;
-if (['input','textarea','select'].includes(document.activeElement?.tagName?.toLowerCase())) return;
-const n = noteMap.byKey[e.key.toLowerCase()];
-if (!n) return;
-e.preventDefault();
-const el = piano.querySelector(`[data-note="${n.note}"]`);
-playNoteNow(n);
-el?.classList.add('active');
-if (recording) recorded.push({ note: n.note, time: Date.now() });
-});
-document.addEventListener('keyup', e => {
-const n = noteMap.byKey[e.key.toLowerCase()];
-if (!n) return;
-const el = piano.querySelector(`[data-note="${n.note}"]`);
-stopNote(n); el?.classList.remove('active');
-});
+          notes.push(note);
+        }
+      }
 
-return noteMap;
-}
+      return notes;
+    }
 
-const noteMap = buildPiano();
+    const NOTES = buildNotes(4, 2);
+    const NOTE_BY_ID = new Map(NOTES.map(note => [note.id, note]));
+    const KEY_BINDINGS = new Map(NOTES.map(note => [note.key, note.id]));
 
-document.getElementById('btn-record').addEventListener('click', function() {
-getCtx();
-recording = !recording;
-if (recording) { recorded = []; this.textContent = '⏹ Stop'; this.classList.add('recording'); document.getElementById('rec-status').textContent = 'Recording...'; }
-else { this.textContent = '⏺ Record'; this.classList.remove('recording'); document.getElementById('rec-status').textContent = recorded.length + ' notes recorded'; }
-});
+    function createPianoCore(options = {}) {
+      const now = options.now || (() => performance.now());
+      const playNote = options.playNote || (() => {});
+      const stopNote = options.stopNote || (() => {});
+      const setTimer = options.setTimeout || setTimeout;
+      const clearTimer = options.clearTimeout || clearTimeout;
+      const onChange = options.onChange || (() => {});
 
-document.getElementById('btn-play').addEventListener('click', function() {
-if (recorded.length === 0) return;
-if (playing) { playing = false; this.textContent = '▶ Play'; return; }
-playing = true; this.textContent = '⏹ Stop';
-playIndex = 0;
-const startTime = recorded[0].time;
-function playNext() {
-if (!playing || playIndex >= recorded.length) { playing = false; document.getElementById('btn-play').textContent = '▶ Play'; return; }
-const item = recorded[playIndex];
-const noteObj = notes.find(n => n.note === item.note);
-if (noteObj) {
-const el = document.getElementById('piano').querySelector(`[data-note="${item.note}"]`);
-playNoteNow(noteObj); el?.classList.add('active');
-setTimeout(() => { stopNote(noteObj); el?.classList.remove('active'); }, 200);
-}
-playIndex++;
-const nextTime = playIndex < recorded.length ? recorded[playIndex].time - item.time : 300;
-setTimeout(playNext, Math.max(80, nextTime - (playIndex < recorded.length ? recorded[playIndex - 1] ? 0 : 0 : 0)));
-}
-playNext();
-});
+      const activeNotes = new Set();
+      const sustainedNotes = new Set();
+      const playbackNotes = new Set();
+      let sustain = false;
+      let recording = false;
+      let recordStart = 0;
+      let recordedEvents = [];
+      let playbackTimers = [];
+      let playing = false;
 
-document.getElementById('btn-clear').addEventListener('click', () => {
-recorded = []; recording = false; playing = false;
-document.getElementById('btn-record').textContent = '⏺ Record';
-document.getElementById('btn-record').classList.remove('recording');
-document.getElementById('btn-play').textContent = '▶ Play';
-document.getElementById('rec-status').textContent = '';
-});
-</script>
+      function getNote(noteId) {
+        return NOTE_BY_ID.get(noteId);
+      }
+
+      function snapshot(extra = {}) {
+        return {
+          activeNotes: new Set(activeNotes),
+          sustainedNotes: new Set(sustainedNotes),
+          playbackNotes: new Set(playbackNotes),
+          sustain,
+          recording,
+          playing,
+          recordedEvents: recordedEvents.slice(),
+          ...extra
+        };
+      }
+
+      function emit(extra) {
+        onChange(snapshot(extra));
+      }
+
+      function recordEvent(event) {
+        if (!recording) return;
+        recordedEvents.push({
+          ...event,
+          time: Math.max(0, Math.round(now() - recordStart))
+        });
+      }
+
+      function press(noteId, optionsForPress = {}) {
+        const note = getNote(noteId);
+        if (!note || activeNotes.has(noteId)) return false;
+
+        activeNotes.add(noteId);
+        sustainedNotes.delete(noteId);
+        if (optionsForPress.playback) playbackNotes.add(noteId);
+        playNote(note);
+        if (!optionsForPress.silentRecord) recordEvent({ type: "on", noteId });
+        emit({ lastNote: note, eventType: "press" });
+        return true;
+      }
+
+      function release(noteId, optionsForRelease = {}) {
+        const note = getNote(noteId);
+        if (!note || !activeNotes.has(noteId)) return false;
+
+        activeNotes.delete(noteId);
+        playbackNotes.delete(noteId);
+        if (sustain && !optionsForRelease.force) {
+          sustainedNotes.add(noteId);
+        } else {
+          sustainedNotes.delete(noteId);
+          stopNote(note);
+        }
+        if (!optionsForRelease.silentRecord) recordEvent({ type: "off", noteId });
+        emit({ lastNote: note, eventType: "release" });
+        return true;
+      }
+
+      function releaseSustained() {
+        for (const noteId of Array.from(sustainedNotes)) {
+          if (!activeNotes.has(noteId)) {
+            const note = getNote(noteId);
+            if (note) stopNote(note);
+            sustainedNotes.delete(noteId);
+          }
+        }
+      }
+
+      function setSustain(enabled, optionsForSustain = {}) {
+        const nextSustain = Boolean(enabled);
+        if (sustain === nextSustain) return false;
+
+        sustain = nextSustain;
+        if (!sustain) releaseSustained();
+        if (!optionsForSustain.silentRecord) recordEvent({ type: "sustain", enabled: sustain });
+        emit({ eventType: "sustain" });
+        return true;
+      }
+
+      function stopAll() {
+        for (const noteId of Array.from(activeNotes)) {
+          release(noteId, { force: true, silentRecord: true });
+        }
+        for (const noteId of Array.from(sustainedNotes)) {
+          const note = getNote(noteId);
+          if (note) stopNote(note);
+          sustainedNotes.delete(noteId);
+        }
+        playbackNotes.clear();
+        emit({ eventType: "stopAll" });
+      }
+
+      function startRecording() {
+        stopPlayback();
+        recordedEvents = [];
+        recordStart = now();
+        recording = true;
+        emit({ eventType: "recordStart" });
+      }
+
+      function stopRecording() {
+        recording = false;
+        emit({ eventType: "recordStop" });
+        return recordedEvents.slice();
+      }
+
+      function clearRecording() {
+        stopPlayback();
+        recordedEvents = [];
+        recording = false;
+        emit({ eventType: "clear" });
+      }
+
+      function stopPlayback() {
+        for (const timer of playbackTimers) clearTimer(timer);
+        playbackTimers = [];
+        if (playing) {
+          for (const noteId of Array.from(playbackNotes)) {
+            release(noteId, { force: true, silentRecord: true });
+          }
+        }
+        playbackNotes.clear();
+        playing = false;
+        emit({ eventType: "playStop" });
+      }
+
+      function playRecording(events = recordedEvents) {
+        const sourceEvents = events.slice().sort((a, b) => a.time - b.time);
+        if (!sourceEvents.length) return false;
+
+        stopPlayback();
+        const wasRecording = recording;
+        recording = false;
+        playing = true;
+        emit({ eventType: "playStart" });
+
+        for (const event of sourceEvents) {
+          const timer = setTimer(() => {
+            if (!playing) return;
+            if (event.type === "on") press(event.noteId, { playback: true, silentRecord: true });
+            if (event.type === "off") release(event.noteId, { force: !sustain, silentRecord: true });
+            if (event.type === "sustain") setSustain(event.enabled, { silentRecord: true });
+          }, event.time);
+          playbackTimers.push(timer);
+        }
+
+        const lastEvent = sourceEvents[sourceEvents.length - 1];
+        playbackTimers.push(setTimer(() => {
+          playing = false;
+          playbackTimers = [];
+          releaseSustained();
+          playbackNotes.clear();
+          recording = wasRecording && false;
+          emit({ eventType: "playEnd" });
+        }, lastEvent.time + 700));
+
+        return true;
+      }
+
+      return {
+        press,
+        release,
+        setSustain,
+        startRecording,
+        stopRecording,
+        clearRecording,
+        playRecording,
+        stopPlayback,
+        stopAll,
+        getState: () => snapshot()
+      };
+    }
+    // PIANO_ENGINE_END
+
+    class NeonSynth {
+      constructor() {
+        this.context = null;
+        this.master = null;
+        this.voices = new Map();
+      }
+
+      ensureContext() {
+        if (!this.context) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          this.context = new AudioContextClass();
+          this.master = this.context.createGain();
+          this.master.gain.value = 0.74;
+
+          const compressor = this.context.createDynamicsCompressor();
+          compressor.threshold.value = -18;
+          compressor.knee.value = 24;
+          compressor.ratio.value = 5;
+          compressor.attack.value = 0.006;
+          compressor.release.value = 0.18;
+
+          this.master.connect(compressor);
+          compressor.connect(this.context.destination);
+        }
+
+        if (this.context.state === "suspended") {
+          this.context.resume();
+        }
+
+        return this.context;
+      }
+
+      noteOn(note) {
+        const context = this.ensureContext();
+        this.noteOff(note, 0.025);
+
+        const startAt = context.currentTime;
+        const output = context.createGain();
+        const filter = context.createBiquadFilter();
+        const oscA = context.createOscillator();
+        const oscB = context.createOscillator();
+        const harmonic = context.createOscillator();
+        const harmonicGain = context.createGain();
+
+        output.gain.setValueAtTime(0.0001, startAt);
+        output.gain.exponentialRampToValueAtTime(0.42, startAt + 0.012);
+        output.gain.exponentialRampToValueAtTime(0.24, startAt + 0.16);
+
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(5200, startAt);
+        filter.frequency.exponentialRampToValueAtTime(1700 + note.frequency * 2, startAt + 0.22);
+        filter.Q.value = 0.55;
+
+        oscA.type = "triangle";
+        oscB.type = "sine";
+        harmonic.type = "sine";
+        oscA.frequency.setValueAtTime(note.frequency, startAt);
+        oscB.frequency.setValueAtTime(note.frequency * 0.997, startAt);
+        harmonic.frequency.setValueAtTime(note.frequency * 2.01, startAt);
+
+        harmonicGain.gain.setValueAtTime(0.07, startAt);
+        harmonicGain.gain.exponentialRampToValueAtTime(0.018, startAt + 0.24);
+
+        oscA.connect(filter);
+        oscB.connect(filter);
+        harmonic.connect(harmonicGain);
+        harmonicGain.connect(filter);
+        filter.connect(output);
+        output.connect(this.master);
+
+        oscA.start(startAt);
+        oscB.start(startAt);
+        harmonic.start(startAt);
+
+        this.voices.set(note.id, { output, oscillators: [oscA, oscB, harmonic], released: false });
+      }
+
+      noteOff(note, releaseSeconds = 0.45) {
+        const context = this.context;
+        const voice = this.voices.get(note.id);
+        if (!context || !voice || voice.released) return;
+
+        voice.released = true;
+        const releaseAt = context.currentTime;
+        const stopAt = releaseAt + releaseSeconds + 0.06;
+        voice.output.gain.cancelScheduledValues(releaseAt);
+        voice.output.gain.setTargetAtTime(0.0001, releaseAt, Math.max(0.018, releaseSeconds / 5));
+
+        for (const oscillator of voice.oscillators) {
+          try {
+            oscillator.stop(stopAt);
+          } catch (error) {
+            // Oscillators can only be stopped once; repeated releases are harmless.
+          }
+        }
+
+        window.setTimeout(() => {
+          voice.output.disconnect();
+          this.voices.delete(note.id);
+        }, Math.ceil((releaseSeconds + 0.12) * 1000));
+      }
+
+      panic() {
+        for (const note of NOTES) {
+          this.noteOff(note, 0.04);
+        }
+      }
+    }
+
+    const keyboardElement = document.getElementById("keyboard");
+    const statusElement = document.getElementById("status");
+    const noteReadout = document.getElementById("noteReadout");
+    const recordButton = document.getElementById("recordButton");
+    const playButton = document.getElementById("playButton");
+    const clearButton = document.getElementById("clearButton");
+    const sustainButton = document.getElementById("sustainButton");
+    const recordLabel = document.getElementById("recordLabel");
+    const playLabel = document.getElementById("playLabel");
+    const synth = new NeonSynth();
+    const pressedKeys = new Map();
+    const pointerNotes = new Map();
+
+    let savedRecording = [];
+
+    function escapeAttribute(value) {
+      return String(value).replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;");
+    }
+
+    function formatDuration(ms) {
+      if (!ms) return "0.0s";
+      return `${(ms / 1000).toFixed(1)}s`;
+    }
+
+    function renderKeyboard() {
+      const whiteKeys = NOTES
+        .filter(note => !note.isBlack)
+        .map(note => renderKey(note, "white-key"))
+        .join("");
+      const blackKeys = NOTES
+        .filter(note => note.isBlack)
+        .map(note => renderKey(note, "black-key", ` style="--slot:${note.slot}"`))
+        .join("");
+
+      keyboardElement.innerHTML = `
+        <div class="white-keys">${whiteKeys}</div>
+        <div class="black-keys">${blackKeys}</div>
+      `;
+    }
+
+    function renderKey(note, className, style = "") {
+      return `
+        <button
+          class="key ${className}"
+          type="button"
+          data-note-id="${escapeAttribute(note.id)}"
+          aria-label="${escapeAttribute(note.id)} key mapped to ${escapeAttribute(note.label)}"
+          ${style}
+        >
+          <span class="key-content">
+            <span class="note-label">${note.id}</span>
+            <span class="key-label">${escapeAttribute(note.label)}</span>
+          </span>
+        </button>
+      `;
+    }
+
+    function updateStatus(state) {
+      const count = savedRecording.length;
+      const lastTime = count ? savedRecording[count - 1].time : 0;
+
+      if (state.recording) {
+        statusElement.innerHTML = `<strong>Recording</strong><br>${state.recordedEvents.length} events captured.`;
+      } else if (state.playing) {
+        statusElement.innerHTML = `<strong>Playback</strong><br>${count} events over ${formatDuration(lastTime)}.`;
+      } else if (count) {
+        statusElement.innerHTML = `<strong>Recorded</strong><br>${count} events over ${formatDuration(lastTime)}.`;
+      } else {
+        statusElement.innerHTML = `<strong>Ready</strong><br>Tap a key or use the labeled keyboard keys.`;
+      }
+
+      if (state.lastNote) {
+        noteReadout.textContent = state.lastNote.id;
+      } else if (!state.activeNotes.size && !state.sustainedNotes.size) {
+        noteReadout.textContent = "--";
+      }
+
+      recordButton.dataset.active = String(state.recording);
+      recordLabel.textContent = state.recording ? "STOP" : "REC";
+      recordButton.querySelector(".icon").className = state.recording ? "icon icon-stop" : "icon icon-record";
+
+      playButton.dataset.active = String(state.playing);
+      playLabel.textContent = state.playing ? "STOP" : "PLAY";
+      playButton.querySelector(".icon").className = state.playing ? "icon icon-stop" : "icon icon-play";
+
+      sustainButton.dataset.active = String(state.sustain);
+      sustainButton.setAttribute("aria-pressed", String(state.sustain));
+      playButton.disabled = !savedRecording.length && !state.playing;
+      clearButton.disabled = !savedRecording.length && !state.recording && !state.playing;
+
+      for (const key of keyboardElement.querySelectorAll(".key")) {
+        const noteId = key.dataset.noteId;
+        const isActive = state.activeNotes.has(noteId) || state.sustainedNotes.has(noteId);
+        key.dataset.active = String(isActive);
+        key.dataset.held = String(state.activeNotes.has(noteId));
+        key.dataset.playback = String(state.playbackNotes.has(noteId));
+      }
+    }
+
+    const core = createPianoCore({
+      playNote: note => synth.noteOn(note),
+      stopNote: note => synth.noteOff(note),
+      onChange: updateStatus
+    });
+
+    function noteFromElement(element) {
+      const noteId = element?.closest(".key")?.dataset.noteId;
+      return noteId ? NOTE_BY_ID.get(noteId) : null;
+    }
+
+    function pressNote(noteId) {
+      synth.ensureContext();
+      core.press(noteId);
+    }
+
+    function releaseNote(noteId) {
+      core.release(noteId);
+    }
+
+    function handlePointerDown(event) {
+      const note = noteFromElement(event.target);
+      if (!note) return;
+      event.preventDefault();
+      event.target.closest(".key").setPointerCapture(event.pointerId);
+      pointerNotes.set(event.pointerId, note.id);
+      pressNote(note.id);
+    }
+
+    function handlePointerUp(event) {
+      const noteId = pointerNotes.get(event.pointerId);
+      if (!noteId) return;
+      pointerNotes.delete(event.pointerId);
+      releaseNote(noteId);
+    }
+
+    function handlePointerCancel(event) {
+      handlePointerUp(event);
+    }
+
+    function handleKeyDown(event) {
+      if (event.repeat || event.metaKey || event.ctrlKey || event.altKey) return;
+      const key = event.key.toLowerCase();
+      const noteId = KEY_BINDINGS.get(key);
+      if (!noteId) return;
+      event.preventDefault();
+      if (pressedKeys.has(key)) return;
+      pressedKeys.set(key, noteId);
+      pressNote(noteId);
+    }
+
+    function handleKeyUp(event) {
+      const key = event.key.toLowerCase();
+      const noteId = pressedKeys.get(key) || KEY_BINDINGS.get(key);
+      if (!noteId) return;
+      event.preventDefault();
+      pressedKeys.delete(key);
+      releaseNote(noteId);
+    }
+
+    function toggleRecording() {
+      synth.ensureContext();
+      const state = core.getState();
+      if (state.recording) {
+        savedRecording = core.stopRecording();
+      } else {
+        savedRecording = [];
+        core.startRecording();
+      }
+      updateStatus(core.getState());
+    }
+
+    function togglePlayback() {
+      synth.ensureContext();
+      const state = core.getState();
+      if (state.playing) {
+        core.stopPlayback();
+      } else if (savedRecording.length) {
+        core.playRecording(savedRecording);
+      }
+      updateStatus(core.getState());
+    }
+
+    function clearRecording() {
+      savedRecording = [];
+      core.clearRecording();
+      synth.panic();
+      updateStatus(core.getState());
+    }
+
+    function toggleSustain() {
+      synth.ensureContext();
+      core.setSustain(!core.getState().sustain);
+    }
+
+    renderKeyboard();
+    updateStatus(core.getState());
+
+    keyboardElement.addEventListener("pointerdown", handlePointerDown);
+    keyboardElement.addEventListener("pointerup", handlePointerUp);
+    keyboardElement.addEventListener("pointercancel", handlePointerCancel);
+    keyboardElement.addEventListener("lostpointercapture", handlePointerCancel);
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("keyup", handleKeyUp);
+    recordButton.addEventListener("click", toggleRecording);
+    playButton.addEventListener("click", togglePlayback);
+    clearButton.addEventListener("click", clearRecording);
+    sustainButton.addEventListener("click", toggleSustain);
+    window.addEventListener("blur", () => {
+      pressedKeys.clear();
+      pointerNotes.clear();
+      core.stopAll();
+    });
+  </script>
 </body>
 </html>

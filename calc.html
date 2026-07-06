@@ -3,146 +3,536 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Calculator</title>
+<title>Neon Calculator</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#0a0a0f;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:system-ui,sans-serif;padding:20px;user-select:none}
-.calc{background:#12121a;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px;width:320px;box-shadow:0 0 40px rgba(0,255,136,.05)}
-.display{background:#0d0d14;border:1px solid #1a1a2e;border-radius:10px;padding:12px 16px;text-align:right}
-.display .expr{font-size:13px;color:#666;font-family:'Courier New',monospace;min-height:20px;word-break:break-all}
-.display .result{font-size:32px;font-weight:700;color:#00ff88;font-family:'Courier New',monospace;word-break:break-all}
-.mode-row{display:flex;gap:4px}
-.mode-btn{flex:1;background:#0d0d14;border:1px solid #1a1a2e;color:#666;padding:6px;border-radius:6px;cursor:pointer;font-size:10px;font-family:inherit;transition:all .15s}
-.mode-btn.active{background:#00ff8820;border-color:#00ff8844;color:#00ff88}
-.buttons{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.btn{background:#1a1a2e;border:none;color:#ccc;padding:16px 4px;border-radius:10px;cursor:pointer;font-size:16px;transition:all .1s;font-family:inherit}
-.btn:hover{background:#252540}
-.btn:active{transform:scale(.95)}
-.btn.op{color:#00ff88;background:#1e2e28}
-.btn.op:hover{background:#254535}
-.btn.fn{color:#3399ff;background:#15202a}
-.btn.fn:hover{background:#1c2d3d}
-.btn.eq{background:#00ff88;color:#0a0a0f;font-weight:700}
-.btn.eq:hover{background:#00cc6a}
-.history{max-height:100px;overflow-y:auto;font-family:'Courier New',monospace;font-size:11px;color:#444}
-.history div{padding:2px 4px;cursor:pointer;border-radius:4px}
-.history div:hover{background:#0d0d14;color:#888}
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#07080d;--panel:#0d1019;--panel-2:#121725;--line:#223044;--text:#edf7ff;--muted:#7c8da3;--cyan:#24f2ff;--green:#43ff9d;--pink:#ff4fd8;--amber:#ffd166;--red:#ff5370}
+body{min-height:100vh;background:radial-gradient(circle at 20% 10%,#16223a 0,#07080d 34%),linear-gradient(135deg,#07080d,#0b0d13 55%,#0d1117);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;display:flex;align-items:center;justify-content:center;padding:22px}
+button{font:inherit}
+.app{width:min(100%,960px);display:grid;grid-template-columns:minmax(300px,430px) minmax(240px,1fr);gap:18px;align-items:stretch}
+.calculator,.history{background:linear-gradient(180deg,rgba(18,23,37,.96),rgba(9,12,20,.96));border:1px solid rgba(36,242,255,.18);box-shadow:0 0 0 1px rgba(255,79,216,.07),0 18px 60px rgba(0,0,0,.42),0 0 42px rgba(36,242,255,.08);border-radius:8px}
+.calculator{padding:18px;display:flex;flex-direction:column;gap:14px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:14px}
+h1{font-size:21px;letter-spacing:3px;text-transform:uppercase;color:var(--green);text-shadow:0 0 18px rgba(67,255,157,.38);line-height:1}
+.mode-tabs{display:grid;grid-template-columns:1fr 1fr;background:#080b12;border:1px solid var(--line);border-radius:999px;padding:3px;min-width:176px}
+.mode-tabs button{border:0;background:transparent;color:var(--muted);border-radius:999px;padding:7px 10px;cursor:pointer;font-size:12px;text-transform:uppercase;letter-spacing:1px;transition:.15s ease}
+.mode-tabs button.active{background:linear-gradient(135deg,var(--cyan),var(--green));color:#061014;font-weight:800;box-shadow:0 0 18px rgba(36,242,255,.22)}
+.display{min-height:142px;background:#06080d;border:1px solid rgba(36,242,255,.25);border-radius:8px;padding:16px;display:flex;flex-direction:column;justify-content:flex-end;gap:8px;box-shadow:inset 0 0 28px rgba(36,242,255,.08)}
+.expression{min-height:58px;color:var(--text);font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace;font-size:clamp(27px,7vw,42px);line-height:1.12;text-align:right;overflow-wrap:anywhere}
+.preview{min-height:24px;color:var(--green);font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace;font-size:16px;text-align:right;overflow-wrap:anywhere;text-shadow:0 0 14px rgba(67,255,157,.34)}
+.preview.error{color:var(--red);text-shadow:0 0 14px rgba(255,83,112,.26)}
+.utility-row{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.chip{height:34px;border-radius:999px;border:1px solid rgba(255,79,216,.24);background:#0a0d15;color:var(--pink);padding:0 12px;cursor:pointer;font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;transition:.15s ease}
+.chip:hover{border-color:rgba(255,79,216,.65);box-shadow:0 0 18px rgba(255,79,216,.14)}
+.memory{color:var(--muted);font-size:12px;letter-spacing:1px;text-transform:uppercase;min-height:16px}
+.keypad{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.app.science .keypad{grid-template-columns:repeat(5,minmax(0,1fr))}
+.key{height:58px;border:1px solid rgba(124,141,163,.22);border-radius:8px;background:linear-gradient(180deg,#171d2b,#101521);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:760;box-shadow:0 8px 18px rgba(0,0,0,.18);transition:transform .08s ease,box-shadow .15s ease,border-color .15s ease,background .15s ease;min-width:0}
+.key:hover{border-color:rgba(36,242,255,.5);box-shadow:0 0 20px rgba(36,242,255,.12),0 8px 18px rgba(0,0,0,.2)}
+.key:active,.key.flash{transform:translateY(1px) scale(.98);box-shadow:0 0 18px rgba(67,255,157,.16)}
+.key.utility{color:var(--amber);background:linear-gradient(180deg,#201b14,#15130f);border-color:rgba(255,209,102,.22)}
+.key.operator{color:var(--cyan);background:linear-gradient(180deg,#102633,#0b1721);border-color:rgba(36,242,255,.27)}
+.key.science-only{display:none;color:var(--pink);background:linear-gradient(180deg,#26172c,#17111e);border-color:rgba(255,79,216,.25);font-size:16px}
+.app.science .key.science-only{display:flex}
+.key.equals{background:linear-gradient(135deg,var(--green),var(--cyan));color:#061014;border-color:transparent;font-weight:900;box-shadow:0 0 24px rgba(67,255,157,.22)}
+.history{padding:16px;display:flex;flex-direction:column;min-height:100%}
+.history-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:12px;border-bottom:1px solid rgba(124,141,163,.16)}
+.history-title{font-size:12px;color:var(--cyan);font-weight:900;text-transform:uppercase;letter-spacing:2px}
+.clear-history{width:34px;height:34px;border-radius:8px;border:1px solid rgba(124,141,163,.22);background:#0a0d15;color:var(--muted);cursor:pointer;font-size:18px;line-height:1}
+.clear-history:hover{color:var(--pink);border-color:rgba(255,79,216,.48)}
+.history-list{list-style:none;display:flex;flex-direction:column;gap:8px;overflow:auto;padding-top:12px;max-height:496px}
+.history-list li{border:1px solid rgba(124,141,163,.15);background:rgba(8,11,18,.72);border-radius:8px;overflow:hidden}
+.history-item{width:100%;border:0;background:transparent;color:inherit;text-align:left;cursor:pointer;padding:11px 12px;display:flex;flex-direction:column;gap:5px}
+.history-expression{color:var(--muted);font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace;font-size:12px;overflow-wrap:anywhere}
+.history-result{color:var(--green);font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace;font-size:18px;overflow-wrap:anywhere}
+.empty{color:#4c5b70;font-size:13px;padding:16px 2px}
+@media (max-width:760px){
+body{padding:12px;align-items:flex-start}
+.app{grid-template-columns:1fr;gap:12px}
+.calculator{padding:14px}
+.topbar{align-items:flex-start;flex-direction:column}
+.mode-tabs{width:100%;min-width:0}
+.display{min-height:124px}
+.key{height:54px;font-size:18px}
+.key.science-only{font-size:14px}
+.history{min-height:170px}
+.history-list{max-height:220px}
+}
+@media (max-width:430px){
+body{padding:8px}
+.calculator{gap:11px;padding:11px}
+.keypad,.app.science .keypad{gap:7px}
+.key{height:49px;border-radius:7px;font-size:16px}
+.key.science-only{font-size:12px}
+.expression{font-size:30px}
+}
 </style>
 </head>
 <body>
-<div class="calc">
-<div class="mode-row">
-<button class="mode-btn active" data-mode="basic">Basic</button>
-<button class="mode-btn" data-mode="scientific">Scientific</button>
+<main class="app" id="app">
+<section class="calculator" aria-label="Calculator">
+<header class="topbar">
+<h1>Calc</h1>
+<div class="mode-tabs" role="tablist" aria-label="Mode">
+<button type="button" class="active" id="basic-mode" data-mode="basic" role="tab" aria-selected="true">Basic</button>
+<button type="button" id="science-mode" data-mode="science" role="tab" aria-selected="false">Science</button>
 </div>
-<div class="display"><div class="expr" id="expr"></div><div class="result" id="result">0</div></div>
-<div class="buttons" id="buttons"></div>
-<div class="history" id="history"></div>
+</header>
+<div class="display" aria-live="polite">
+<div class="expression" id="expression">0</div>
+<div class="preview" id="preview">0</div>
 </div>
+<div class="utility-row">
+<button class="chip" type="button" id="angle-toggle">RAD</button>
+<div class="memory" id="mode-label">Basic</div>
+</div>
+<div class="keypad" id="keypad">
+<button class="key science-only" type="button" data-input="sin(">sin</button>
+<button class="key science-only" type="button" data-input="cos(">cos</button>
+<button class="key science-only" type="button" data-input="tan(">tan</button>
+<button class="key science-only" type="button" data-input="sqrt(">sqrt</button>
+<button class="key science-only operator" type="button" data-input="^">x^y</button>
+<button class="key science-only" type="button" data-input="asin(">asin</button>
+<button class="key science-only" type="button" data-input="acos(">acos</button>
+<button class="key science-only" type="button" data-input="atan(">atan</button>
+<button class="key science-only" type="button" data-input="ln(">ln</button>
+<button class="key science-only" type="button" data-input="log(">log</button>
+<button class="key science-only" type="button" data-input="pi">pi</button>
+<button class="key science-only" type="button" data-input="e">e</button>
+<button class="key science-only operator" type="button" data-input="!">x!</button>
+<button class="key science-only operator" type="button" data-input="(">(</button>
+<button class="key science-only operator" type="button" data-input=")">)</button>
+<button class="key utility" type="button" data-action="clear">AC</button>
+<button class="key utility" type="button" data-action="backspace">⌫</button>
+<button class="key operator" type="button" data-input="%">%</button>
+<button class="key operator" type="button" data-input="/">÷</button>
+<button class="key" type="button" data-input="7">7</button>
+<button class="key" type="button" data-input="8">8</button>
+<button class="key" type="button" data-input="9">9</button>
+<button class="key operator" type="button" data-input="*">×</button>
+<button class="key" type="button" data-input="4">4</button>
+<button class="key" type="button" data-input="5">5</button>
+<button class="key" type="button" data-input="6">6</button>
+<button class="key operator" type="button" data-input="-">−</button>
+<button class="key" type="button" data-input="1">1</button>
+<button class="key" type="button" data-input="2">2</button>
+<button class="key" type="button" data-input="3">3</button>
+<button class="key operator" type="button" data-input="+">+</button>
+<button class="key utility" type="button" data-action="toggle-sign">±</button>
+<button class="key" type="button" data-input="0">0</button>
+<button class="key" type="button" data-input=".">.</button>
+<button class="key equals" type="button" data-action="equals">=</button>
+</div>
+</section>
+<aside class="history" aria-label="History">
+<div class="history-head">
+<div class="history-title">History</div>
+<button class="clear-history" id="clear-history" type="button" aria-label="Clear history">×</button>
+</div>
+<ol class="history-list" id="history"></ol>
+</aside>
+</main>
 <script>
-let mode = 'basic', expr = '', lastResult = null, history = [];
-const exprEl = document.getElementById('expr'), resultEl = document.getElementById('result'), buttonsEl = document.getElementById('buttons'), historyEl = document.getElementById('history');
+(function(){
+const MAX_HISTORY = 16;
+const FUNCTIONS = {
+sin: (x, mode) => Math.sin(toRadians(x, mode)),
+cos: (x, mode) => Math.cos(toRadians(x, mode)),
+tan: (x, mode) => Math.tan(toRadians(x, mode)),
+asin: (x, mode) => fromRadians(Math.asin(x), mode),
+acos: (x, mode) => fromRadians(Math.acos(x), mode),
+atan: (x, mode) => fromRadians(Math.atan(x), mode),
+sqrt: x => {
+if (x < 0) throw new Error("Invalid square root");
+return Math.sqrt(x);
+},
+ln: x => {
+if (x <= 0) throw new Error("Invalid logarithm");
+return Math.log(x);
+},
+log: x => {
+if (x <= 0) throw new Error("Invalid logarithm");
+return Math.log10(x);
+},
+abs: x => Math.abs(x),
+exp: x => Math.exp(x)
+};
 
-const basicButtons = [
-['C','⌫','%','÷'],['7','8','9','×'],['4','5','6','−'],['1','2','3','+'],['±','0','.','=']
-];
-const scientificButtons = [
-['C','⌫','(',')'],['sin','cos','tan','÷'],['7','8','9','×'],['4','5','6','−'],['1','2','3','+'],['π','0','.','='],['√','x²','ln','log'],['e','^','10ˣ','!']
-];
+function toRadians(value, mode) {
+return mode === "deg" ? value * Math.PI / 180 : value;
+}
 
-function evaluate(expression) {
-let e = expression.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-').replace(/π/g,Math.PI).replace(/e(?![xp])/g,Math.E);
+function fromRadians(value, mode) {
+return mode === "deg" ? value * 180 / Math.PI : value;
+}
 
-e = e.replace(/sin\(([^)]+)\)/g, (_, v) => Math.sin(deg(parseFloat(v))));
-e = e.replace(/cos\(([^)]+)\)/g, (_, v) => Math.cos(deg(parseFloat(v))));
-e = e.replace(/tan\(([^)]+)\)/g, (_, v) => Math.tan(deg(parseFloat(v))));
-e = e.replace(/log\(([^)]+)\)/g, (_, v) => Math.log10(parseFloat(v)));
-e = e.replace(/ln\(([^)]+)\)/g, (_, v) => Math.log(parseFloat(v)));
-e = e.replace(/√\(([^)]+)\)/g, (_, v) => Math.sqrt(parseFloat(v)));
-e = e.replace(/([^>]|^)(\d+)²/g, '$1Math.pow($2,2)');
-e = e.replace(/10ˣ\(([^)]+)\)/g, (_, v) => Math.pow(10, parseFloat(v)));
-e = e.replace(/(\d+)!/g, (_, v) => { let r=1; for(let i=2;i<=parseInt(v);i++)r*=i; return r; });
-e = e.replace(/\^/g, '**');
+function tokenize(source) {
+const input = String(source || "")
+.replace(/\s+/g, "")
+.replace(/[×x]/g, "*")
+.replace(/÷/g, "/")
+.replace(/−/g, "-")
+.replace(/π/g, "pi")
+.toLowerCase();
+const tokens = [];
+let index = 0;
+while (index < input.length) {
+const char = input[index];
+if (/\d|\./.test(char)) {
+let value = "";
+let dots = 0;
+while (index < input.length && /[\d.]/.test(input[index])) {
+if (input[index] === ".") dots += 1;
+if (dots > 1) throw new Error("Invalid number");
+value += input[index];
+index += 1;
+}
+if (value === ".") throw new Error("Invalid number");
+tokens.push({ type: "number", value: Number(value) });
+continue;
+}
+if (/[a-z]/.test(char)) {
+let name = "";
+while (index < input.length && /[a-z]/.test(input[index])) {
+name += input[index];
+index += 1;
+}
+if (name === "pi") tokens.push({ type: "number", value: Math.PI });
+else if (name === "e") tokens.push({ type: "number", value: Math.E });
+else tokens.push({ type: "function", value: name });
+continue;
+}
+if ("+-*/^()%!".includes(char)) {
+tokens.push({ type: char, value: char });
+index += 1;
+continue;
+}
+throw new Error("Unexpected character");
+}
+return tokens;
+}
 
+function parse(tokens, angleMode) {
+let index = 0;
+function peek() {
+return tokens[index];
+}
+function take(type) {
+if (peek() && peek().type === type) {
+index += 1;
+return true;
+}
+return false;
+}
+function expect(type) {
+if (!take(type)) throw new Error("Missing " + type);
+}
+function expression() {
+let value = term();
+while (peek() && (peek().type === "+" || peek().type === "-")) {
+const op = tokens[index++].type;
+const right = term();
+value = op === "+" ? value + right : value - right;
+}
+return value;
+}
+function term() {
+let value = power();
+while (peek() && (peek().type === "*" || peek().type === "/")) {
+const op = tokens[index++].type;
+const right = power();
+if (op === "/" && right === 0) throw new Error("Division by zero");
+value = op === "*" ? value * right : value / right;
+}
+return value;
+}
+function power() {
+let value = unary();
+if (take("^")) value = Math.pow(value, power());
+return value;
+}
+function unary() {
+if (take("+")) return unary();
+if (take("-")) return -unary();
+return postfix();
+}
+function postfix() {
+let value = primary();
+while (peek() && (peek().type === "!" || peek().type === "%")) {
+const op = tokens[index++].type;
+value = op === "!" ? factorial(value) : value / 100;
+}
+return value;
+}
+function primary() {
+const token = peek();
+if (!token) throw new Error("Incomplete expression");
+if (take("number")) return token.value;
+if (take("(")) {
+const value = expression();
+expect(")");
+return value;
+}
+if (token.type === "function") {
+index += 1;
+const fn = FUNCTIONS[token.value];
+if (!fn) throw new Error("Unknown function");
+expect("(");
+const value = expression();
+expect(")");
+return fn(value, angleMode);
+}
+throw new Error("Unexpected token");
+}
+const value = expression();
+if (index < tokens.length) throw new Error("Unexpected input");
+if (!Number.isFinite(value)) throw new Error("Invalid result");
+return normalizeNearZero(value);
+}
+
+function factorial(value) {
+if (!Number.isInteger(value) || value < 0 || value > 170) throw new Error("Invalid factorial");
+let result = 1;
+for (let i = 2; i <= value; i += 1) result *= i;
+return result;
+}
+
+function normalizeNearZero(value) {
+return Math.abs(value) < 1e-12 ? 0 : value;
+}
+
+function formatNumber(value) {
+if (!Number.isFinite(value)) return "Error";
+const normalized = normalizeNearZero(value);
+if (Number.isInteger(normalized)) return String(normalized);
+const absolute = Math.abs(normalized);
+if ((absolute >= 1e12 || absolute < 1e-8) && absolute !== 0) {
+return normalized.toExponential(10).replace(/\.?0+e/, "e");
+}
+return Number(normalized.toPrecision(12)).toString();
+}
+
+function evaluateExpression(expression, options) {
+const angleMode = options && options.angleMode === "deg" ? "deg" : "rad";
+const tokens = tokenize(expression);
+if (!tokens.length) throw new Error("Empty expression");
+const value = parse(tokens, angleMode);
+return { value, display: formatNumber(value) };
+}
+
+function normalizeState(state) {
+return {
+expression: state && typeof state.expression === "string" ? state.expression : "",
+history: state && Array.isArray(state.history) ? state.history.slice(0, MAX_HISTORY) : [],
+angleMode: state && state.angleMode === "deg" ? "deg" : "rad",
+mode: state && state.mode === "science" ? "science" : "basic",
+error: ""
+};
+}
+
+function toggleSign(expression) {
+if (!expression) return "-";
+if (expression[0] === "-") return expression.slice(1);
+return "-" + expression;
+}
+
+function applyInput(state, input) {
+const next = normalizeState(state);
+if (input === "clear") {
+next.expression = "";
+return next;
+}
+if (input === "backspace") {
+next.expression = next.expression.slice(0, -1);
+return next;
+}
+if (input === "toggle-sign") {
+next.expression = toggleSign(next.expression);
+return next;
+}
+if (input === "angle") {
+next.angleMode = next.angleMode === "rad" ? "deg" : "rad";
+return next;
+}
+if (input === "basic" || input === "science") {
+next.mode = input;
+return next;
+}
+if (input === "=") {
 try {
-const val = Function('"use strict"; return (' + e + ')')();
-return Number.isFinite(val) ? parseFloat(val.toPrecision(12)) : 'Error';
-} catch(err) { return 'Error'; }
+const result = evaluateExpression(next.expression, { angleMode: next.angleMode });
+if (next.expression.trim()) {
+next.history = [{ expression: next.expression, result: result.display }, ...next.history].slice(0, MAX_HISTORY);
 }
-function deg(v) { return v * Math.PI / 180; }
-
-function renderButtons() {
-const btns = mode === 'scientific' ? scientificButtons : basicButtons;
-buttonsEl.innerHTML = btns.flat().map(b => {
-let cls = 'btn';
-if ('÷×−+='.includes(b)) cls += b === '=' ? ' eq' : ' op';
-if ('C⌫±()sincostan√²lnlogπe^10ˣ!'.includes(b.slice(0,1)) || b.includes('ˣ')) cls += ' fn';
-return `<button class="${cls}" data-key="${b}">${b}</button>`;
-}).join('');
-
-buttonsEl.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => handleKey(btn.dataset.key)));
+next.expression = result.display;
+return next;
+} catch (error) {
+next.error = error.message || "Error";
+return next;
+}
+}
+next.expression += input;
+return next;
 }
 
-function handleKey(key) {
-if (key === 'C') { expr = ''; lastResult = null; }
-else if (key === '⌫') expr = expr.slice(0, -1);
-else if (key === '=') {
+function applyKeyboard(state, key) {
+const map = {
+Enter: "=",
+"=": "=",
+Escape: "clear",
+Delete: "clear",
+Backspace: "backspace",
+"p": "pi",
+"P": "pi"
+};
+if (/^\d$/.test(key)) return applyInput(state, key);
+if ([".", "+", "-", "*", "/", "%", "^", "(", ")", "!"].includes(key)) return applyInput(state, key);
+if (map[key]) return applyInput(state, map[key]);
+return normalizeState(state);
+}
+
+const CalcEngine = { evaluateExpression, applyInput, applyKeyboard, formatNumber, tokenize };
+if (typeof window !== "undefined") window.CalcEngine = CalcEngine;
+if (typeof document === "undefined") return;
+
+const app = document.getElementById("app");
+const expressionEl = document.getElementById("expression");
+const previewEl = document.getElementById("preview");
+const keypad = document.getElementById("keypad");
+const historyEl = document.getElementById("history");
+const angleToggle = document.getElementById("angle-toggle");
+const modeLabel = document.getElementById("mode-label");
+const modeButtons = document.querySelectorAll("[data-mode]");
+let state = loadState();
+
+function loadState() {
 try {
-const result = evaluate(expr);
-lastResult = result;
-history.push(expr + ' = ' + result);
-renderHistory();
-expr = String(result);
-} catch(e) { exprEl.textContent = 'Error'; }
+const saved = JSON.parse(localStorage.getItem("calc-state") || "{}");
+return normalizeState(saved);
+} catch (error) {
+return normalizeState({});
 }
-else if (key === '±') {
-if (expr && expr !== '0') expr = expr.startsWith('-') ? expr.slice(1) : '-' + expr;
-else expr = '-';
-}
-else if (['sin','cos','tan','log','ln','√','!'].includes(key) || key === '²' || key === '10ˣ') {
-if (key === '!') expr += '!';
-else if (key === '²') expr += '²';
-else if (key === '10ˣ') expr += '10ˣ(';
-else expr += key + '(';
-}
-else if (key === 'π') expr += 'π';
-else if (key === 'e') expr += 'e';
-else if (key === '^') expr += '^';
-else expr += key;
-updateDisplay();
 }
 
-function updateDisplay() {
-exprEl.textContent = expr || '';
-if (expr) {
-const result = evaluate(expr);
-resultEl.textContent = result;
+function saveState() {
+try {
+localStorage.setItem("calc-state", JSON.stringify({
+expression: state.expression,
+history: state.history,
+angleMode: state.angleMode,
+mode: state.mode
+}));
+} catch (error) {}
+}
+
+function readableExpression(value) {
+return (value || "0")
+.replace(/\*/g, "×")
+.replace(/\//g, "÷")
+.replace(/-/g, "−")
+.replace(/pi/g, "π");
+}
+
+function update() {
+app.classList.toggle("science", state.mode === "science");
+expressionEl.textContent = readableExpression(state.expression);
+angleToggle.textContent = state.angleMode.toUpperCase();
+modeLabel.textContent = state.mode === "science" ? "Science" : "Basic";
+modeButtons.forEach(button => {
+const active = button.dataset.mode === state.mode;
+button.classList.toggle("active", active);
+button.setAttribute("aria-selected", active ? "true" : "false");
+});
+if (state.error) {
+previewEl.textContent = state.error;
+previewEl.classList.add("error");
+} else if (state.expression) {
+try {
+previewEl.textContent = evaluateExpression(state.expression, { angleMode: state.angleMode }).display;
+previewEl.classList.remove("error");
+} catch (error) {
+previewEl.textContent = "";
+previewEl.classList.remove("error");
+}
 } else {
-resultEl.textContent = lastResult != null ? lastResult : '0';
+previewEl.textContent = "0";
+previewEl.classList.remove("error");
 }
+renderHistory();
+saveState();
 }
 
 function renderHistory() {
-historyEl.innerHTML = history.slice(-5).reverse().map(h => `<div onclick="replayHistory('${h.split(' = ')[0]}')">${h}</div>`).join('');
+if (!state.history.length) {
+historyEl.innerHTML = '<li class="empty">No history yet</li>';
+return;
+}
+historyEl.innerHTML = state.history.map((item, index) => (
+'<li><button class="history-item" type="button" data-history="' + index + '"><span class="history-expression">' +
+escapeHtml(readableExpression(item.expression)) + '</span><span class="history-result">' +
+escapeHtml(item.result) + '</span></button></li>'
+)).join("");
 }
 
-function replayHistory(e) { expr = e; updateDisplay(); }
+function escapeHtml(value) {
+return String(value).replace(/[&<>"']/g, char => ({
+"&": "&amp;",
+"<": "&lt;",
+">": "&gt;",
+'"': "&quot;",
+"'": "&#39;"
+}[char]));
+}
 
-document.querySelectorAll('.mode-btn').forEach(b => b.addEventListener('click', () => {
-mode = b.dataset.mode;
-document.querySelectorAll('.mode-btn').forEach(x => x.classList.remove('active'));
-b.classList.add('active');
-renderButtons();
-}));
+function commit(nextState) {
+state = nextState;
+update();
+}
 
-document.addEventListener('keydown', e => {
-const keyMap = { Escape:'C', Backspace:'⌫', Enter:'=', '/':'÷', '*':'×', '-':'−' };
-const k = keyMap[e.key] || e.key;
-if ([...basicButtons.flat(), ...scientificButtons.flat()].includes(k) || Object.values(keyMap).includes(k)) { e.preventDefault(); handleKey(k); }
-if (e.key === '(' || e.key === ')') { e.preventDefault(); expr += e.key; updateDisplay(); }
+keypad.addEventListener("click", event => {
+const button = event.target.closest("button");
+if (!button) return;
+const input = button.dataset.action === "equals" ? "=" : button.dataset.action || button.dataset.input;
+commit(applyInput(state, input));
+button.classList.add("flash");
+setTimeout(() => button.classList.remove("flash"), 110);
 });
 
-window.addEventListener('load', () => renderButtons());
+document.querySelector(".mode-tabs").addEventListener("click", event => {
+const button = event.target.closest("[data-mode]");
+if (!button) return;
+commit(applyInput(state, button.dataset.mode));
+});
+
+angleToggle.addEventListener("click", () => commit(applyInput(state, "angle")));
+document.getElementById("clear-history").addEventListener("click", () => {
+state.history = [];
+update();
+});
+
+historyEl.addEventListener("click", event => {
+const button = event.target.closest("[data-history]");
+if (!button) return;
+const item = state.history[Number(button.dataset.history)];
+if (!item) return;
+state.expression = item.expression;
+state.error = "";
+update();
+});
+
+document.addEventListener("keydown", event => {
+if (event.ctrlKey || event.metaKey || event.altKey) return;
+const before = state.expression + state.mode + state.angleMode;
+const next = applyKeyboard(state, event.key);
+const after = next.expression + next.mode + next.angleMode;
+if (before !== after || ["Enter", "=", "Escape", "Delete", "Backspace"].includes(event.key)) {
+event.preventDefault();
+commit(next);
+}
+});
+
+update();
+})();
 </script>
 </body>
 </html>
