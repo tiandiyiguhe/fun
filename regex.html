@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Regex Tester</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px}
+.container{display:flex;flex-direction:column;gap:12px;width:100%;max-width:560px}
+.title{font-size:24px;font-weight:700;color:#00ff88;letter-spacing:2px;text-align:center}
+.row{display:flex;gap:8px;align-items:center}
+.row label{font-size:11px;color:#444;text-transform:uppercase;letter-spacing:2px;min-width:50px}
+.row input{flex:1;background:#0d0d14;border:1px solid #1a1a2e;color:#ccc;padding:10px 14px;border-radius:8px;font-family:'Courier New',monospace;font-size:14px;outline:none}
+.row input:focus{border-color:#00ff8844}
+.row input.error{border-color:#ff3366;box-shadow:0 0 10px rgba(255,51,102,.2)}
+.flags{display:flex;gap:4px;flex-wrap:wrap}
+.flag{background:#12121a;border:1px solid #1a1a2e;color:#666;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;transition:all .15s;font-family:'Courier New',monospace}
+.flag:hover{color:#ccc}
+.flag.active{background:#00ff8820;border-color:#00ff8844;color:#00ff88}
+.separator{background:#12121a;border:1px solid #1a1a2e;color:#666;padding:4px 8px;border-radius:6px;font-size:11px;font-family:'Courier New',monospace;cursor:default}
+textarea{width:100%;height:100px;background:#0d0d14;border:1px solid #1a1a2e;color:#ccc;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:14px;resize:none;outline:none;line-height:1.6}
+textarea:focus{border-color:#00ff8844}
+.output-area{background:#0d0d14;border:1px solid #1a1a2e;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:13px;min-height:80px;max-height:200px;overflow-y:auto;line-height:1.6;white-space:pre-wrap;word-break:break-all}
+.match{background:#00ff8818;color:#00ff88;border-radius:2px;padding:0 2px}
+.match:nth-child(odd){background:#00ff8810}
+.group{color:#3399ff}
+.group-label{color:#ffaa00;font-size:10px}
+.error-text{color:#ff3366;font-size:12px;min-height:18px}
+.stats{display:flex;gap:16px;font-size:12px;color:#666}
+.stats span{color:#00ff88;font-weight:600}
+.replace-row{display:flex;gap:8px;align-items:center}
+.replace-row input{flex:1;background:#0d0d14;border:1px solid #1a1a2e;color:#ccc;padding:8px 10px;border-radius:6px;font-family:'Courier New',monospace;font-size:13px;outline:none}
+.replace-row input:focus{border-color:#00ff8844}
+.cheat-sheet{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:4px;font-family:'Courier New',monospace;font-size:10px;color:#444;max-height:100px;overflow-y:auto}
+.cheat-sheet .item{display:flex;gap:6px;background:#0d0d14;padding:3px 6px;border-radius:3px}
+.cheat-sheet .expr{color:#00ff88}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="title">Regex Tester</div>
+<div class="row">
+<label>Pattern</label>
+<input id="pattern" placeholder="/regex/" value="\\b\\w+@\\w+\\.\\w+\\b">
+</div>
+<div class="flags" id="flags">
+<button class="flag active" data-flag="g">g</button>
+<button class="flag" data-flag="i">i</button>
+<button class="flag" data-flag="m">m</button>
+<button class="flag" data-flag="s">s</button>
+<button class="flag" data-flag="u">u</button>
+</div>
+<div class="error-text" id="error"></div>
+<textarea id="input" placeholder="Test string...">Contact: alice@example.com and bob@test.org</textarea>
+<div class="stats" id="stats"></div>
+<div class="output-area" id="output"></div>
+<div class="row replace-row">
+<label>Replace</label>
+<input id="replace" placeholder="Replacement (use $1, $2...)">
+<button class="flag active" id="btn-replace" style="background:#00ff88;color:#0a0a0f;border-color:#00ff88;font-weight:600">Apply</button>
+</div>
+<details><summary style="color:#444;font-size:11px;cursor:pointer">Cheat Sheet</summary>
+<div class="cheat-sheet">
+<div class="item"><span class="expr">.</span> any char</div>
+<div class="item"><span class="expr">\d</span> digit</div>
+<div class="item"><span class="expr">\w</span> word</div>
+<div class="item"><span class="expr">\s</span> whitespace</div>
+<div class="item"><span class="expr">^</span> start</div>
+<div class="item"><span class="expr">$</span> end</div>
+<div class="item"><span class="expr">*</span> 0+</div>
+<div class="item"><span class="expr">+</span> 1+</div>
+<div class="item"><span class="expr">?</span> 0 or 1</div>
+<div class="item"><span class="expr">{n,m}</span> range</div>
+<div class="item"><span class="expr">[abc]</span> char set</div>
+<div class="item"><span class="expr">[^abc]</span> neg set</div>
+<div class="item"><span class="expr">(x)</span> group</div>
+<div class="item"><span class="expr">(?:x)</span> non-cap</div>
+<div class="item"><span class="expr">x|y</span> alternation</div>
+<div class="item"><span class="expr">\b</span> boundary</div>
+</div></details>
+</div>
+<script>
+const patternEl = document.getElementById('pattern'), inputEl = document.getElementById('input'), outputEl = document.getElementById('output'),
+errorEl = document.getElementById('error'), statsEl = document.getElementById('stats'), replaceEl = document.getElementById('replace');
+
+function getFlags() {
+return Array.from(document.querySelectorAll('#flags .flag.active')).map(f => f.dataset.flag).join('');
+}
+
+function getRegex() {
+try {
+const flags = getFlags();
+const pattern = patternEl.value;
+if (!pattern) return null;
+const re = new RegExp(pattern, flags.includes('g') ? flags : flags + 'g');
+return re;
+} catch(e) {
+errorEl.textContent = 'Invalid: ' + e.message;
+patternEl.classList.add('error');
+return null;
+}
+}
+
+function run() {
+errorEl.textContent = '';
+patternEl.classList.remove('error');
+const re = getRegex();
+if (!re) return;
+let html = inputEl.value;
+const matches = [...inputEl.value.matchAll(re)];
+const hasG = getFlags().includes('g');
+let idx = 0;
+
+if (matches.length === 0) {
+outputEl.textContent = inputEl.value;
+statsEl.innerHTML = '<span>Matches: 0</span>';
+} else {
+const parts = [];
+let lastEnd = 0;
+matches.forEach((m, mi) => {
+if (m.index > lastEnd) parts.push(inputEl.value.slice(lastEnd, m.index));
+let matchHtml = '<span class="match">' + m[0] + '</span>';
+if (m.length > 1) {
+matchHtml += ' <span class="group-label">[';
+for (let g = 1; g < m.length; g++) {
+if (m[g] !== undefined) matchHtml += '<span class="group">$' + g + '=' + m[g] + '</span> ';
+}
+matchHtml += ']</span>';
+}
+parts.push(matchHtml);
+lastEnd = m.index + m[0].length;
+});
+if (lastEnd < inputEl.value.length) parts.push(inputEl.value.slice(lastEnd));
+outputEl.innerHTML = parts.join('');
+statsEl.innerHTML = '<span>Matches: ' + matches.length + '</span><span>Groups: ' + (matches[0]?.length - 1 || 0) + '</span>';
+}
+
+if (replaceEl.value) {
+try {
+const reSingle = new RegExp(patternEl.value, getFlags());
+const result = inputEl.value.replace(reSingle, replaceEl.value);
+statsEl.innerHTML += '<span>→ Replaced: ' + result.length + ' chars</span>';
+} catch(e) {}
+}
+}
+
+document.getElementById('btn-replace').addEventListener('click', () => {
+try {
+const re = new RegExp(patternEl.value, getFlags());
+const result = inputEl.value.replace(re, replaceEl.value);
+inputEl.value = result;
+run();
+} catch(e) { errorEl.textContent = 'Replace error: ' + e.message; }
+});
+
+document.querySelectorAll('#flags .flag').forEach(f => f.addEventListener('click', () => { f.classList.toggle('active'); run(); }));
+patternEl.addEventListener('input', run);
+inputEl.addEventListener('input', run);
+
+window.addEventListener('load', run);
+</script>
+</body>
+</html>
