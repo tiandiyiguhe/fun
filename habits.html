@@ -1,0 +1,1724 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Habit Tracker</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07090d;
+      --panel: #10141b;
+      --panel-2: #151b24;
+      --panel-3: #1b2330;
+      --line: rgba(214, 224, 240, 0.13);
+      --line-strong: rgba(214, 224, 240, 0.24);
+      --text: #f2f6fb;
+      --text-soft: #c6d0de;
+      --muted: #8591a3;
+      --faint: #596579;
+      --accent: #46d6a9;
+      --accent-strong: #7ff0cc;
+      --accent-ink: #06231a;
+      --blue: #65a7ff;
+      --yellow: #f2c766;
+      --danger: #ff687d;
+      --danger-soft: rgba(255, 104, 125, 0.12);
+      --shadow: 0 26px 70px rgba(0, 0, 0, 0.38);
+      --radius: 8px;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-height: 100%;
+      background: var(--bg);
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: hidden;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.036), transparent 250px),
+        linear-gradient(135deg, rgba(70, 214, 169, 0.08), transparent 44%),
+        linear-gradient(300deg, rgba(101, 167, 255, 0.08), transparent 40%),
+        var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      letter-spacing: 0;
+    }
+
+    body::before {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      content: "";
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.026) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+      background-size: 56px 56px;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.78), transparent 78%);
+      pointer-events: none;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+    }
+
+    .app {
+      display: flex;
+      width: min(100%, 1440px);
+      min-height: 100vh;
+      flex-direction: column;
+      gap: 18px;
+      margin: 0 auto;
+      padding: 18px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) auto;
+      align-items: center;
+      gap: 16px;
+      min-height: 64px;
+    }
+
+    .brand {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 42px;
+      height: 42px;
+      flex: 0 0 auto;
+      place-items: center;
+      border: 1px solid rgba(70, 214, 169, 0.45);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(145deg, rgba(70, 214, 169, 0.22), rgba(101, 167, 255, 0.12)),
+        #0e1616;
+      color: var(--accent-strong);
+      font-size: 1rem;
+      font-weight: 900;
+      box-shadow: 0 14px 34px rgba(70, 214, 169, 0.12);
+    }
+
+    .brand h1 {
+      margin: 0;
+      overflow: hidden;
+      color: var(--text);
+      font-size: clamp(1.18rem, 2.5vw, 1.72rem);
+      font-weight: 820;
+      line-height: 1.08;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .brand p {
+      margin: 4px 0 0;
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 0.9rem;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .date-control {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(16, 20, 27, 0.86);
+    }
+
+    .date-control input {
+      width: 150px;
+      min-width: 0;
+      height: 34px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      outline: none;
+      background: transparent;
+      color: var(--text);
+      padding: 0 8px;
+    }
+
+    .date-control input:focus {
+      border-color: rgba(70, 214, 169, 0.48);
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(300px, 390px) minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .sidebar,
+    .main {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .panel {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(16, 20, 27, 0.88);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 54px;
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel-title {
+      min-width: 0;
+    }
+
+    .panel-title h2 {
+      margin: 0;
+      color: var(--text);
+      font-size: 0.98rem;
+      font-weight: 760;
+      line-height: 1.2;
+    }
+
+    .panel-title p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.25;
+    }
+
+    .panel-body {
+      padding: 16px;
+    }
+
+    .habit-form {
+      display: grid;
+      gap: 12px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    label,
+    .field-label {
+      color: var(--text-soft);
+      font-size: 0.78rem;
+      font-weight: 680;
+    }
+
+    input[type="text"],
+    input[type="date"],
+    select {
+      width: 100%;
+      height: 40px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      outline: none;
+      background: rgba(7, 9, 13, 0.58);
+      color: var(--text);
+      padding: 0 11px;
+      transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+    }
+
+    input[type="text"]:focus,
+    input[type="date"]:focus,
+    select:focus {
+      border-color: rgba(70, 214, 169, 0.58);
+      background: rgba(13, 18, 25, 0.94);
+      box-shadow: 0 0 0 3px rgba(70, 214, 169, 0.11);
+    }
+
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .color-choice {
+      position: relative;
+      display: block;
+      height: 34px;
+      border-radius: var(--radius);
+      cursor: pointer;
+    }
+
+    .color-choice input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .swatch {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: var(--radius);
+      transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+    }
+
+    .color-choice input:checked + .swatch {
+      border-color: rgba(255, 255, 255, 0.78);
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.13);
+      transform: translateY(-1px);
+    }
+
+    .button-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      min-height: 38px;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(27, 35, 48, 0.9);
+      color: var(--text);
+      padding: 0 12px;
+      font-weight: 720;
+      cursor: pointer;
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease, color 140ms ease;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      border-color: var(--line-strong);
+      background: rgba(36, 46, 62, 0.98);
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn.primary {
+      border-color: rgba(70, 214, 169, 0.62);
+      background: linear-gradient(180deg, var(--accent-strong), var(--accent));
+      color: var(--accent-ink);
+    }
+
+    .btn.ghost {
+      background: transparent;
+    }
+
+    .btn.danger {
+      border-color: rgba(255, 104, 125, 0.4);
+      background: var(--danger-soft);
+      color: #ffd7dd;
+    }
+
+    .btn.icon {
+      width: 38px;
+      min-width: 38px;
+      padding: 0;
+      font-size: 1rem;
+    }
+
+    .btn[disabled] {
+      opacity: 0.52;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .stat {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(21, 27, 36, 0.74);
+      padding: 12px;
+    }
+
+    .stat strong {
+      display: block;
+      color: var(--text);
+      font-size: clamp(1.3rem, 4vw, 1.95rem);
+      font-weight: 840;
+      line-height: 1;
+    }
+
+    .stat span {
+      display: block;
+      margin-top: 7px;
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 0.76rem;
+      font-weight: 680;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .today-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .habit-row {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(21, 27, 36, 0.72);
+      padding: 11px;
+    }
+
+    .habit-row.done {
+      border-color: rgba(70, 214, 169, 0.42);
+      background:
+        linear-gradient(90deg, rgba(70, 214, 169, 0.11), transparent),
+        rgba(21, 27, 36, 0.8);
+    }
+
+    .check {
+      position: relative;
+      display: grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+    }
+
+    .check input {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .check-box {
+      display: grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius);
+      background: rgba(7, 9, 13, 0.72);
+      color: transparent;
+      font-weight: 900;
+      transition: background 140ms ease, color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+    }
+
+    .check input:focus-visible + .check-box {
+      box-shadow: 0 0 0 3px rgba(101, 167, 255, 0.22);
+    }
+
+    .check input:checked + .check-box {
+      border-color: transparent;
+      background: var(--habit-color, var(--accent));
+      color: #07100d;
+    }
+
+    .habit-main {
+      min-width: 0;
+    }
+
+    .habit-name {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 9px;
+      color: var(--text);
+      font-weight: 760;
+      line-height: 1.18;
+    }
+
+    .habit-dot {
+      width: 9px;
+      height: 9px;
+      flex: 0 0 auto;
+      border-radius: 999px;
+      background: var(--habit-color, var(--accent));
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--habit-color, var(--accent)) 20%, transparent);
+    }
+
+    .habit-name span:last-child {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .habit-meta {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      display: inline-flex;
+      min-height: 23px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(7, 9, 13, 0.46);
+      color: var(--text-soft);
+      padding: 2px 8px;
+      font-size: 0.74rem;
+      font-weight: 720;
+      white-space: nowrap;
+    }
+
+    .row-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+
+    .habit-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .manage-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(21, 27, 36, 0.58);
+      padding: 10px;
+    }
+
+    .empty {
+      display: grid;
+      min-height: 130px;
+      place-items: center;
+      border: 1px dashed var(--line-strong);
+      border-radius: var(--radius);
+      background: rgba(7, 9, 13, 0.34);
+      color: var(--muted);
+      padding: 18px;
+      text-align: center;
+    }
+
+    .chart-wrap {
+      position: relative;
+      width: 100%;
+      min-height: 250px;
+    }
+
+    #completionChart {
+      display: block;
+      width: 100%;
+      height: 260px;
+    }
+
+    .heatmap-shell {
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+
+    .heatmap {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: 13px;
+      grid-template-rows: repeat(7, 13px);
+      gap: 4px;
+      width: max-content;
+      min-width: 100%;
+      align-items: center;
+    }
+
+    .day-cell {
+      width: 13px;
+      height: 13px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 3px;
+      background: #17202a;
+    }
+
+    .day-cell.level-1 {
+      background: rgba(70, 214, 169, 0.26);
+    }
+
+    .day-cell.level-2 {
+      background: rgba(70, 214, 169, 0.45);
+    }
+
+    .day-cell.level-3 {
+      background: rgba(70, 214, 169, 0.68);
+    }
+
+    .day-cell.level-4 {
+      background: var(--accent);
+    }
+
+    .day-cell.selected {
+      border-color: #fff;
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.14);
+    }
+
+    .heatmap-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.76rem;
+      flex-wrap: wrap;
+    }
+
+    .legend {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .legend .day-cell {
+      flex: 0 0 auto;
+    }
+
+    .import-line {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .file-name {
+      min-width: 0;
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 0.8rem;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .hidden-file {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 10;
+      max-width: min(420px, calc(100vw - 36px));
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius);
+      background: rgba(16, 20, 27, 0.96);
+      color: var(--text);
+      padding: 12px 14px;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 180ms ease, transform 180ms ease;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 980px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        order: 2;
+      }
+
+      .main {
+        order: 1;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .app {
+        padding: 12px;
+      }
+
+      .topbar {
+        grid-template-columns: 1fr;
+      }
+
+      .top-actions {
+        justify-content: stretch;
+      }
+
+      .date-control,
+      .date-control input,
+      .top-actions .btn {
+        flex: 1 1 auto;
+      }
+
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .habit-row,
+      .manage-row {
+        grid-template-columns: auto minmax(0, 1fr);
+      }
+
+      .habit-row .row-actions,
+      .manage-row .row-actions {
+        grid-column: 1 / -1;
+        justify-content: stretch;
+      }
+
+      .habit-row .row-actions .btn,
+      .manage-row .row-actions .btn {
+        flex: 1;
+      }
+
+      .brand p,
+      .panel-title p {
+        white-space: normal;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .panel-body,
+      .panel-header {
+        padding-right: 12px;
+        padding-left: 12px;
+      }
+
+      .color-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .button-row .btn {
+        flex: 1 1 auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">HT</div>
+        <div>
+          <h1>Habit Tracker</h1>
+          <p id="dateSummary"></p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <div class="date-control">
+          <button class="btn icon ghost" type="button" id="prevDay" title="Previous day" aria-label="Previous day">&lt;</button>
+          <input type="date" id="selectedDate" aria-label="Selected date">
+          <button class="btn icon ghost" type="button" id="nextDay" title="Next day" aria-label="Next day">&gt;</button>
+        </div>
+        <button class="btn ghost" type="button" id="todayButton">Today</button>
+        <button class="btn ghost" type="button" id="exportButton">Export</button>
+        <button class="btn ghost" type="button" id="importButton">Import</button>
+        <input class="hidden-file" id="importFile" type="file" accept="application/json,.json">
+      </div>
+    </header>
+
+    <main class="grid">
+      <aside class="sidebar">
+        <section class="panel" aria-labelledby="habitFormTitle">
+          <div class="panel-header">
+            <div class="panel-title">
+              <h2 id="habitFormTitle">New habit</h2>
+              <p id="formMode">Create or update tracked habits.</p>
+            </div>
+          </div>
+          <div class="panel-body">
+            <form class="habit-form" id="habitForm">
+              <input type="hidden" id="habitId">
+              <div class="field">
+                <label for="habitName">Name</label>
+                <input type="text" id="habitName" name="habitName" maxlength="60" autocomplete="off" required>
+              </div>
+              <div class="field">
+                <label for="habitFrequency">Frequency</label>
+                <select id="habitFrequency" name="habitFrequency">
+                  <option value="daily">Every day</option>
+                  <option value="weekdays">Weekdays</option>
+                  <option value="weekends">Weekends</option>
+                </select>
+              </div>
+              <div class="field">
+                <span class="field-label">Color</span>
+                <div class="color-grid" id="colorGrid"></div>
+              </div>
+              <div class="button-row">
+                <button class="btn primary" type="submit" id="saveHabitButton">Add habit</button>
+                <button class="btn ghost" type="button" id="cancelEditButton" hidden>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="manageTitle">
+          <div class="panel-header">
+            <div class="panel-title">
+              <h2 id="manageTitle">Habits</h2>
+              <p id="habitCountLabel"></p>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="habit-list" id="habitList"></div>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="dataTitle">
+          <div class="panel-header">
+            <div class="panel-title">
+              <h2 id="dataTitle">Data</h2>
+              <p id="storageStatus"></p>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="import-line">
+              <button class="btn" type="button" id="downloadBackup">Download JSON</button>
+              <button class="btn danger" type="button" id="clearAll">Clear</button>
+            </div>
+            <p class="file-name" id="lastImportName"></p>
+          </div>
+        </section>
+      </aside>
+
+      <section class="main">
+        <section class="panel" aria-labelledby="todayTitle">
+          <div class="panel-header">
+            <div class="panel-title">
+              <h2 id="todayTitle">Daily checkboxes</h2>
+              <p id="todayProgress"></p>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="today-list" id="todayList"></div>
+          </div>
+        </section>
+
+        <section class="stats" aria-label="Streak counters">
+          <div class="stat">
+            <strong id="completionRate">0%</strong>
+            <span>Selected day</span>
+          </div>
+          <div class="stat">
+            <strong id="currentStreak">0</strong>
+            <span>Current streak</span>
+          </div>
+          <div class="stat">
+            <strong id="bestStreak">0</strong>
+            <span>Best streak</span>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="chartTitle">
+          <div class="panel-header">
+            <div class="panel-title">
+              <h2 id="chartTitle">Completion chart</h2>
+              <p>Last 30 days</p>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="chart-wrap">
+              <canvas id="completionChart" width="1100" height="320" aria-label="Completion chart"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="heatmapTitle">
+          <div class="panel-header">
+            <div class="panel-title">
+              <h2 id="heatmapTitle">Calendar heatmap</h2>
+              <p id="heatmapRange"></p>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="heatmap-shell">
+              <div class="heatmap" id="heatmap" role="grid" aria-label="Calendar heatmap"></div>
+            </div>
+            <div class="heatmap-footer">
+              <span id="heatmapDetail">Select a cell to inspect a date.</span>
+              <div class="legend" aria-label="Completion legend">
+                <span>Less</span>
+                <span class="day-cell"></span>
+                <span class="day-cell level-1"></span>
+                <span class="day-cell level-2"></span>
+                <span class="day-cell level-3"></span>
+                <span class="day-cell level-4"></span>
+                <span>More</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const STORAGE_KEY = "habit-tracker-state-v1";
+      const colors = ["#46d6a9", "#65a7ff", "#f2c766", "#ff687d", "#a98bff", "#f09052"];
+      const state = loadState();
+      const els = {};
+      let selectedDate = todayKey();
+      let toastTimer = 0;
+      let resizeTimer = 0;
+
+      document.addEventListener("DOMContentLoaded", init);
+
+      function init() {
+        cacheElements();
+        buildColorChoices();
+        bindEvents();
+        els.selectedDate.value = selectedDate;
+
+        if (!state.habits.length) {
+          seedHabits();
+        }
+
+        render();
+      }
+
+      function cacheElements() {
+        [
+          "selectedDate",
+          "prevDay",
+          "nextDay",
+          "todayButton",
+          "exportButton",
+          "importButton",
+          "importFile",
+          "downloadBackup",
+          "clearAll",
+          "habitForm",
+          "habitId",
+          "habitName",
+          "habitFrequency",
+          "colorGrid",
+          "saveHabitButton",
+          "cancelEditButton",
+          "formMode",
+          "habitList",
+          "habitCountLabel",
+          "todayList",
+          "todayProgress",
+          "dateSummary",
+          "completionRate",
+          "currentStreak",
+          "bestStreak",
+          "completionChart",
+          "heatmap",
+          "heatmapRange",
+          "heatmapDetail",
+          "storageStatus",
+          "lastImportName",
+          "toast"
+        ].forEach((id) => {
+          els[id] = document.getElementById(id);
+        });
+      }
+
+      function bindEvents() {
+        els.selectedDate.addEventListener("change", () => {
+          selectedDate = els.selectedDate.value || todayKey();
+          render();
+        });
+
+        els.prevDay.addEventListener("click", () => shiftSelectedDate(-1));
+        els.nextDay.addEventListener("click", () => shiftSelectedDate(1));
+        els.todayButton.addEventListener("click", () => {
+          selectedDate = todayKey();
+          els.selectedDate.value = selectedDate;
+          render();
+        });
+
+        els.habitForm.addEventListener("submit", onSaveHabit);
+        els.cancelEditButton.addEventListener("click", resetHabitForm);
+        els.exportButton.addEventListener("click", exportJson);
+        els.downloadBackup.addEventListener("click", exportJson);
+        els.importButton.addEventListener("click", () => els.importFile.click());
+        els.importFile.addEventListener("change", importJson);
+        els.clearAll.addEventListener("click", clearAllData);
+
+        window.addEventListener("resize", () => {
+          window.clearTimeout(resizeTimer);
+          resizeTimer = window.setTimeout(drawChart, 120);
+        });
+      }
+
+      function buildColorChoices() {
+        els.colorGrid.innerHTML = "";
+        colors.forEach((color, index) => {
+          const label = document.createElement("label");
+          label.className = "color-choice";
+          label.title = color;
+
+          const input = document.createElement("input");
+          input.type = "radio";
+          input.name = "habitColor";
+          input.value = color;
+          input.checked = index === 0;
+
+          const swatch = document.createElement("span");
+          swatch.className = "swatch";
+          swatch.style.background = color;
+
+          label.append(input, swatch);
+          els.colorGrid.append(label);
+        });
+      }
+
+      function seedHabits() {
+        const starter = [
+          ["Morning walk", "daily", colors[0]],
+          ["Read", "daily", colors[1]],
+          ["Plan tomorrow", "weekdays", colors[2]]
+        ];
+
+        state.habits = starter.map(([name, frequency, color]) => ({
+          id: createId(),
+          name,
+          frequency,
+          color,
+          createdAt: todayKey()
+        }));
+        saveState();
+      }
+
+      function loadState() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+          if (parsed && Array.isArray(parsed.habits) && parsed.completions && typeof parsed.completions === "object") {
+            return {
+              habits: parsed.habits.map(normalizeHabit).filter(Boolean),
+              completions: normalizeCompletions(parsed.completions),
+              updatedAt: parsed.updatedAt || new Date().toISOString()
+            };
+          }
+        } catch (error) {
+          console.warn("Failed to load habit tracker data", error);
+        }
+
+        return {
+          habits: [],
+          completions: {},
+          updatedAt: new Date().toISOString()
+        };
+      }
+
+      function saveState() {
+        state.updatedAt = new Date().toISOString();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+
+      function normalizeHabit(habit) {
+        if (!habit || typeof habit.name !== "string" || !habit.name.trim()) return null;
+        return {
+          id: String(habit.id || createId()),
+          name: habit.name.trim().slice(0, 60),
+          frequency: ["daily", "weekdays", "weekends"].includes(habit.frequency) ? habit.frequency : "daily",
+          color: colors.includes(habit.color) ? habit.color : colors[0],
+          createdAt: isDateKey(habit.createdAt) ? habit.createdAt : todayKey()
+        };
+      }
+
+      function normalizeCompletions(completions) {
+        const next = {};
+        Object.entries(completions || {}).forEach(([date, habitIds]) => {
+          if (!isDateKey(date) || !Array.isArray(habitIds)) return;
+          next[date] = Array.from(new Set(habitIds.map(String)));
+        });
+        return next;
+      }
+
+      function onSaveHabit(event) {
+        event.preventDefault();
+        const name = els.habitName.value.trim();
+        if (!name) {
+          showToast("Enter a habit name.");
+          els.habitName.focus();
+          return;
+        }
+
+        const habit = {
+          id: els.habitId.value || createId(),
+          name,
+          frequency: els.habitFrequency.value,
+          color: selectedColor(),
+          createdAt: els.habitId.value ? existingHabit(els.habitId.value)?.createdAt || todayKey() : todayKey()
+        };
+
+        const index = state.habits.findIndex((item) => item.id === habit.id);
+        if (index >= 0) {
+          state.habits[index] = habit;
+          showToast("Habit updated.");
+        } else {
+          state.habits.push(habit);
+          showToast("Habit added.");
+        }
+
+        saveState();
+        resetHabitForm();
+        render();
+      }
+
+      function selectedColor() {
+        const checked = els.colorGrid.querySelector("input[name='habitColor']:checked");
+        return checked ? checked.value : colors[0];
+      }
+
+      function resetHabitForm() {
+        els.habitForm.reset();
+        els.habitId.value = "";
+        els.colorGrid.querySelector("input").checked = true;
+        els.saveHabitButton.textContent = "Add habit";
+        els.cancelEditButton.hidden = true;
+        els.formMode.textContent = "Create or update tracked habits.";
+      }
+
+      function editHabit(id) {
+        const habit = existingHabit(id);
+        if (!habit) return;
+
+        els.habitId.value = habit.id;
+        els.habitName.value = habit.name;
+        els.habitFrequency.value = habit.frequency;
+        const colorInput = els.colorGrid.querySelector(`input[value="${CSS.escape(habit.color)}"]`);
+        if (colorInput) colorInput.checked = true;
+        els.saveHabitButton.textContent = "Save changes";
+        els.cancelEditButton.hidden = false;
+        els.formMode.textContent = habit.name;
+        els.habitName.focus();
+      }
+
+      function deleteHabit(id) {
+        const habit = existingHabit(id);
+        if (!habit) return;
+        if (!window.confirm(`Delete "${habit.name}" and its completion history?`)) return;
+
+        state.habits = state.habits.filter((item) => item.id !== id);
+        Object.keys(state.completions).forEach((date) => {
+          state.completions[date] = state.completions[date].filter((habitId) => habitId !== id);
+          if (!state.completions[date].length) delete state.completions[date];
+        });
+
+        if (els.habitId.value === id) resetHabitForm();
+        saveState();
+        render();
+        showToast("Habit deleted.");
+      }
+
+      function toggleCompletion(id, date, checked) {
+        if (!state.completions[date]) state.completions[date] = [];
+        const set = new Set(state.completions[date]);
+        if (checked) {
+          set.add(id);
+        } else {
+          set.delete(id);
+        }
+        state.completions[date] = Array.from(set);
+        if (!state.completions[date].length) delete state.completions[date];
+        saveState();
+        render();
+      }
+
+      function clearAllData() {
+        if (!window.confirm("Clear all habits and completion history?")) return;
+        state.habits = [];
+        state.completions = {};
+        saveState();
+        resetHabitForm();
+        render();
+        showToast("Data cleared.");
+      }
+
+      function exportJson() {
+        const payload = {
+          exportedAt: new Date().toISOString(),
+          app: "habit-tracker",
+          version: 1,
+          data: state
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `habit-tracker-${todayKey()}.json`;
+        document.body.append(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        showToast("JSON exported.");
+      }
+
+      function importJson(event) {
+        const file = event.target.files && event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const parsed = JSON.parse(String(reader.result || "{}"));
+            const imported = parsed.data || parsed;
+            if (!Array.isArray(imported.habits) || !imported.completions || typeof imported.completions !== "object") {
+              throw new Error("Invalid habit tracker JSON.");
+            }
+
+            state.habits = imported.habits.map(normalizeHabit).filter(Boolean);
+            state.completions = normalizeCompletions(imported.completions);
+            saveState();
+            resetHabitForm();
+            render();
+            els.lastImportName.textContent = file.name;
+            showToast("JSON imported.");
+          } catch (error) {
+            showToast(error.message || "Import failed.");
+          } finally {
+            els.importFile.value = "";
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      function render() {
+        els.selectedDate.value = selectedDate;
+        els.dateSummary.textContent = formatLongDate(selectedDate);
+        renderToday();
+        renderManagementList();
+        renderStats();
+        renderHeatmap();
+        drawChart();
+        renderStorageStatus();
+      }
+
+      function renderToday() {
+        const due = dueHabits(selectedDate);
+        const done = completedSet(selectedDate);
+        els.todayList.innerHTML = "";
+
+        if (!state.habits.length) {
+          els.todayList.append(emptyNode("Add a habit to start tracking."));
+          els.todayProgress.textContent = "No habits yet";
+          return;
+        }
+
+        if (!due.length) {
+          els.todayList.append(emptyNode("No habits scheduled for this date."));
+          els.todayProgress.textContent = "0 scheduled";
+          return;
+        }
+
+        due.forEach((habit) => {
+          const checked = done.has(habit.id);
+          const row = document.createElement("div");
+          row.className = `habit-row${checked ? " done" : ""}`;
+          row.style.setProperty("--habit-color", habit.color);
+
+          const check = document.createElement("label");
+          check.className = "check";
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.checked = checked;
+          checkbox.setAttribute("aria-label", `${habit.name} complete`);
+          checkbox.addEventListener("change", () => toggleCompletion(habit.id, selectedDate, checkbox.checked));
+          const box = document.createElement("span");
+          box.className = "check-box";
+          box.textContent = "OK";
+          check.append(checkbox, box);
+
+          const main = document.createElement("div");
+          main.className = "habit-main";
+          main.append(habitTitle(habit), habitMeta(habit, selectedDate));
+
+          const actions = document.createElement("div");
+          actions.className = "row-actions";
+          actions.append(
+            actionButton("Edit", () => editHabit(habit.id)),
+            actionButton("Delete", () => deleteHabit(habit.id), "danger")
+          );
+
+          row.append(check, main, actions);
+          els.todayList.append(row);
+        });
+
+        const count = due.filter((habit) => done.has(habit.id)).length;
+        els.todayProgress.textContent = `${count} of ${due.length} complete`;
+      }
+
+      function renderManagementList() {
+        els.habitList.innerHTML = "";
+        els.habitCountLabel.textContent = `${state.habits.length} active`;
+
+        if (!state.habits.length) {
+          els.habitList.append(emptyNode("No habits saved."));
+          return;
+        }
+
+        state.habits.forEach((habit) => {
+          const row = document.createElement("div");
+          row.className = "manage-row";
+          row.style.setProperty("--habit-color", habit.color);
+
+          const main = document.createElement("div");
+          main.className = "habit-main";
+          main.append(habitTitle(habit), habitMeta(habit, selectedDate));
+
+          const actions = document.createElement("div");
+          actions.className = "row-actions";
+          actions.append(
+            actionButton("Edit", () => editHabit(habit.id)),
+            actionButton("Delete", () => deleteHabit(habit.id), "danger")
+          );
+
+          row.append(main, actions);
+          els.habitList.append(row);
+        });
+      }
+
+      function renderStats() {
+        const summary = daySummary(selectedDate);
+        const aggregate = aggregateStreaks(selectedDate);
+        els.completionRate.textContent = summary.due ? `${Math.round(summary.rate * 100)}%` : "0%";
+        els.currentStreak.textContent = String(aggregate.current);
+        els.bestStreak.textContent = String(aggregate.best);
+      }
+
+      function renderHeatmap() {
+        const end = parseDateKey(selectedDate);
+        const start = addDays(end, -364);
+        const paddedStart = addDays(start, -start.getDay());
+        const days = [];
+        for (let date = paddedStart; date <= end; date = addDays(date, 1)) {
+          days.push(dateKey(date));
+        }
+
+        els.heatmap.innerHTML = "";
+        days.forEach((date) => {
+          const summary = daySummary(date);
+          const cell = document.createElement("button");
+          cell.type = "button";
+          cell.className = `day-cell level-${heatLevel(summary.rate, summary.due)}${date === selectedDate ? " selected" : ""}`;
+          cell.title = `${formatLongDate(date)}: ${summary.done}/${summary.due}`;
+          cell.setAttribute("aria-label", cell.title);
+          cell.addEventListener("click", () => {
+            selectedDate = date;
+            render();
+          });
+          els.heatmap.append(cell);
+        });
+
+        els.heatmapRange.textContent = `${formatShortDate(dateKey(start))} to ${formatShortDate(selectedDate)}`;
+        const selected = daySummary(selectedDate);
+        els.heatmapDetail.textContent = `${formatShortDate(selectedDate)}: ${selected.done}/${selected.due} complete`;
+      }
+
+      function renderStorageStatus() {
+        const size = new Blob([JSON.stringify(state)]).size;
+        els.storageStatus.textContent = `${state.habits.length} habits, ${Object.keys(state.completions).length} logged days`;
+        els.lastImportName.textContent = `${Math.ceil(size / 1024)} KB in localStorage`;
+      }
+
+      function drawChart() {
+        const canvas = els.completionChart;
+        if (!canvas) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        const width = Math.max(320, Math.floor(rect.width || 900));
+        const height = Math.max(220, Math.floor(rect.height || 260));
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+
+        const ctx = canvas.getContext("2d");
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, width, height);
+
+        const days = rangeDays(addDays(parseDateKey(selectedDate), -29), parseDateKey(selectedDate));
+        const data = days.map((date) => daySummary(dateKey(date)).rate);
+        const padding = { top: 22, right: 20, bottom: 34, left: 44 };
+        const plotW = width - padding.left - padding.right;
+        const plotH = height - padding.top - padding.bottom;
+
+        ctx.fillStyle = "#0b0f15";
+        roundRect(ctx, 0, 0, width, height, 8);
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(214, 224, 240, 0.12)";
+        ctx.lineWidth = 1;
+        ctx.font = "12px " + getComputedStyle(document.body).fontFamily;
+        ctx.fillStyle = "#8591a3";
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+
+        [0, 0.25, 0.5, 0.75, 1].forEach((tick) => {
+          const y = padding.top + plotH - tick * plotH;
+          ctx.beginPath();
+          ctx.moveTo(padding.left, y);
+          ctx.lineTo(width - padding.right, y);
+          ctx.stroke();
+          ctx.fillText(`${Math.round(tick * 100)}%`, padding.left - 8, y);
+        });
+
+        const barGap = Math.max(2, plotW / days.length * 0.18);
+        const barW = Math.max(4, plotW / days.length - barGap);
+        data.forEach((rate, index) => {
+          const x = padding.left + index * (plotW / days.length) + barGap / 2;
+          const barH = Math.max(2, rate * plotH);
+          const y = padding.top + plotH - barH;
+          const gradient = ctx.createLinearGradient(0, y, 0, y + barH);
+          gradient.addColorStop(0, "#7ff0cc");
+          gradient.addColorStop(1, "#46d6a9");
+          ctx.fillStyle = rate ? gradient : "rgba(214, 224, 240, 0.1)";
+          roundRect(ctx, x, y, barW, barH, 4);
+          ctx.fill();
+        });
+
+        ctx.strokeStyle = "#65a7ff";
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        data.forEach((rate, index) => {
+          const x = padding.left + index * (plotW / (days.length - 1 || 1));
+          const y = padding.top + plotH - rate * plotH;
+          if (index === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        ctx.fillStyle = "#c6d0de";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        const first = dateKey(days[0]);
+        const last = dateKey(days[days.length - 1]);
+        ctx.fillText(formatShortDate(first), padding.left, height - 24);
+        ctx.fillText(formatShortDate(last), width - padding.right, height - 24);
+
+        const latest = data[data.length - 1] || 0;
+        ctx.fillStyle = "#f2f6fb";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.font = "700 13px " + getComputedStyle(document.body).fontFamily;
+        ctx.fillText(`Latest ${Math.round(latest * 100)}%`, padding.left, 10);
+      }
+
+      function roundRect(ctx, x, y, width, height, radius) {
+        const r = Math.min(radius, width / 2, height / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + width, y, x + width, y + height, r);
+        ctx.arcTo(x + width, y + height, x, y + height, r);
+        ctx.arcTo(x, y + height, x, y, r);
+        ctx.arcTo(x, y, x + width, y, r);
+        ctx.closePath();
+      }
+
+      function habitTitle(habit) {
+        const wrap = document.createElement("div");
+        wrap.className = "habit-name";
+
+        const dot = document.createElement("span");
+        dot.className = "habit-dot";
+
+        const name = document.createElement("span");
+        name.textContent = habit.name;
+
+        wrap.append(dot, name);
+        return wrap;
+      }
+
+      function habitMeta(habit, date) {
+        const wrap = document.createElement("div");
+        wrap.className = "habit-meta";
+        const stats = streakForHabit(habit.id, date);
+        wrap.append(
+          pill(frequencyLabel(habit.frequency)),
+          pill(`${stats.current} current`),
+          pill(`${stats.best} best`)
+        );
+        return wrap;
+      }
+
+      function pill(text) {
+        const node = document.createElement("span");
+        node.className = "pill";
+        node.textContent = text;
+        return node;
+      }
+
+      function actionButton(label, handler, tone) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `btn ${tone || "ghost"}`;
+        button.textContent = label;
+        button.addEventListener("click", handler);
+        return button;
+      }
+
+      function emptyNode(text) {
+        const node = document.createElement("div");
+        node.className = "empty";
+        node.textContent = text;
+        return node;
+      }
+
+      function dueHabits(date) {
+        return state.habits.filter((habit) => isHabitDue(habit, date));
+      }
+
+      function isHabitDue(habit, date) {
+        if (habit.createdAt && date < habit.createdAt) return false;
+        const day = parseDateKey(date).getDay();
+        if (habit.frequency === "weekdays") return day >= 1 && day <= 5;
+        if (habit.frequency === "weekends") return day === 0 || day === 6;
+        return true;
+      }
+
+      function completedSet(date) {
+        return new Set(state.completions[date] || []);
+      }
+
+      function daySummary(date) {
+        const due = dueHabits(date);
+        const completed = completedSet(date);
+        const done = due.filter((habit) => completed.has(habit.id)).length;
+        return {
+          due: due.length,
+          done,
+          rate: due.length ? done / due.length : 0
+        };
+      }
+
+      function heatLevel(rate, due) {
+        if (!due || rate <= 0) return 0;
+        if (rate < 0.34) return 1;
+        if (rate < 0.67) return 2;
+        if (rate < 1) return 3;
+        return 4;
+      }
+
+      function aggregateStreaks(date) {
+        if (!state.habits.length) {
+          return { current: 0, best: 0 };
+        }
+
+        const firstTracked = earliestTrackedDate();
+        let current = 0;
+        for (let cursor = parseDateKey(date); ; cursor = addDays(cursor, -1)) {
+          const key = dateKey(cursor);
+          if (key < firstTracked) break;
+          const summary = daySummary(key);
+          if (!summary.due) continue;
+          if (summary.done === summary.due) {
+            current += 1;
+            continue;
+          }
+          break;
+        }
+
+        let best = 0;
+        let run = 0;
+        for (let cursor = parseDateKey(firstTracked); cursor <= parseDateKey(date); cursor = addDays(cursor, 1)) {
+          const summary = daySummary(dateKey(cursor));
+          if (!summary.due) continue;
+          if (summary.done === summary.due) {
+            run += 1;
+            best = Math.max(best, run);
+          } else {
+            run = 0;
+          }
+        }
+
+        return { current, best };
+      }
+
+      function streakForHabit(id, date) {
+        const habit = existingHabit(id);
+        if (!habit) return { current: 0, best: 0 };
+
+        let current = 0;
+        for (let cursor = parseDateKey(date); ; cursor = addDays(cursor, -1)) {
+          const key = dateKey(cursor);
+          if (key < habit.createdAt) break;
+          if (!isHabitDue(habit, key)) continue;
+          if (completedSet(key).has(id)) {
+            current += 1;
+            continue;
+          }
+          break;
+        }
+
+        let best = 0;
+        let run = 0;
+        for (let cursor = parseDateKey(habit.createdAt); cursor <= parseDateKey(date); cursor = addDays(cursor, 1)) {
+          const key = dateKey(cursor);
+          if (!isHabitDue(habit, key)) continue;
+          if (completedSet(key).has(id)) {
+            run += 1;
+            best = Math.max(best, run);
+          } else {
+            run = 0;
+          }
+        }
+
+        return { current, best };
+      }
+
+      function existingHabit(id) {
+        return state.habits.find((habit) => habit.id === id);
+      }
+
+      function earliestTrackedDate() {
+        const dates = state.habits.map((habit) => habit.createdAt).filter(isDateKey);
+        return dates.length ? dates.sort()[0] : selectedDate;
+      }
+
+      function shiftSelectedDate(amount) {
+        selectedDate = dateKey(addDays(parseDateKey(selectedDate), amount));
+        els.selectedDate.value = selectedDate;
+        render();
+      }
+
+      function createId() {
+        if (crypto && typeof crypto.randomUUID === "function") {
+          return crypto.randomUUID();
+        }
+        return `habit-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      }
+
+      function todayKey() {
+        return dateKey(new Date());
+      }
+
+      function dateKey(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      }
+
+      function parseDateKey(key) {
+        const [year, month, day] = key.split("-").map(Number);
+        return new Date(year, month - 1, day);
+      }
+
+      function isDateKey(value) {
+        return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(parseDateKey(value).getTime());
+      }
+
+      function addDays(date, amount) {
+        const next = new Date(date);
+        next.setDate(next.getDate() + amount);
+        return next;
+      }
+
+      function rangeDays(start, end) {
+        const days = [];
+        for (let cursor = new Date(start); cursor <= end; cursor = addDays(cursor, 1)) {
+          days.push(new Date(cursor));
+        }
+        return days;
+      }
+
+      function formatLongDate(key) {
+        return new Intl.DateTimeFormat(undefined, {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+          year: "numeric"
+        }).format(parseDateKey(key));
+      }
+
+      function formatShortDate(key) {
+        return new Intl.DateTimeFormat(undefined, {
+          month: "short",
+          day: "numeric"
+        }).format(parseDateKey(key));
+      }
+
+      function frequencyLabel(value) {
+        if (value === "weekdays") return "Weekdays";
+        if (value === "weekends") return "Weekends";
+        return "Daily";
+      }
+
+      function showToast(message) {
+        window.clearTimeout(toastTimer);
+        els.toast.textContent = message;
+        els.toast.classList.add("show");
+        toastTimer = window.setTimeout(() => els.toast.classList.remove("show"), 2600);
+      }
+
+      window.habitTrackerDebug = {
+        state,
+        daySummary,
+        dueHabits,
+        streakForHabit,
+        aggregateStreaks,
+        editHabit,
+        deleteHabit
+      };
+    })();
+  </script>
+</body>
+</html>
