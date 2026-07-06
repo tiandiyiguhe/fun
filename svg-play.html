@@ -3,233 +3,1150 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SVG Path Visualizer</title>
+<title>SVG Play - Path Visualizer</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#0a0a0f;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px}
-.container{display:flex;flex-direction:column;gap:12px;width:100%;max-width:560px;align-items:center}
-.title{font-size:24px;font-weight:700;color:#00ff88;letter-spacing:2px}
-.toolbar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
-.tool-btn{background:#12121a;border:2px solid #1a1a2e;color:#666;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:11px;transition:all .15s;font-family:inherit}
-.tool-btn:hover{color:#ccc;border-color:#333}
-.tool-btn.active{background:#00ff8820;border-color:#00ff88;color:#00ff88}
-svg{background:#0d0d14;border:1px solid #1a1a2e;border-radius:10px;cursor:crosshair;width:100%;max-width:500px;height:320px}
-svg line.grid{stroke:#1a1a2e;stroke-width:.5}
-svg .path-line{fill:none;stroke:#00ff88;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-svg .control-point{fill:#ffaa00;stroke:#ffaa00;cursor:pointer}
-svg .control-point:hover{fill:#fff}
-svg .control-line{stroke:#ffaa0050;stroke-width:1;stroke-dasharray:4,4}
-svg .anchor{fill:#00ff88;stroke:#00ff88;cursor:pointer}
-svg .anchor:hover{fill:#fff}
-.code-output{width:100%;background:#0d0d14;border:1px solid #1a1a2e;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:12px;color:#00ff88;word-break:break-all;display:flex;justify-content:space-between;align-items:center}
-.controls{display:flex;gap:8px}
-.btn{background:#12121a;border:1px solid #1a1a2e;color:#888;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:11px;transition:all .15s;font-family:inherit}
-.btn:hover{background:#1a1a2e;color:#ccc}
-.btn.primary{background:#00ff88;color:#0a0a0f;border-color:#00ff88;font-weight:600}
+:root{
+  color-scheme:dark;
+  --bg:#05070d;
+  --panel:#0d111b;
+  --panel-2:#121927;
+  --panel-3:#172133;
+  --line:rgba(173,205,255,.16);
+  --line-strong:rgba(41,255,217,.58);
+  --text:#eef7ff;
+  --soft:#aebdd1;
+  --muted:#6f7f95;
+  --cyan:#29ffd9;
+  --pink:#ff4fbd;
+  --lime:#b7ff4a;
+  --amber:#ffd166;
+  --blue:#6aa8ff;
+  --danger:#ff5d7a;
+  --shadow:0 30px 90px rgba(0,0,0,.5);
+  --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  --sans:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{width:100%;min-height:100%;margin:0;background:var(--bg);color:var(--text);font-family:var(--sans)}
+body{
+  min-height:100vh;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 16% 14%,rgba(41,255,217,.13),transparent 28%),
+    radial-gradient(circle at 84% 76%,rgba(255,79,189,.12),transparent 30%),
+    linear-gradient(180deg,rgba(255,255,255,.025),transparent 44%),
+    var(--bg);
+}
+button,textarea,input{font:inherit}
+button{border:0}
+.app{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 380px;
+  width:100vw;
+  height:100vh;
+  min-height:640px;
+}
+.workspace{
+  position:relative;
+  display:grid;
+  grid-template-rows:auto minmax(0,1fr) auto;
+  min-width:0;
+  min-height:0;
+  border-right:1px solid var(--line);
+  background:
+    linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px),
+    linear-gradient(0deg,rgba(255,255,255,.014) 1px,transparent 1px);
+  background-size:56px 56px;
+}
+.topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  min-height:72px;
+  padding:14px 18px;
+  border-bottom:1px solid var(--line);
+  background:rgba(6,9,16,.66);
+  backdrop-filter:blur(18px);
+}
+.brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:0;
+}
+.brand-mark{
+  display:grid;
+  width:44px;
+  height:44px;
+  place-items:center;
+  border:1px solid rgba(41,255,217,.42);
+  border-radius:8px;
+  background:linear-gradient(135deg,rgba(41,255,217,.16),rgba(255,79,189,.1)),#09111a;
+  box-shadow:0 0 28px rgba(41,255,217,.14),inset 0 0 0 2px rgba(255,255,255,.025);
+  color:var(--cyan);
+  font-family:var(--mono);
+  font-weight:900;
+}
+h1{
+  margin:0;
+  font-size:18px;
+  line-height:1.1;
+  letter-spacing:.02em;
+}
+.status{
+  margin-top:5px;
+  color:var(--muted);
+  font-family:var(--mono);
+  font-size:12px;
+  white-space:nowrap;
+}
+.command-strip{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.command-btn,.icon-btn,.text-btn,.toggle{
+  display:inline-grid;
+  place-items:center;
+  min-width:42px;
+  height:38px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:rgba(13,17,27,.86);
+  color:var(--soft);
+  cursor:pointer;
+  transition:transform .14s ease,border-color .14s ease,color .14s ease,background .14s ease,box-shadow .14s ease;
+}
+.command-btn{
+  grid-template-columns:1fr;
+  font-family:var(--mono);
+  font-weight:850;
+  font-size:15px;
+}
+.command-btn:hover,.icon-btn:hover,.text-btn:hover,.toggle:hover,
+.command-btn:focus-visible,.icon-btn:focus-visible,.text-btn:focus-visible,.toggle:focus-visible{
+  outline:0;
+  transform:translateY(-1px);
+  border-color:rgba(41,255,217,.55);
+  color:var(--text);
+  background:rgba(23,33,51,.88);
+  box-shadow:0 0 0 3px rgba(41,255,217,.08),0 14px 34px rgba(0,0,0,.28);
+}
+.command-btn.active{
+  border-color:var(--line-strong);
+  color:#071015;
+  background:linear-gradient(135deg,var(--cyan),#7affec);
+  box-shadow:0 0 28px rgba(41,255,217,.2);
+}
+.icon-btn{
+  width:38px;
+  min-width:38px;
+  font-family:var(--mono);
+  font-weight:900;
+  font-size:16px;
+}
+.text-btn{
+  min-width:0;
+  padding:0 12px;
+  font-size:12px;
+  font-weight:800;
+}
+.toggle{
+  grid-template-columns:auto auto;
+  gap:7px;
+  padding:0 11px;
+  font-size:12px;
+  font-weight:800;
+}
+.toggle .dot{
+  width:10px;
+  height:10px;
+  border-radius:99px;
+  background:var(--muted);
+  box-shadow:none;
+}
+.toggle.active{
+  color:var(--cyan);
+  border-color:rgba(41,255,217,.42);
+}
+.toggle.active .dot{
+  background:var(--cyan);
+  box-shadow:0 0 16px rgba(41,255,217,.8);
+}
+.stage-shell{
+  position:relative;
+  display:grid;
+  min-width:0;
+  min-height:0;
+  place-items:center;
+  padding:22px;
+}
+.stage-frame{
+  position:relative;
+  width:min(100%,1120px);
+  aspect-ratio:960/620;
+  max-height:calc(100vh - 176px);
+  border:1px solid rgba(173,205,255,.18);
+  border-radius:8px;
+  overflow:hidden;
+  background:#070b12;
+  box-shadow:var(--shadow),0 0 0 1px rgba(41,255,217,.045),inset 0 0 80px rgba(41,255,217,.035);
+}
+#stage{
+  display:block;
+  width:100%;
+  height:100%;
+  touch-action:none;
+  cursor:crosshair;
+}
+.grid-major{fill:none;stroke:rgba(106,168,255,.2);stroke-width:1}
+.grid-minor{fill:none;stroke:rgba(174,189,209,.08);stroke-width:1}
+.axis{fill:none;stroke:rgba(255,209,102,.2);stroke-width:1.2}
+.preview-path{
+  fill:none;
+  stroke:rgba(255,209,102,.88);
+  stroke-width:4;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  stroke-dasharray:12 12;
+  pointer-events:none;
+}
+.main-path{
+  fill:none;
+  stroke:var(--cyan);
+  stroke-width:6;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  filter:url(#pathGlow);
+}
+.shadow-path{
+  fill:none;
+  stroke:rgba(255,79,189,.28);
+  stroke-width:13;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  filter:url(#softGlow);
+}
+.control-line{
+  stroke:rgba(255,209,102,.6);
+  stroke-width:1.6;
+  stroke-dasharray:8 7;
+  pointer-events:none;
+}
+.arc-line{
+  stroke:rgba(183,255,74,.54);
+  stroke-width:1.6;
+  stroke-dasharray:3 8;
+  pointer-events:none;
+}
+.anchor,.handle{
+  cursor:grab;
+  transition:r .12s ease,filter .12s ease,stroke .12s ease;
+}
+.anchor{
+  fill:#071015;
+  stroke:var(--cyan);
+  stroke-width:3;
+  filter:url(#pointGlow);
+}
+.anchor.start{
+  stroke:var(--lime);
+}
+.handle{
+  fill:#090c12;
+  stroke:var(--amber);
+  stroke-width:3;
+  filter:url(#amberGlow);
+}
+.handle.arc{
+  stroke:var(--lime);
+}
+.anchor:hover,.handle:hover,.anchor.active,.handle.active{
+  r:9;
+  stroke:#fff;
+}
+.anchor:active,.handle:active{
+  cursor:grabbing;
+}
+.empty-note{
+  position:absolute;
+  left:22px;
+  bottom:18px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  max-width:min(460px,calc(100% - 44px));
+  padding:10px 12px;
+  border:1px solid rgba(41,255,217,.2);
+  border-radius:8px;
+  background:rgba(5,7,13,.62);
+  color:var(--muted);
+  font-family:var(--mono);
+  font-size:12px;
+  pointer-events:none;
+  backdrop-filter:blur(12px);
+}
+.empty-note.hide{display:none}
+.coord-pill{
+  position:absolute;
+  right:22px;
+  bottom:18px;
+  display:grid;
+  min-width:132px;
+  height:34px;
+  place-items:center;
+  border:1px solid rgba(173,205,255,.16);
+  border-radius:8px;
+  background:rgba(5,7,13,.68);
+  color:var(--soft);
+  font-family:var(--mono);
+  font-size:12px;
+  pointer-events:none;
+  backdrop-filter:blur(12px);
+}
+.bottom-bar{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:1px;
+  border-top:1px solid var(--line);
+  background:var(--line);
+}
+.metric{
+  display:grid;
+  gap:4px;
+  padding:12px 16px;
+  background:rgba(6,9,16,.72);
+}
+.metric span{
+  color:var(--muted);
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.metric strong{
+  color:var(--text);
+  font-family:var(--mono);
+  font-size:14px;
+  line-height:1.2;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.side{
+  display:grid;
+  grid-template-rows:auto auto minmax(0,1fr) auto;
+  min-height:0;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.035),transparent 35%),
+    var(--panel);
+}
+.side-head{
+  display:grid;
+  gap:12px;
+  padding:18px;
+  border-bottom:1px solid var(--line);
+}
+.mini-preview{
+  width:100%;
+  aspect-ratio:16/9;
+  border:1px solid var(--line);
+  border-radius:8px;
+  overflow:hidden;
+  background:#070b12;
+  box-shadow:inset 0 0 36px rgba(41,255,217,.035);
+}
+.mini-preview svg{
+  display:block;
+  width:100%;
+  height:100%;
+}
+.side-actions{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+  padding:14px 18px;
+  border-bottom:1px solid var(--line);
+}
+.side-actions .text-btn{
+  height:40px;
+}
+.editor{
+  min-height:0;
+  overflow:auto;
+  padding:18px;
+}
+.section{
+  display:grid;
+  gap:10px;
+  margin-bottom:18px;
+}
+.section-title{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  color:var(--soft);
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+}
+.path-output,.svg-output{
+  width:100%;
+  min-height:112px;
+  resize:vertical;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:#080c14;
+  color:#9dffe9;
+  outline:0;
+  padding:12px;
+  font-family:var(--mono);
+  font-size:12px;
+  line-height:1.55;
+  box-shadow:inset 0 0 34px rgba(0,0,0,.24);
+}
+.svg-output{min-height:164px;color:#d8e6ff}
+.path-output:focus,.svg-output:focus{
+  border-color:rgba(41,255,217,.48);
+  box-shadow:0 0 0 3px rgba(41,255,217,.07),inset 0 0 34px rgba(0,0,0,.24);
+}
+.segment-list{
+  display:grid;
+  gap:8px;
+}
+.segment-row{
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr);
+  gap:9px;
+  align-items:center;
+  min-height:42px;
+  padding:8px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:rgba(18,25,39,.74);
+}
+.segment-code{
+  display:grid;
+  width:34px;
+  height:26px;
+  place-items:center;
+  border-radius:6px;
+  background:#080c14;
+  color:var(--cyan);
+  font-family:var(--mono);
+  font-weight:900;
+}
+.segment-row span{
+  min-width:0;
+  overflow:hidden;
+  color:var(--soft);
+  font-family:var(--mono);
+  font-size:12px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.empty-list{
+  padding:13px;
+  border:1px dashed var(--line);
+  border-radius:8px;
+  color:var(--muted);
+  font-family:var(--mono);
+  font-size:12px;
+}
+.footer{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:13px 18px;
+  border-top:1px solid var(--line);
+  color:var(--muted);
+  font-family:var(--mono);
+  font-size:12px;
+}
+.toast{
+  position:fixed;
+  right:18px;
+  bottom:18px;
+  z-index:20;
+  max-width:min(320px,calc(100vw - 36px));
+  padding:10px 12px;
+  border:1px solid rgba(41,255,217,.35);
+  border-radius:8px;
+  background:rgba(8,12,20,.94);
+  color:#dcfff7;
+  box-shadow:0 0 28px rgba(41,255,217,.18);
+  font-size:13px;
+  opacity:0;
+  transform:translateY(8px);
+  pointer-events:none;
+  transition:opacity .18s ease,transform .18s ease;
+}
+.toast.show{
+  opacity:1;
+  transform:translateY(0);
+}
+@media (max-width:1040px){
+  body{overflow:auto}
+  .app{
+    grid-template-columns:1fr;
+    height:auto;
+    min-height:100vh;
+  }
+  .workspace{
+    min-height:620px;
+    border-right:0;
+    border-bottom:1px solid var(--line);
+  }
+  .stage-frame{max-height:none}
+  .side{min-height:620px}
+}
+@media (max-width:680px){
+  .app{min-height:100vh}
+  .topbar{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+  .command-strip{justify-content:flex-start}
+  .stage-shell{padding:12px}
+  .stage-frame{aspect-ratio:1/1}
+  .bottom-bar{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .side-actions{grid-template-columns:1fr}
+  .status{white-space:normal}
+}
 </style>
 </head>
 <body>
-<div class="container">
-<div class="title">SVG Path Visualizer</div>
-<div class="toolbar" id="tools">
-<button class="tool-btn active" data-tool="line">Line</button>
-<button class="tool-btn" data-tool="bezier">Bezier</button>
-<button class="tool-btn" data-tool="quad">Quadratic</button>
-<button class="tool-btn" data-tool="arc">Arc</button>
-<button class="tool-btn" data-tool="move">Move</button>
-</div>
-<svg id="canvas" viewBox="0 0 500 320"></svg>
-<div class="controls">
-<button class="btn primary" id="btn-clear">Clear</button>
-<button class="btn" id="btn-undo">Undo</button>
-<button class="btn" id="btn-copy">Copy Path</button>
-</div>
-<div class="code-output"><code id="code"></code></div>
-</div>
+<main class="app">
+  <section class="workspace" aria-label="SVG path workspace">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">d</div>
+        <div>
+          <h1>SVG Play</h1>
+          <div class="status" id="statusText">Command L</div>
+        </div>
+      </div>
+      <div class="command-strip" role="toolbar" aria-label="Path commands">
+        <button class="command-btn" type="button" data-command="M" title="Move start">M</button>
+        <button class="command-btn active" type="button" data-command="L" title="Line segment">L</button>
+        <button class="command-btn" type="button" data-command="Q" title="Quadratic bezier">Q</button>
+        <button class="command-btn" type="button" data-command="C" title="Cubic bezier">C</button>
+        <button class="command-btn" type="button" data-command="A" title="Arc segment">A</button>
+        <button class="toggle active" type="button" id="snapToggle" title="Toggle grid snap"><span class="dot"></span><span>Snap</span></button>
+        <button class="toggle active" type="button" id="handlesToggle" title="Toggle control handles"><span class="dot"></span><span>Handles</span></button>
+      </div>
+    </header>
+
+    <div class="stage-shell">
+      <div class="stage-frame">
+        <svg id="stage" viewBox="0 0 960 620" role="img" aria-label="Editable SVG path canvas">
+          <defs>
+            <pattern id="minorGrid" width="24" height="24" patternUnits="userSpaceOnUse">
+              <path class="grid-minor" d="M 24 0 H 0 V 24"></path>
+            </pattern>
+            <pattern id="majorGrid" width="120" height="120" patternUnits="userSpaceOnUse">
+              <rect width="120" height="120" fill="url(#minorGrid)"></rect>
+              <path class="grid-major" d="M 120 0 H 0 V 120"></path>
+            </pattern>
+            <filter id="pathGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#29ffd9" flood-opacity=".75"></feDropShadow>
+              <feDropShadow dx="0" dy="0" stdDeviation="12" flood-color="#ff4fbd" flood-opacity=".25"></feDropShadow>
+            </filter>
+            <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="5"></feGaussianBlur>
+            </filter>
+            <filter id="pointGlow" x="-80%" y="-80%" width="260%" height="260%">
+              <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#29ffd9" flood-opacity=".9"></feDropShadow>
+            </filter>
+            <filter id="amberGlow" x="-80%" y="-80%" width="260%" height="260%">
+              <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#ffd166" flood-opacity=".82"></feDropShadow>
+            </filter>
+          </defs>
+          <rect width="960" height="620" fill="#070b12"></rect>
+          <rect width="960" height="620" fill="url(#majorGrid)"></rect>
+          <path class="axis" d="M 0 310 H 960 M 480 0 V 620"></path>
+          <g id="pathLayer"></g>
+          <g id="previewLayer"></g>
+          <g id="controlLayer"></g>
+        </svg>
+        <div class="empty-note" id="emptyNote">M 160 320 L 360 180 C 500 70 640 510 800 300</div>
+        <div class="coord-pill" id="coordPill">x 0 y 0</div>
+      </div>
+    </div>
+
+    <footer class="bottom-bar">
+      <div class="metric"><span>Segments</span><strong id="segmentCount">0</strong></div>
+      <div class="metric"><span>Points</span><strong id="pointCount">0</strong></div>
+      <div class="metric"><span>Command</span><strong id="commandMetric">L line</strong></div>
+      <div class="metric"><span>ViewBox</span><strong>0 0 960 620</strong></div>
+    </footer>
+  </section>
+
+  <aside class="side" aria-label="Path output panel">
+    <header class="side-head">
+      <div class="mini-preview" aria-label="Live path preview">
+        <svg viewBox="0 0 960 620">
+          <rect width="960" height="620" fill="#070b12"></rect>
+          <path id="miniPathGlow" class="shadow-path"></path>
+          <path id="miniPath" class="main-path"></path>
+        </svg>
+      </div>
+    </header>
+    <div class="side-actions">
+      <button class="text-btn" type="button" id="sampleBtn">Sample</button>
+      <button class="text-btn" type="button" id="undoBtn">Undo</button>
+      <button class="text-btn" type="button" id="clearBtn">Clear</button>
+    </div>
+    <div class="editor">
+      <section class="section">
+        <div class="section-title"><span>Path d</span><button class="icon-btn" type="button" id="copyPathBtn" title="Copy path d">C</button></div>
+        <textarea class="path-output" id="pathOutput" spellcheck="false" readonly></textarea>
+      </section>
+      <section class="section">
+        <div class="section-title"><span>SVG code</span><button class="icon-btn" type="button" id="copySvgBtn" title="Copy SVG code">C</button></div>
+        <textarea class="svg-output" id="svgOutput" spellcheck="false" readonly></textarea>
+      </section>
+      <section class="section">
+        <div class="section-title"><span>Segments</span><span id="segmentLabel">0</span></div>
+        <div class="segment-list" id="segmentList"></div>
+      </section>
+    </div>
+    <footer class="footer">
+      <span id="footerText">snap 24px</span>
+      <span>single file</span>
+    </footer>
+  </aside>
+</main>
+<div class="toast" id="toast"></div>
 <script>
-const svg = document.getElementById('canvas'), codeEl = document.getElementById('code');
-let tool = 'line', paths = [], currentPath = null, activePoint = null, dragIdx = -1;
+(() => {
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const VIEWBOX = { width: 960, height: 620 };
+  const GRID = 24;
+  const COMMANDS = {
+    M: 'move',
+    L: 'line',
+    Q: 'quadratic',
+    C: 'cubic',
+    A: 'arc'
+  };
 
-const PATH_COLORS = ['#00ff88','#3399ff','#ff3366','#ffaa00','#cc66ff','#00ccff'];
+  const state = {
+    command: 'L',
+    snap: true,
+    showHandles: true,
+    start: { x: 160, y: 320 },
+    segments: [
+      { type: 'L', end: { x: 360, y: 180 } },
+      { type: 'C', cp1: { x: 500, y: 70 }, cp2: { x: 640, y: 510 }, end: { x: 800, y: 300 } }
+    ],
+    previewPoint: null,
+    dragging: null
+  };
 
-function drawGrid() {
-for (let x = 0; x <= 500; x += 25) {
-const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-line.setAttribute('x1', x); line.setAttribute('y1', 0); line.setAttribute('x2', x); line.setAttribute('y2', 320);
-line.classList.add('grid'); svg.appendChild(line);
-}
-for (let y = 0; y <= 320; y += 25) {
-const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-line.setAttribute('x1', 0); line.setAttribute('y1', y); line.setAttribute('x2', 500); line.setAttribute('y2', y);
-line.classList.add('grid'); svg.appendChild(line);
-}
-}
+  const stage = document.getElementById('stage');
+  const pathLayer = document.getElementById('pathLayer');
+  const previewLayer = document.getElementById('previewLayer');
+  const controlLayer = document.getElementById('controlLayer');
+  const pathOutput = document.getElementById('pathOutput');
+  const svgOutput = document.getElementById('svgOutput');
+  const miniPath = document.getElementById('miniPath');
+  const miniPathGlow = document.getElementById('miniPathGlow');
+  const segmentList = document.getElementById('segmentList');
+  const segmentLabel = document.getElementById('segmentLabel');
+  const segmentCount = document.getElementById('segmentCount');
+  const pointCount = document.getElementById('pointCount');
+  const commandMetric = document.getElementById('commandMetric');
+  const statusText = document.getElementById('statusText');
+  const coordPill = document.getElementById('coordPill');
+  const footerText = document.getElementById('footerText');
+  const emptyNote = document.getElementById('emptyNote');
+  const snapToggle = document.getElementById('snapToggle');
+  const handlesToggle = document.getElementById('handlesToggle');
+  const toast = document.getElementById('toast');
 
-function svgPoint(e) {
-const rect = svg.getBoundingClientRect();
-const scaleX = 500 / rect.width, scaleY = 320 / rect.height;
-return { x: Math.round((e.clientX - rect.left) * scaleX), y: Math.round((e.clientY - rect.top) * scaleY) };
-}
+  function el(name, attributes = {}) {
+    const node = document.createElementNS(SVG_NS, name);
+    Object.entries(attributes).forEach(([key, value]) => {
+      if (value !== null && value !== undefined) {
+        node.setAttribute(key, String(value));
+      }
+    });
+    return node;
+  }
 
-function renderAll() {
-svg.querySelectorAll('.path-line,.control-point,.control-line,.anchor').forEach(el => el.remove());
+  function clonePoint(point) {
+    return { x: point.x, y: point.y };
+  }
 
-paths.forEach(path => {
-const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  function formatNumber(value) {
+    const rounded = Math.round(value * 10) / 10;
+    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+  }
 
-const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-const d = buildPathD(path);
-pathEl.setAttribute('d', d);
-pathEl.classList.add('path-line');
-pathEl.setAttribute('stroke', PATH_COLORS[paths.indexOf(path) % PATH_COLORS.length]);
-g.appendChild(pathEl);
+  function pointText(point) {
+    return `${formatNumber(point.x)} ${formatNumber(point.y)}`;
+  }
 
-if (path.type === 'bezier') {
-if (path.points.length >= 2) {
-const p0 = path.points[0], p1 = path.points[1] || p0;
-const cp1 = path.control1 || {x: (p0.x+p1.x)/2, y: p0.y};
-const cp2 = path.control2 || {x: (p0.x+p1.x)/2, y: p1.y};
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
 
-const l1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-l1.setAttribute('x1', p0.x); l1.setAttribute('y1', p0.y); l1.setAttribute('x2', cp1.x); l1.setAttribute('y2', cp1.y);
-l1.classList.add('control-line'); g.appendChild(l1);
+  function snapPoint(point) {
+    if (!state.snap) return {
+      x: clamp(point.x, 0, VIEWBOX.width),
+      y: clamp(point.y, 0, VIEWBOX.height)
+    };
+    return {
+      x: clamp(Math.round(point.x / GRID) * GRID, 0, VIEWBOX.width),
+      y: clamp(Math.round(point.y / GRID) * GRID, 0, VIEWBOX.height)
+    };
+  }
 
-const l2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-l2.setAttribute('x1', p1.x); l2.setAttribute('y1', p1.y); l2.setAttribute('x2', cp2.x); l2.setAttribute('y2', cp2.y);
-l2.classList.add('control-line'); g.appendChild(l2);
+  function eventPoint(event) {
+    const point = stage.createSVGPoint();
+    point.x = event.clientX;
+    point.y = event.clientY;
+    const local = point.matrixTransform(stage.getScreenCTM().inverse());
+    return snapPoint({ x: local.x, y: local.y });
+  }
 
-[cp1, cp2].forEach(cp => {
-const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-circle.setAttribute('cx', cp.x); circle.setAttribute('cy', cp.y); circle.setAttribute('r', 5);
-circle.classList.add('control-point');
-circle.dataset.cp = path === currentPath ? 'cp' : '';
-g.appendChild(circle);
-});
-}
-}
+  function previousPoint(index) {
+    if (index <= 0) return state.start;
+    return state.segments[index - 1].end;
+  }
 
-path.points.forEach((p, i) => {
-const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-circle.setAttribute('cx', p.x); circle.setAttribute('cy', p.y); circle.setAttribute('r', i === 0 && path.type !== 'line' ? 5 : 4);
-circle.classList.add(i === 0 && path.type !== 'line' ? 'control-point' : 'anchor');
-circle.dataset.pathIdx = paths.indexOf(path);
-circle.dataset.pointIdx = i;
-g.appendChild(circle);
-});
+  function currentPoint() {
+    if (state.segments.length === 0) return state.start;
+    return state.segments[state.segments.length - 1].end;
+  }
 
-svg.appendChild(g);
-});
+  function segmentToPath(segment) {
+    if (segment.type === 'L') return `L ${pointText(segment.end)}`;
+    if (segment.type === 'Q') return `Q ${pointText(segment.cp)} ${pointText(segment.end)}`;
+    if (segment.type === 'C') return `C ${pointText(segment.cp1)} ${pointText(segment.cp2)} ${pointText(segment.end)}`;
+    if (segment.type === 'A') {
+      return `A ${formatNumber(segment.rx)} ${formatNumber(segment.ry)} ${formatNumber(segment.rotation)} ${segment.largeArc ? 1 : 0} ${segment.sweep ? 1 : 0} ${pointText(segment.end)}`;
+    }
+    return '';
+  }
 
-if (currentPath) {
-currentPath.points.forEach((p, i) => {
-const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-circle.setAttribute('cx', p.x); circle.setAttribute('cy', p.y); circle.setAttribute('r', 3);
-circle.setAttribute('fill', '#fff');
-circle.dataset.pathIdx = 'current';
-circle.dataset.pointIdx = i;
-svg.appendChild(circle);
-});
-}
+  function buildPath(segments = state.segments) {
+    if (!state.start) return '';
+    const commands = [`M ${pointText(state.start)}`];
+    segments.forEach((segment) => commands.push(segmentToPath(segment)));
+    return commands.join(' ');
+  }
 
-updateCode();
-}
+  function buildSvgCode(pathD) {
+    if (!pathD) return '';
+    return [
+      '<svg viewBox="0 0 960 620" xmlns="http://www.w3.org/2000/svg">',
+      '  <path',
+      `    d="${pathD}"`,
+      '    fill="none"',
+      '    stroke="#29ffd9"',
+      '    stroke-width="6"',
+      '    stroke-linecap="round"',
+      '    stroke-linejoin="round"',
+      '  />',
+      '</svg>'
+    ].join('\n');
+  }
 
-function buildPathD(path) {
-if (!path.points.length) return '';
-const pts = path.points;
-let d = 'M ' + pts[0].x + ' ' + pts[0].y;
-if (path.type === 'line') {
-for (let i = 1; i < pts.length; i++) d += ' L ' + pts[i].x + ' ' + pts[i].y;
-} else if (path.type === 'bezier' && pts.length >= 2) {
-const p0 = pts[0], p1 = pts[1];
-const cp1 = path.control1 || {x: (p0.x+p1.x)/2, y: p0.y};
-const cp2 = path.control2 || {x: (p0.x+p1.x)/2, y: p1.y};
-d += ' C ' + cp1.x + ' ' + cp1.y + ' ' + cp2.x + ' ' + cp2.y + ' ' + p1.x + ' ' + p1.y;
-} else if (path.type === 'quad' && pts.length >= 2) {
-const cp = path.control1 || {x: (pts[0].x+pts[1].x)/2, y: Math.min(pts[0].y, pts[1].y) - 40};
-d += ' Q ' + cp.x + ' ' + cp.y + ' ' + pts[1].x + ' ' + pts[1].y;
-} else if (path.type === 'arc' && pts.length >= 2) {
-const dx = pts[1].x - pts[0].x, dy = pts[1].y - pts[0].y;
-const rx = Math.abs(dx) / 2, ry = Math.abs(dy) || rx;
-d += ' A ' + rx + ' ' + ry + ' 0 0 1 ' + pts[1].x + ' ' + pts[1].y;
-}
-return d;
-}
+  function makeSegment(type, start, end) {
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const distance = Math.hypot(dx, dy);
+    if (type === 'Q') {
+      return {
+        type,
+        cp: {
+          x: start.x + dx * 0.5 - dy * 0.22,
+          y: start.y + dy * 0.5 + dx * 0.22
+        },
+        end: clonePoint(end)
+      };
+    }
+    if (type === 'C') {
+      return {
+        type,
+        cp1: {
+          x: start.x + dx * 0.32,
+          y: start.y + dy * 0.08
+        },
+        cp2: {
+          x: start.x + dx * 0.68,
+          y: start.y + dy * 0.92
+        },
+        end: clonePoint(end)
+      };
+    }
+    if (type === 'A') {
+      return {
+        type,
+        rx: Math.max(36, distance * 0.55),
+        ry: Math.max(36, distance * 0.34),
+        rotation: 0,
+        largeArc: false,
+        sweep: true,
+        end: clonePoint(end)
+      };
+    }
+    return { type: 'L', end: clonePoint(end) };
+  }
 
-function updateCode() {
-const allPaths = [...paths, ...(currentPath && currentPath.points.length >= 2 ? [currentPath] : [])];
-if (!allPaths.length) { codeEl.textContent = '(empty)'; return; }
-const d = allPaths.map(p => buildPathD(p)).join(' ');
-codeEl.textContent = '<path d="' + d + '" />';
-}
+  function arcHandlePoint(segment, start) {
+    const end = segment.end;
+    const mid = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const length = Math.hypot(dx, dy) || 1;
+    const normal = segment.sweep
+      ? { x: -dy / length, y: dx / length }
+      : { x: dy / length, y: -dx / length };
+    return {
+      x: mid.x + normal.x * segment.ry,
+      y: mid.y + normal.y * segment.ry
+    };
+  }
 
-svg.addEventListener('pointerdown', e => {
-const target = e.target;
-if (target.classList.contains('control-point') || target.classList.contains('anchor')) {
-dragIdx = parseInt(target.dataset.pointIdx);
-const pathIdx = target.dataset.pathIdx;
-activePoint = pathIdx === 'current' ? currentPath : paths[parseInt(pathIdx)];
-e.stopPropagation(); return;
-}
+  function updateArcFromHandle(segment, start, point) {
+    const end = segment.end;
+    const mid = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const chord = Math.hypot(dx, dy) || 1;
+    const vx = point.x - mid.x;
+    const vy = point.y - mid.y;
+    const cross = dx * vy - dy * vx;
+    const distance = Math.max(24, Math.abs(cross) / chord);
+    segment.sweep = cross >= 0;
+    segment.ry = distance;
+    segment.rx = Math.max(chord / 2 + 6, distance * 1.25);
+    segment.largeArc = distance > chord * 0.58;
+  }
 
-const pt = svgPoint(e);
-if (!currentPath) {
-currentPath = { type: tool, points: [pt], control1: null, control2: null };
-} else {
-const maxPoints = tool === 'line' ? Infinity : 2;
-currentPath.points.push(pt);
-if (currentPath.points.length >= maxPoints) {
+  function clearNode(node) {
+    while (node.firstChild) node.removeChild(node.firstChild);
+  }
 
-if (tool === 'bezier' && currentPath.points.length === 2) {
-currentPath.control1 = {x: (currentPath.points[0].x + currentPath.points[1].x) / 2, y: currentPath.points[0].y};
-currentPath.control2 = {x: (currentPath.points[0].x + currentPath.points[1].x) / 2, y: currentPath.points[1].y};
-}
-if (tool === 'quad' && currentPath.points.length === 2) {
-currentPath.control1 = {x: (currentPath.points[0].x + currentPath.points[1].x) / 2, y: Math.min(currentPath.points[0].y, currentPath.points[1].y) - 40};
-}
-paths.push(currentPath);
-currentPath = null;
-}
-}
-renderAll();
-});
+  function drawPath(pathD) {
+    clearNode(pathLayer);
+    if (!pathD) return;
+    pathLayer.appendChild(el('path', { d: pathD, class: 'shadow-path' }));
+    pathLayer.appendChild(el('path', { d: pathD, class: 'main-path' }));
+  }
 
-svg.addEventListener('pointermove', e => {
-if (dragIdx < 0 || !activePoint) return;
-const pt = svgPoint(e);
-if (activePoint === currentPath) {
-activePoint.points[dragIdx] = pt;
-} else {
-activePoint.points[dragIdx] = pt;
-if (activePoint.type === 'bezier' && activePoint.points.length === 2) {
-activePoint.control1 = {x: (activePoint.points[0].x + activePoint.points[1].x) / 2, y: activePoint.points[0].y};
-activePoint.control2 = {x: (activePoint.points[0].x + activePoint.points[1].x) / 2, y: activePoint.points[1].y};
-}
-}
-renderAll();
-});
+  function drawPreview() {
+    clearNode(previewLayer);
+    if (!state.previewPoint || !state.start || state.command === 'M') return;
+    const start = currentPoint();
+    const segment = makeSegment(state.command, start, state.previewPoint);
+    const pathD = `M ${pointText(start)} ${segmentToPath(segment)}`;
+    previewLayer.appendChild(el('path', { d: pathD, class: 'preview-path' }));
+  }
 
-document.addEventListener('pointerup', () => { dragIdx = -1; activePoint = null; });
+  function controlLine(points, className = 'control-line') {
+    const path = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${pointText(point)}`).join(' ');
+    return el('path', { d: path, class: className });
+  }
 
-document.getElementById('tools').addEventListener('click', e => {
-const b = e.target.closest('.tool-btn');
-if (!b) return;
-tool = b.dataset.tool;
-currentPath = null;
-document.querySelectorAll('.tool-btn').forEach(x => x.classList.remove('active'));
-b.classList.add('active');
-renderAll();
-});
+  function appendHandle(group, point, meta, className) {
+    const circle = el('circle', {
+      cx: point.x,
+      cy: point.y,
+      r: meta.kind === 'anchor' ? 7 : 6,
+      class: className
+    });
+    Object.entries(meta).forEach(([key, value]) => {
+      circle.dataset[key] = String(value);
+    });
+    group.appendChild(circle);
+  }
 
-document.getElementById('btn-clear').addEventListener('click', () => { paths = []; currentPath = null; renderAll(); });
-document.getElementById('btn-undo').addEventListener('click', () => {
-if (currentPath) { currentPath = null; }
-else if (paths.length > 0) paths.pop();
-renderAll();
-});
-document.getElementById('btn-copy').addEventListener('click', () => navigator.clipboard.writeText(codeEl.textContent));
+  function drawControls() {
+    clearNode(controlLayer);
+    if (!state.start || !state.showHandles) return;
 
-window.addEventListener('load', () => { drawGrid(); renderAll(); });
+    const lines = el('g');
+    state.segments.forEach((segment, index) => {
+      const start = previousPoint(index);
+      if (segment.type === 'Q') {
+        lines.appendChild(controlLine([start, segment.cp, segment.end]));
+      }
+      if (segment.type === 'C') {
+        lines.appendChild(controlLine([start, segment.cp1]));
+        lines.appendChild(controlLine([segment.end, segment.cp2]));
+      }
+      if (segment.type === 'A') {
+        lines.appendChild(controlLine([start, arcHandlePoint(segment, start), segment.end], 'arc-line'));
+      }
+    });
+    controlLayer.appendChild(lines);
+
+    const handles = el('g');
+    appendHandle(handles, state.start, { kind: 'anchor', target: 'start' }, 'anchor start');
+    state.segments.forEach((segment, index) => {
+      if (segment.type === 'Q') {
+        appendHandle(handles, segment.cp, { kind: 'handle', index, prop: 'cp' }, 'handle');
+      }
+      if (segment.type === 'C') {
+        appendHandle(handles, segment.cp1, { kind: 'handle', index, prop: 'cp1' }, 'handle');
+        appendHandle(handles, segment.cp2, { kind: 'handle', index, prop: 'cp2' }, 'handle');
+      }
+      if (segment.type === 'A') {
+        appendHandle(handles, arcHandlePoint(segment, previousPoint(index)), { kind: 'handle', index, prop: 'arc' }, 'handle arc');
+      }
+      appendHandle(handles, segment.end, { kind: 'anchor', target: 'end', index }, 'anchor');
+    });
+    controlLayer.appendChild(handles);
+  }
+
+  function renderSegments() {
+    segmentLabel.textContent = String(state.segments.length);
+    clearNode(segmentList);
+    if (state.segments.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-list';
+      empty.textContent = state.start ? `M ${pointText(state.start)}` : 'empty';
+      segmentList.appendChild(empty);
+      return;
+    }
+
+    state.segments.forEach((segment, index) => {
+      const row = document.createElement('div');
+      row.className = 'segment-row';
+      const code = document.createElement('div');
+      code.className = 'segment-code';
+      code.textContent = segment.type;
+      const text = document.createElement('span');
+      text.textContent = segmentToPath(segment);
+      row.append(code, text);
+      segmentList.appendChild(row);
+    });
+  }
+
+  function render() {
+    const pathD = buildPath();
+    drawPath(pathD);
+    drawPreview();
+    drawControls();
+
+    pathOutput.value = pathD || '';
+    svgOutput.value = buildSvgCode(pathD);
+    miniPath.setAttribute('d', pathD);
+    miniPathGlow.setAttribute('d', pathD);
+    segmentCount.textContent = String(state.segments.length);
+    pointCount.textContent = String((state.start ? 1 : 0) + state.segments.length);
+    commandMetric.textContent = `${state.command} ${COMMANDS[state.command]}`;
+    statusText.textContent = `Command ${state.command}`;
+    footerText.textContent = state.snap ? `snap ${GRID}px` : 'free points';
+    emptyNote.classList.toggle('hide', Boolean(pathD));
+    snapToggle.classList.toggle('active', state.snap);
+    handlesToggle.classList.toggle('active', state.showHandles);
+    renderSegments();
+  }
+
+  function addPoint(point) {
+    if (state.command === 'M' || !state.start) {
+      state.start = clonePoint(point);
+      state.segments = [];
+      state.previewPoint = null;
+      render();
+      return;
+    }
+    const start = currentPoint();
+    state.segments.push(makeSegment(state.command, start, point));
+    state.previewPoint = null;
+    render();
+  }
+
+  function moveDraggedHandle(point) {
+    const drag = state.dragging;
+    if (!drag) return;
+
+    if (drag.kind === 'anchor' && drag.target === 'start') {
+      state.start = clonePoint(point);
+      return;
+    }
+
+    const segment = state.segments[drag.index];
+    if (!segment) return;
+
+    if (drag.kind === 'anchor') {
+      segment.end = clonePoint(point);
+      return;
+    }
+
+    if (drag.prop === 'arc') {
+      updateArcFromHandle(segment, previousPoint(drag.index), point);
+      return;
+    }
+
+    segment[drag.prop] = clonePoint(point);
+  }
+
+  function setCommand(command) {
+    state.command = command;
+    document.querySelectorAll('[data-command]').forEach((button) => {
+      button.classList.toggle('active', button.dataset.command === command);
+    });
+    render();
+  }
+
+  function copyText(text, label) {
+    if (!text) {
+      showToast('Nothing to copy');
+      return;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        () => showToast(`${label} copied`),
+        () => fallbackCopy(text, label)
+      );
+    } else {
+      fallbackCopy(text, label);
+    }
+  }
+
+  function fallbackCopy(text, label) {
+    const scratch = document.createElement('textarea');
+    scratch.value = text;
+    scratch.setAttribute('readonly', '');
+    scratch.style.position = 'fixed';
+    scratch.style.left = '-9999px';
+    document.body.appendChild(scratch);
+    scratch.select();
+    document.execCommand('copy');
+    scratch.remove();
+    showToast(`${label} copied`);
+  }
+
+  function showToast(message) {
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(showToast.timer);
+    showToast.timer = setTimeout(() => toast.classList.remove('show'), 1500);
+  }
+
+  function loadSample() {
+    state.start = { x: 120, y: 390 };
+    state.segments = [
+      { type: 'L', end: { x: 230, y: 220 } },
+      { type: 'Q', cp: { x: 330, y: 78 }, end: { x: 440, y: 250 } },
+      { type: 'C', cp1: { x: 540, y: 430 }, cp2: { x: 660, y: 40 }, end: { x: 760, y: 260 } },
+      { type: 'A', rx: 112, ry: 76, rotation: 0, largeArc: false, sweep: true, end: { x: 860, y: 390 } }
+    ];
+    state.previewPoint = null;
+    setCommand('C');
+    showToast('Sample loaded');
+  }
+
+  stage.addEventListener('pointerdown', (event) => {
+    const handle = event.target.closest('.anchor,.handle');
+    if (handle) {
+      state.dragging = {
+        kind: handle.dataset.kind,
+        target: handle.dataset.target,
+        index: Number(handle.dataset.index),
+        prop: handle.dataset.prop || null
+      };
+      handle.classList.add('active');
+      stage.setPointerCapture(event.pointerId);
+      event.preventDefault();
+      return;
+    }
+    addPoint(eventPoint(event));
+  });
+
+  stage.addEventListener('pointermove', (event) => {
+    const point = eventPoint(event);
+    coordPill.textContent = `x ${formatNumber(point.x)} y ${formatNumber(point.y)}`;
+    if (state.dragging) {
+      moveDraggedHandle(point);
+      render();
+      return;
+    }
+    state.previewPoint = point;
+    drawPreview();
+  });
+
+  stage.addEventListener('pointerleave', () => {
+    if (state.dragging) return;
+    state.previewPoint = null;
+    drawPreview();
+  });
+
+  stage.addEventListener('pointerup', (event) => {
+    state.dragging = null;
+    stage.querySelectorAll('.active.anchor,.active.handle').forEach((node) => node.classList.remove('active'));
+    if (stage.hasPointerCapture(event.pointerId)) {
+      stage.releasePointerCapture(event.pointerId);
+    }
+  });
+
+  document.querySelectorAll('[data-command]').forEach((button) => {
+    button.addEventListener('click', () => setCommand(button.dataset.command));
+  });
+
+  snapToggle.addEventListener('click', () => {
+    state.snap = !state.snap;
+    render();
+  });
+
+  handlesToggle.addEventListener('click', () => {
+    state.showHandles = !state.showHandles;
+    render();
+  });
+
+  document.getElementById('undoBtn').addEventListener('click', () => {
+    if (state.segments.length > 0) {
+      state.segments.pop();
+    }
+    render();
+  });
+
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    state.start = null;
+    state.segments = [];
+    state.previewPoint = null;
+    render();
+  });
+
+  document.getElementById('sampleBtn').addEventListener('click', loadSample);
+  document.getElementById('copyPathBtn').addEventListener('click', () => copyText(pathOutput.value, 'Path'));
+  document.getElementById('copySvgBtn').addEventListener('click', () => copyText(svgOutput.value, 'SVG'));
+
+  document.addEventListener('keydown', (event) => {
+    if (event.target.matches('textarea,input')) return;
+    if (['M', 'L', 'Q', 'C', 'A'].includes(event.key.toUpperCase())) {
+      setCommand(event.key.toUpperCase());
+    }
+    if (event.key === 'Backspace' || event.key === 'Delete') {
+      state.segments.pop();
+      render();
+    }
+    if (event.key === 'Escape') {
+      state.previewPoint = null;
+      drawPreview();
+    }
+  });
+
+  window.SvgPathVisualizer = {
+    buildPath,
+    makeSegment,
+    state
+  };
+
+  render();
+})();
 </script>
 </body>
 </html>
