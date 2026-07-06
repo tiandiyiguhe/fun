@@ -1,0 +1,1229 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Maze Forge</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #070908;
+      --bg-2: #0c1110;
+      --panel: rgba(14, 20, 18, 0.9);
+      --panel-strong: rgba(17, 25, 23, 0.96);
+      --line: rgba(196, 224, 214, 0.15);
+      --line-strong: rgba(109, 255, 159, 0.46);
+      --text: #ecf7f1;
+      --text-soft: #a8bab2;
+      --muted: #6d7d76;
+      --green: #6dff9f;
+      --cyan: #67e8f9;
+      --pink: #ff4fa3;
+      --amber: #ffd166;
+      --red: #ff5d73;
+      --wall: #d6fff0;
+      --radius: 8px;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.48);
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      letter-spacing: 0;
+    }
+
+    body {
+      min-height: 100dvh;
+      overflow-x: hidden;
+      background:
+        linear-gradient(135deg, rgba(103, 232, 249, 0.08), transparent 36%),
+        linear-gradient(225deg, rgba(255, 79, 163, 0.075), transparent 34%),
+        linear-gradient(180deg, #070908 0%, #0b100f 48%, #060807 100%);
+    }
+
+    body::before {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      content: "";
+      pointer-events: none;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.032) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.024) 1px, transparent 1px);
+      background-size: 34px 34px;
+      mask-image: linear-gradient(to bottom, black 0%, rgba(0, 0, 0, 0.72) 58%, transparent 100%);
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.072), rgba(255, 255, 255, 0.018)),
+        var(--panel-strong);
+      color: var(--text);
+      cursor: pointer;
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+
+    button:hover {
+      border-color: var(--line-strong);
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button:focus-visible,
+    input:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 2px;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.48;
+      transform: none;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 330px;
+      gap: 18px;
+      width: min(1220px, 100%);
+      min-height: 100dvh;
+      margin: 0 auto;
+      padding: 18px;
+      align-items: center;
+    }
+
+    .stage {
+      display: grid;
+      min-width: 0;
+      gap: 14px;
+    }
+
+    .topbar,
+    .panel,
+    .canvas-shell {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.054), rgba(255, 255, 255, 0.012)),
+        var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px) saturate(1.18);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      min-height: 76px;
+      padding: 14px 16px;
+    }
+
+    .brand {
+      min-width: 0;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.45rem, 3vw, 2.45rem);
+      line-height: 1;
+      font-weight: 850;
+    }
+
+    .subtitle {
+      margin: 7px 0 0;
+      color: var(--text-soft);
+      font-size: 0.9rem;
+    }
+
+    .status-pill {
+      display: inline-grid;
+      grid-template-columns: 9px auto;
+      align-items: center;
+      gap: 8px;
+      min-height: 34px;
+      padding: 0 12px;
+      border: 1px solid rgba(109, 255, 159, 0.32);
+      border-radius: 999px;
+      background: rgba(109, 255, 159, 0.08);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+
+    .status-pill::before {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 16px var(--green);
+      content: "";
+    }
+
+    .status-pill[data-state="working"] {
+      border-color: rgba(103, 232, 249, 0.34);
+      background: rgba(103, 232, 249, 0.08);
+    }
+
+    .status-pill[data-state="working"]::before {
+      background: var(--cyan);
+      box-shadow: 0 0 16px var(--cyan);
+    }
+
+    .status-pill[data-state="solved"] {
+      border-color: rgba(255, 209, 102, 0.36);
+      background: rgba(255, 209, 102, 0.09);
+    }
+
+    .status-pill[data-state="solved"]::before {
+      background: var(--amber);
+      box-shadow: 0 0 16px var(--amber);
+    }
+
+    .status-pill[data-state="blocked"] {
+      border-color: rgba(255, 93, 115, 0.38);
+      background: rgba(255, 93, 115, 0.08);
+    }
+
+    .status-pill[data-state="blocked"]::before {
+      background: var(--red);
+      box-shadow: 0 0 16px var(--red);
+    }
+
+    .canvas-shell {
+      position: relative;
+      overflow: hidden;
+      width: min(100%, calc(100dvh - 136px));
+      max-width: 820px;
+      aspect-ratio: 1;
+      margin: 0 auto;
+      border-color: rgba(109, 255, 159, 0.22);
+      background:
+        linear-gradient(135deg, rgba(103, 232, 249, 0.06), transparent 45%),
+        linear-gradient(315deg, rgba(255, 79, 163, 0.052), transparent 42%),
+        #08100d;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      image-rendering: auto;
+    }
+
+    .side {
+      display: grid;
+      gap: 14px;
+      align-content: center;
+    }
+
+    .panel {
+      display: grid;
+      gap: 14px;
+      padding: 15px;
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 0;
+      color: var(--text);
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .panel-title span {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      font-weight: 650;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    .control {
+      display: grid;
+      gap: 8px;
+    }
+
+    .control-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--text-soft);
+      font-size: 0.88rem;
+    }
+
+    .value-box {
+      width: 74px;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(2, 5, 4, 0.34);
+      color: var(--text);
+      font-family: var(--mono);
+      text-align: center;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--green);
+    }
+
+    .button-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .button-grid button:first-child {
+      grid-column: 1 / -1;
+      border-color: rgba(109, 255, 159, 0.46);
+      background:
+        linear-gradient(180deg, rgba(109, 255, 159, 0.18), rgba(109, 255, 159, 0.05)),
+        var(--panel-strong);
+    }
+
+    .button-grid button:nth-child(3) {
+      border-color: rgba(103, 232, 249, 0.32);
+    }
+
+    .button-grid button:nth-child(5) {
+      grid-column: 1 / -1;
+      border-color: rgba(255, 209, 102, 0.34);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      min-width: 0;
+      padding: 10px;
+      border: 1px solid rgba(196, 224, 214, 0.1);
+      border-radius: var(--radius);
+      background: rgba(2, 5, 4, 0.24);
+    }
+
+    .metric b {
+      display: block;
+      overflow: hidden;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: clamp(1rem, 3.5vw, 1.24rem);
+      line-height: 1.15;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .legend {
+      display: grid;
+      gap: 9px;
+      color: var(--text-soft);
+      font-size: 0.82rem;
+    }
+
+    .legend-row {
+      display: grid;
+      grid-template-columns: 16px 1fr;
+      gap: 9px;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .swatch {
+      width: 16px;
+      height: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      border-radius: 4px;
+      background: var(--swatch);
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 900px) {
+      .app {
+        grid-template-columns: 1fr;
+        align-items: start;
+        padding: 12px;
+      }
+
+      .canvas-shell {
+        width: min(100%, calc(100dvh - 246px));
+      }
+
+      .side {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-content: start;
+      }
+    }
+
+    @media (max-width: 660px) {
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .status-pill {
+        max-width: 100%;
+        white-space: normal;
+      }
+
+      .canvas-shell {
+        width: 100%;
+      }
+
+      .side {
+        grid-template-columns: 1fr;
+      }
+
+      .button-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .button-grid button,
+      .button-grid button:first-child,
+      .button-grid button:nth-child(5) {
+        grid-column: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" aria-label="Maze generator and solver">
+    <section class="stage" aria-label="Maze canvas">
+      <header class="topbar">
+        <div class="brand">
+          <h1>Maze Forge</h1>
+          <p class="subtitle">Recursive backtracking build. A* solve trace.</p>
+        </div>
+        <div id="status" class="status-pill" data-state="working" role="status" aria-live="polite">Booting</div>
+      </header>
+
+      <div class="canvas-shell">
+        <canvas id="mazeCanvas" width="900" height="900" aria-label="Generated maze"></canvas>
+      </div>
+    </section>
+
+    <aside class="side" aria-label="Maze controls">
+      <section class="panel" aria-labelledby="controlsTitle">
+        <h2 id="controlsTitle" class="panel-title">Controls <span id="sizeReadout">20x20</span></h2>
+
+        <label class="control" for="sizeRange">
+          <span class="control-row">
+            <span>Grid size</span>
+            <input id="sizeNumber" class="value-box" type="number" min="10" max="50" step="1" value="20" aria-label="Grid size number">
+          </span>
+          <input id="sizeRange" type="range" min="10" max="50" step="1" value="20" aria-label="Grid size">
+        </label>
+
+        <label class="control" for="speedRange">
+          <span class="control-row">
+            <span>Animation speed</span>
+            <span id="speedReadout" class="value-box" aria-live="off">50</span>
+          </span>
+          <input id="speedRange" type="range" min="1" max="100" step="1" value="50" aria-label="Animation speed">
+        </label>
+
+        <div class="button-grid">
+          <button id="newButton" type="button" title="Generate a new maze (Space)">New Maze</button>
+          <button id="regenButton" type="button" title="Regenerate the maze (Space)">Regenerate</button>
+          <button id="solveButton" type="button" title="Solve the current maze (S)">Solve</button>
+          <button id="resetButton" type="button" title="Reset overlays (R)">Reset</button>
+          <button id="exportButton" type="button" title="Export the current canvas as PNG">Export PNG</button>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="statsTitle">
+        <h2 id="statsTitle" class="panel-title">Run Stats <span id="modeReadout">idle</span></h2>
+        <div class="stats">
+          <div class="metric"><b id="cellsMetric">400</b><span>cells</span></div>
+          <div class="metric"><b id="visitedMetric">0</b><span>visited</span></div>
+          <div class="metric"><b id="pathMetric">0</b><span>path</span></div>
+          <div class="metric"><b id="stepsMetric">0</b><span>steps</span></div>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="legendTitle">
+        <h2 id="legendTitle" class="panel-title">Legend <span>live</span></h2>
+        <div class="legend">
+          <div class="legend-row"><i class="swatch" style="--swatch: rgba(103, 232, 249, 0.28)"></i><span>Generator frontier</span></div>
+          <div class="legend-row"><i class="swatch" style="--swatch: rgba(255, 79, 163, 0.28)"></i><span>A* searched cells</span></div>
+          <div class="legend-row"><i class="swatch" style="--swatch: rgba(255, 209, 102, 0.34)"></i><span>A* open set</span></div>
+          <div class="legend-row"><i class="swatch" style="--swatch: rgba(109, 255, 159, 0.72)"></i><span>Shortest path</span></div>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <script>
+    const MazeCore = (() => {
+      const WALLS = {
+        north: 1,
+        east: 2,
+        south: 4,
+        west: 8
+      };
+
+      const ALL_WALLS = WALLS.north | WALLS.east | WALLS.south | WALLS.west;
+
+      const DIRECTIONS = [
+        { key: "north", dr: -1, dc: 0, bit: WALLS.north, opposite: WALLS.south },
+        { key: "east", dr: 0, dc: 1, bit: WALLS.east, opposite: WALLS.west },
+        { key: "south", dr: 1, dc: 0, bit: WALLS.south, opposite: WALLS.north },
+        { key: "west", dr: 0, dc: -1, bit: WALLS.west, opposite: WALLS.east }
+      ];
+
+      function clampGridSize(value) {
+        const parsed = Number.parseInt(value, 10);
+        if (Number.isNaN(parsed)) {
+          return 20;
+        }
+        return Math.min(50, Math.max(10, parsed));
+      }
+
+      function cellIndex(size, row, col) {
+        return row * size + col;
+      }
+
+      function createCells(size) {
+        return Array.from({ length: size * size }, (_, index) => ({
+          row: Math.floor(index / size),
+          col: index % size,
+          walls: ALL_WALLS
+        }));
+      }
+
+      function cloneCells(cells) {
+        return cells.map((cell) => ({
+          row: cell.row,
+          col: cell.col,
+          walls: cell.walls
+        }));
+      }
+
+      function getNeighbor(size, row, col, direction) {
+        const nextRow = row + direction.dr;
+        const nextCol = col + direction.dc;
+        if (nextRow < 0 || nextCol < 0 || nextRow >= size || nextCol >= size) {
+          return null;
+        }
+        return { row: nextRow, col: nextCol };
+      }
+
+      function shuffleDirections(random) {
+        const shuffled = DIRECTIONS.slice();
+        for (let i = shuffled.length - 1; i > 0; i -= 1) {
+          const j = Math.floor(random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
+      }
+
+      function generateMaze(rawSize, random = Math.random) {
+        const size = clampGridSize(rawSize);
+        const cells = createCells(size);
+        const seen = new Uint8Array(cells.length);
+        const steps = [];
+
+        function carveFrom(index) {
+          seen[index] = 1;
+          steps.push({ type: "visit", index });
+
+          const cell = cells[index];
+          for (const direction of shuffleDirections(random)) {
+            const neighbor = getNeighbor(size, cell.row, cell.col, direction);
+            if (!neighbor) {
+              continue;
+            }
+
+            const nextIndex = cellIndex(size, neighbor.row, neighbor.col);
+            if (seen[nextIndex]) {
+              continue;
+            }
+
+            cells[index].walls &= ~direction.bit;
+            cells[nextIndex].walls &= ~direction.opposite;
+            steps.push({
+              type: "carve",
+              from: index,
+              to: nextIndex,
+              bit: direction.bit,
+              opposite: direction.opposite
+            });
+
+            carveFrom(nextIndex);
+            steps.push({ type: "backtrack", index });
+          }
+        }
+
+        carveFrom(0);
+        cells[0].walls &= ~WALLS.north;
+        cells[cells.length - 1].walls &= ~WALLS.south;
+        steps.push({ type: "open", index: 0, bit: WALLS.north });
+        steps.push({ type: "open", index: cells.length - 1, bit: WALLS.south });
+
+        return {
+          size,
+          cells,
+          steps,
+          start: 0,
+          goal: cells.length - 1
+        };
+      }
+
+      function heuristic(size, index, goal) {
+        const row = Math.floor(index / size);
+        const col = index % size;
+        const goalRow = Math.floor(goal / size);
+        const goalCol = goal % size;
+        return Math.abs(row - goalRow) + Math.abs(col - goalCol);
+      }
+
+      function getReachableNeighbors(maze, index) {
+        const cell = maze.cells[index];
+        const neighbors = [];
+        for (const direction of DIRECTIONS) {
+          if (cell.walls & direction.bit) {
+            continue;
+          }
+          const neighbor = getNeighbor(maze.size, cell.row, cell.col, direction);
+          if (!neighbor) {
+            continue;
+          }
+          neighbors.push(cellIndex(maze.size, neighbor.row, neighbor.col));
+        }
+        return neighbors;
+      }
+
+      function reconstructPath(cameFrom, current) {
+        const path = [current];
+        while (cameFrom[current] !== -1) {
+          current = cameFrom[current];
+          path.push(current);
+        }
+        return path.reverse();
+      }
+
+      function solveMaze(maze, start = maze.start, goal = maze.goal) {
+        const total = maze.cells.length;
+        const cameFrom = new Int32Array(total);
+        const gScore = new Float64Array(total);
+        const fScore = new Float64Array(total);
+        cameFrom.fill(-1);
+        gScore.fill(Number.POSITIVE_INFINITY);
+        fScore.fill(Number.POSITIVE_INFINITY);
+
+        gScore[start] = 0;
+        fScore[start] = heuristic(maze.size, start, goal);
+
+        const open = [start];
+        const openSet = new Set([start]);
+        const closedSet = new Set();
+        const events = [{ type: "open", index: start }];
+
+        while (open.length) {
+          let bestPosition = 0;
+          for (let i = 1; i < open.length; i += 1) {
+            if (fScore[open[i]] < fScore[open[bestPosition]]) {
+              bestPosition = i;
+            }
+          }
+
+          const current = open.splice(bestPosition, 1)[0];
+          openSet.delete(current);
+          events.push({ type: "current", index: current });
+
+          if (current === goal) {
+            const path = reconstructPath(cameFrom, current);
+            events.push({ type: "path", path });
+            return {
+              path,
+              events,
+              searched: closedSet.size + 1
+            };
+          }
+
+          closedSet.add(current);
+          events.push({ type: "close", index: current });
+
+          for (const neighbor of getReachableNeighbors(maze, current)) {
+            if (closedSet.has(neighbor)) {
+              continue;
+            }
+
+            const tentativeScore = gScore[current] + 1;
+            if (tentativeScore >= gScore[neighbor]) {
+              continue;
+            }
+
+            cameFrom[neighbor] = current;
+            gScore[neighbor] = tentativeScore;
+            fScore[neighbor] = tentativeScore + heuristic(maze.size, neighbor, goal);
+
+            if (!openSet.has(neighbor)) {
+              openSet.add(neighbor);
+              open.push(neighbor);
+              events.push({ type: "open", index: neighbor, from: current });
+            }
+          }
+        }
+
+        return {
+          path: [],
+          events: [{ type: "failed" }],
+          searched: closedSet.size
+        };
+      }
+
+      return {
+        ALL_WALLS,
+        WALLS,
+        DIRECTIONS,
+        clampGridSize,
+        cellIndex,
+        cloneCells,
+        createCells,
+        generateMaze,
+        getNeighbor,
+        getReachableNeighbors,
+        solveMaze
+      };
+    })();
+
+    if (typeof globalThis !== "undefined") {
+      globalThis.MazeCore = MazeCore;
+    }
+
+    (() => {
+      const canvas = document.getElementById("mazeCanvas");
+      const ctx = canvas.getContext("2d");
+
+      const els = {
+        status: document.getElementById("status"),
+        sizeRange: document.getElementById("sizeRange"),
+        sizeNumber: document.getElementById("sizeNumber"),
+        speedRange: document.getElementById("speedRange"),
+        speedReadout: document.getElementById("speedReadout"),
+        sizeReadout: document.getElementById("sizeReadout"),
+        modeReadout: document.getElementById("modeReadout"),
+        cellsMetric: document.getElementById("cellsMetric"),
+        visitedMetric: document.getElementById("visitedMetric"),
+        pathMetric: document.getElementById("pathMetric"),
+        stepsMetric: document.getElementById("stepsMetric"),
+        newButton: document.getElementById("newButton"),
+        regenButton: document.getElementById("regenButton"),
+        solveButton: document.getElementById("solveButton"),
+        resetButton: document.getElementById("resetButton"),
+        exportButton: document.getElementById("exportButton")
+      };
+
+      const state = {
+        size: 20,
+        speed: 50,
+        maze: null,
+        displayCells: [],
+        mode: "idle",
+        generation: null,
+        solver: null,
+        activeIndex: -1,
+        buildVisited: new Set(),
+        closedSet: new Set(),
+        openSet: new Set(),
+        path: [],
+        rafId: 0,
+        dpr: 1,
+        canvasSize: 900
+      };
+
+      function setStatus(text, statusState = "ready") {
+        els.status.textContent = text;
+        els.status.dataset.state = statusState;
+      }
+
+      function updateReadouts() {
+        const totalCells = state.size * state.size;
+        const visitedCount = state.mode === "generating" ? state.buildVisited.size : state.closedSet.size;
+        const stepsDone = state.generation
+          ? state.generation.cursor
+          : state.solver
+            ? state.solver.cursor
+            : 0;
+
+        els.sizeReadout.textContent = `${state.size}x${state.size}`;
+        els.speedReadout.textContent = String(state.speed);
+        els.modeReadout.textContent = state.mode;
+        els.cellsMetric.textContent = String(totalCells);
+        els.visitedMetric.textContent = String(visitedCount);
+        els.pathMetric.textContent = state.path.length ? String(state.path.length) : "0";
+        els.stepsMetric.textContent = String(stepsDone);
+        els.solveButton.disabled = !state.maze;
+      }
+
+      function resizeCanvas() {
+        const bounds = canvas.getBoundingClientRect();
+        const side = Math.max(320, Math.floor(Math.min(bounds.width, bounds.height)));
+        const nextDpr = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
+        state.dpr = nextDpr;
+        state.canvasSize = side;
+        canvas.width = Math.round(side * nextDpr);
+        canvas.height = Math.round(side * nextDpr);
+        ctx.setTransform(nextDpr, 0, 0, nextDpr, 0, 0);
+        draw();
+      }
+
+      function makeBlankDisplay(size) {
+        return MazeCore.createCells(size);
+      }
+
+      function clearSolutionLayers() {
+        state.closedSet = new Set();
+        state.openSet = new Set();
+        state.path = [];
+        state.solver = null;
+      }
+
+      function stopAnimation() {
+        if (state.rafId) {
+          cancelAnimationFrame(state.rafId);
+          state.rafId = 0;
+        }
+      }
+
+      function applyGenerationStep(step) {
+        if (step.type === "visit") {
+          state.buildVisited.add(step.index);
+          state.activeIndex = step.index;
+          return;
+        }
+
+        if (step.type === "carve") {
+          state.displayCells[step.from].walls &= ~step.bit;
+          state.displayCells[step.to].walls &= ~step.opposite;
+          state.buildVisited.add(step.to);
+          state.activeIndex = step.to;
+          return;
+        }
+
+        if (step.type === "open") {
+          state.displayCells[step.index].walls &= ~step.bit;
+          state.activeIndex = step.index;
+          return;
+        }
+
+        if (step.type === "backtrack") {
+          state.activeIndex = step.index;
+        }
+      }
+
+      function completeGeneration() {
+        if (!state.generation) {
+          return;
+        }
+        while (state.generation.cursor < state.generation.steps.length) {
+          const step = state.generation.steps[state.generation.cursor];
+          applyGenerationStep(step);
+          state.generation.cursor += 1;
+        }
+        state.displayCells = MazeCore.cloneCells(state.maze.cells);
+        state.generation = null;
+        state.mode = "idle";
+        state.activeIndex = -1;
+      }
+
+      function startGenerate(label = "Generating") {
+        stopAnimation();
+        const size = MazeCore.clampGridSize(state.size);
+        state.size = size;
+        els.sizeRange.value = String(size);
+        els.sizeNumber.value = String(size);
+
+        state.maze = MazeCore.generateMaze(size);
+        state.displayCells = makeBlankDisplay(size);
+        state.mode = "generating";
+        state.generation = {
+          steps: state.maze.steps,
+          cursor: 0
+        };
+        state.activeIndex = 0;
+        state.buildVisited = new Set();
+        clearSolutionLayers();
+        setStatus(label, "working");
+        updateReadouts();
+        draw();
+        state.rafId = requestAnimationFrame(tickGeneration);
+      }
+
+      function batchSize(multiplier = 1) {
+        const normalized = state.speed / 100;
+        return Math.max(1, Math.round(1 + normalized * normalized * 180 * multiplier));
+      }
+
+      function tickGeneration() {
+        if (!state.generation) {
+          return;
+        }
+
+        const limit = batchSize(1.2);
+        let processed = 0;
+        while (processed < limit && state.generation.cursor < state.generation.steps.length) {
+          const step = state.generation.steps[state.generation.cursor];
+          applyGenerationStep(step);
+          state.generation.cursor += 1;
+          processed += 1;
+        }
+
+        if (state.generation.cursor >= state.generation.steps.length) {
+          state.displayCells = MazeCore.cloneCells(state.maze.cells);
+          state.generation = null;
+          state.mode = "idle";
+          state.activeIndex = -1;
+          setStatus("Maze ready", "ready");
+          stopAnimation();
+        } else {
+          state.rafId = requestAnimationFrame(tickGeneration);
+        }
+
+        updateReadouts();
+        draw();
+      }
+
+      function applySolverEvent(event) {
+        if (event.type === "open") {
+          state.openSet.add(event.index);
+          state.activeIndex = event.index;
+          return;
+        }
+
+        if (event.type === "current") {
+          state.activeIndex = event.index;
+          return;
+        }
+
+        if (event.type === "close") {
+          state.openSet.delete(event.index);
+          state.closedSet.add(event.index);
+          return;
+        }
+
+        if (event.type === "path") {
+          state.path = event.path.slice();
+          state.activeIndex = -1;
+        }
+      }
+
+      function startSolve() {
+        if (!state.maze) {
+          return;
+        }
+
+        stopAnimation();
+        if (state.generation) {
+          completeGeneration();
+        }
+
+        clearSolutionLayers();
+        const result = MazeCore.solveMaze(state.maze, state.maze.start, state.maze.goal);
+        state.solver = {
+          result,
+          steps: result.events,
+          cursor: 0
+        };
+        state.mode = "solving";
+        state.displayCells = MazeCore.cloneCells(state.maze.cells);
+        setStatus("Solving", "working");
+        updateReadouts();
+        draw();
+        state.rafId = requestAnimationFrame(tickSolver);
+      }
+
+      function tickSolver() {
+        if (!state.solver) {
+          return;
+        }
+
+        const limit = batchSize(0.75);
+        let processed = 0;
+        while (processed < limit && state.solver.cursor < state.solver.steps.length) {
+          const event = state.solver.steps[state.solver.cursor];
+          applySolverEvent(event);
+          state.solver.cursor += 1;
+          processed += 1;
+        }
+
+        if (state.solver.cursor >= state.solver.steps.length) {
+          const length = state.path.length;
+          state.mode = length ? "solved" : "blocked";
+          setStatus(length ? `Solved ${length} cells` : "No path", length ? "solved" : "blocked");
+          stopAnimation();
+        } else {
+          state.rafId = requestAnimationFrame(tickSolver);
+        }
+
+        updateReadouts();
+        draw();
+      }
+
+      function resetMaze() {
+        stopAnimation();
+        if (!state.maze) {
+          startGenerate("Generating");
+          return;
+        }
+        if (state.generation) {
+          completeGeneration();
+        }
+        state.displayCells = MazeCore.cloneCells(state.maze.cells);
+        clearSolutionLayers();
+        state.activeIndex = -1;
+        state.mode = "idle";
+        setStatus("Reset", "ready");
+        updateReadouts();
+        draw();
+      }
+
+      function getCellRect(index) {
+        const size = state.maze ? state.maze.size : state.size;
+        const padding = Math.max(12, state.canvasSize * 0.035);
+        const mazeSide = state.canvasSize - padding * 2;
+        const cellSize = mazeSide / size;
+        const row = Math.floor(index / size);
+        const col = index % size;
+        return {
+          x: padding + col * cellSize,
+          y: padding + row * cellSize,
+          size: cellSize,
+          padding,
+          mazeSide
+        };
+      }
+
+      function drawCellFill(index, color, insetRatio = 0.16) {
+        const rect = getCellRect(index);
+        const inset = Math.max(1, rect.size * insetRatio);
+        ctx.fillStyle = color;
+        ctx.fillRect(rect.x + inset, rect.y + inset, rect.size - inset * 2, rect.size - inset * 2);
+      }
+
+      function drawLine(x1, y1, x2, y2) {
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+      }
+
+      function draw() {
+        const side = state.canvasSize || canvas.clientWidth || 900;
+        ctx.clearRect(0, 0, side, side);
+        ctx.fillStyle = "#07100d";
+        ctx.fillRect(0, 0, side, side);
+
+        const size = state.maze ? state.maze.size : state.size;
+        const padding = Math.max(12, side * 0.035);
+        const mazeSide = side - padding * 2;
+        const cellSize = mazeSide / size;
+
+        ctx.save();
+        ctx.globalAlpha = 0.22;
+        ctx.strokeStyle = "rgba(196, 224, 214, 0.16)";
+        ctx.lineWidth = 1;
+        for (let i = 0; i <= size; i += 1) {
+          const pos = padding + i * cellSize;
+          drawLine(padding, pos, padding + mazeSide, pos);
+          drawLine(pos, padding, pos, padding + mazeSide);
+        }
+        ctx.restore();
+
+        if (!state.displayCells.length) {
+          return;
+        }
+
+        for (const index of state.buildVisited) {
+          drawCellFill(index, "rgba(103, 232, 249, 0.18)", 0.24);
+        }
+
+        for (const index of state.closedSet) {
+          drawCellFill(index, "rgba(255, 79, 163, 0.2)", 0.18);
+        }
+
+        for (const index of state.openSet) {
+          drawCellFill(index, "rgba(255, 209, 102, 0.24)", 0.2);
+        }
+
+        if (state.path.length) {
+          ctx.save();
+          ctx.strokeStyle = "rgba(109, 255, 159, 0.88)";
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          ctx.lineWidth = Math.max(2, cellSize * 0.28);
+          ctx.shadowColor = "rgba(109, 255, 159, 0.52)";
+          ctx.shadowBlur = Math.max(6, cellSize * 0.55);
+          ctx.beginPath();
+          state.path.forEach((index, pathIndex) => {
+            const rect = getCellRect(index);
+            const x = rect.x + rect.size / 2;
+            const y = rect.y + rect.size / 2;
+            if (pathIndex === 0) {
+              ctx.moveTo(x, y);
+            } else {
+              ctx.lineTo(x, y);
+            }
+          });
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        if (state.maze) {
+          drawCellFill(state.maze.start, "rgba(109, 255, 159, 0.34)", 0.28);
+          drawCellFill(state.maze.goal, "rgba(255, 93, 115, 0.34)", 0.28);
+        }
+
+        if (state.activeIndex >= 0) {
+          const rect = getCellRect(state.activeIndex);
+          ctx.save();
+          ctx.strokeStyle = "rgba(103, 232, 249, 0.9)";
+          ctx.lineWidth = Math.max(1.5, cellSize * 0.12);
+          ctx.shadowColor = "rgba(103, 232, 249, 0.52)";
+          ctx.shadowBlur = Math.max(6, cellSize * 0.4);
+          ctx.strokeRect(rect.x + 1, rect.y + 1, rect.size - 2, rect.size - 2);
+          ctx.restore();
+        }
+
+        ctx.save();
+        ctx.strokeStyle = "rgba(214, 255, 240, 0.92)";
+        ctx.lineWidth = Math.max(1.4, Math.min(4, cellSize * 0.13));
+        ctx.lineCap = "square";
+        ctx.shadowColor = "rgba(214, 255, 240, 0.28)";
+        ctx.shadowBlur = Math.max(0, Math.min(7, cellSize * 0.36));
+
+        for (const cell of state.displayCells) {
+          const x = padding + cell.col * cellSize;
+          const y = padding + cell.row * cellSize;
+          const x2 = x + cellSize;
+          const y2 = y + cellSize;
+
+          if (cell.walls & MazeCore.WALLS.north) {
+            drawLine(x, y, x2, y);
+          }
+          if (cell.walls & MazeCore.WALLS.east) {
+            drawLine(x2, y, x2, y2);
+          }
+          if (cell.walls & MazeCore.WALLS.south) {
+            drawLine(x2, y2, x, y2);
+          }
+          if (cell.walls & MazeCore.WALLS.west) {
+            drawLine(x, y2, x, y);
+          }
+        }
+        ctx.restore();
+      }
+
+      function exportPng() {
+        const link = document.createElement("a");
+        link.download = `maze-${state.size}x${state.size}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+        setStatus("PNG exported", "solved");
+      }
+
+      function syncSize(value) {
+        const nextSize = MazeCore.clampGridSize(value);
+        state.size = nextSize;
+        els.sizeRange.value = String(nextSize);
+        els.sizeNumber.value = String(nextSize);
+        updateReadouts();
+        setStatus("Size queued", "ready");
+      }
+
+      function bindEvents() {
+        els.sizeRange.addEventListener("input", () => syncSize(els.sizeRange.value));
+        els.sizeNumber.addEventListener("change", () => syncSize(els.sizeNumber.value));
+        els.speedRange.addEventListener("input", () => {
+          state.speed = Number.parseInt(els.speedRange.value, 10);
+          updateReadouts();
+        });
+
+        els.newButton.addEventListener("click", () => startGenerate("Generating"));
+        els.regenButton.addEventListener("click", () => startGenerate("Regenerating"));
+        els.solveButton.addEventListener("click", startSolve);
+        els.resetButton.addEventListener("click", resetMaze);
+        els.exportButton.addEventListener("click", exportPng);
+
+        window.addEventListener("keydown", (event) => {
+          const target = event.target;
+          const isTyping = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement;
+          if (isTyping) {
+            return;
+          }
+
+          if (event.code === "Space") {
+            event.preventDefault();
+            startGenerate("Generating");
+          } else if (event.key.toLowerCase() === "s") {
+            event.preventDefault();
+            startSolve();
+          } else if (event.key.toLowerCase() === "r") {
+            event.preventDefault();
+            resetMaze();
+          }
+        });
+
+        window.addEventListener("resize", resizeCanvas);
+      }
+
+      bindEvents();
+      resizeCanvas();
+      updateReadouts();
+      startGenerate("Generating");
+    })();
+  </script>
+</body>
+</html>
