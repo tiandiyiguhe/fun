@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Contrast Checker</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px}
+.container{display:flex;flex-direction:column;gap:20px;width:100%;max-width:480px;align-items:center}
+.title{font-size:24px;font-weight:700;color:#00ff88;letter-spacing:2px}
+.colors{display:flex;gap:0;width:100%;border-radius:12px;overflow:hidden;box-shadow:0 0 30px rgba(0,255,136,.1)}
+.color-block{flex:1;height:140px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;position:relative}
+.color-block .hex{font-family:'Courier New',monospace;font-size:14px;font-weight:600}
+.color-block input[type=color]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.pickers{display:flex;gap:16px;align-items:center}
+.picker-group{display:flex;flex-direction:column;align-items:center;gap:6px}
+.picker-group label{font-size:11px;color:#444;text-transform:uppercase;letter-spacing:2px}
+.picker-group input[type=color]{width:50px;height:50px;border:none;border-radius:12px;cursor:pointer;background:transparent;padding:0}
+.picker-group input[type=color]::-webkit-color-swatch{border-radius:10px;border:2px solid #1a1a2e}
+.result{text-align:center;width:100%}
+.ratio{font-size:36px;font-weight:700;font-family:'Courier New',monospace}
+.pass{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+.badge{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid}
+.badge.pass{background:#00ff8815;color:#00ff88;border-color:#00ff8844}
+.badge.fail{background:#ff336615;color:#ff3366;border-color:#ff336644}
+.badge.large{background:#3399ff15;color:#3399ff;border-color:#3399ff44}
+.sample{width:100%;padding:16px;border-radius:10px;text-align:center;font-size:14px;transition:all .2s}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="title">Contrast Checker</div>
+<div class="pickers">
+<div class="picker-group"><label>Foreground</label><input type="color" id="fg" value="#00ff88"></div>
+<div class="picker-group"><label>Background</label><input type="color" id="bg" value="#0a0a0f"></div>
+</div>
+<div class="colors">
+<div class="color-block" id="fg-preview"><input type="color" id="fg2" value="#00ff88"></div>
+<div class="color-block" id="bg-preview" style="background:#0a0a0f"><span class="hex" id="sample-text" style="color:#00ff88">Aa</span><input type="color" id="bg2" value="#0a0a0f"></div>
+</div>
+<div class="result">
+<div class="ratio" id="ratio">7.08</div>
+<div class="pass" id="badges">
+<span class="badge pass" id="aa-norm">AA Normal ✓</span>
+<span class="badge pass" id="aa-large">AA Large ✓</span>
+<span class="badge pass" id="aaa-norm">AAA Normal ✓</span>
+<span class="badge pass" id="aaa-large">AAA Large ✓</span>
+</div>
+</div>
+<div class="sample" id="sample">
+The quick brown fox jumps over the lazy dog.<br>
+<span style="font-size:24px;font-weight:700">Large Heading Text</span><br>
+<span style="font-size:11px">Small footnote text at the edge of readability</span>
+</div>
+</div>
+<script>
+const fgPicker = document.getElementById('fg'), bgPicker = document.getElementById('bg'), fg2 = document.getElementById('fg2'), bg2 = document.getElementById('bg2'),
+fgPreview = document.getElementById('fg-preview'), bgPreview = document.getElementById('bg-preview'),
+sampleText = document.getElementById('sample-text'), sample = document.getElementById('sample'),
+ratioEl = document.getElementById('ratio');
+
+function hexToRgb(hex) { const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex); return r ? [parseInt(r[1],16), parseInt(r[2],16), parseInt(r[3],16)] : [0,0,0]; }
+function luminance(rgb) { const [r,g,b] = rgb.map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; }
+function contrast(hex1, hex2) { const l1 = luminance(hexToRgb(hex1)), l2 = luminance(hexToRgb(hex2)); const lighter = Math.max(l1, l2), darker = Math.min(l1, l2); return (lighter + 0.05) / (darker + 0.05); }
+
+function update() {
+const fg = fgPicker.value, bg = bgPicker.value;
+fg2.value = fg; bg2.value = bg;
+fgPreview.style.background = fg; bgPreview.style.background = bg;
+sampleText.style.color = fg; sample.style.background = bg; sample.style.color = fg;
+const ratio = contrast(fg, bg);
+ratioEl.textContent = ratio.toFixed(2);
+ratioEl.style.color = ratio >= 7 ? '#00ff88' : ratio >= 4.5 ? '#ffaa00' : '#ff3366';
+
+const aaNorm = ratio >= 4.5, aaLarge = ratio >= 3, aaaNorm = ratio >= 7, aaaLarge = ratio >= 4.5;
+document.getElementById('aa-norm').className = 'badge ' + (aaNorm ? 'pass' : 'fail');
+document.getElementById('aa-large').className = 'badge ' + (aaLarge ? 'pass' : 'fail');
+document.getElementById('aaa-norm').className = 'badge ' + (aaaNorm ? 'pass' : 'fail');
+document.getElementById('aaa-large').className = 'badge ' + (aaaLarge ? 'pass' : 'fail');
+document.getElementById('aa-norm').textContent = aaNorm ? 'AA Normal ✓' : 'AA Normal ✗';
+document.getElementById('aa-large').textContent = aaLarge ? 'AA Large ✓' : 'AA Large ✗';
+document.getElementById('aaa-norm').textContent = aaaNorm ? 'AAA Normal ✓' : 'AAA Normal ✗';
+document.getElementById('aaa-large').textContent = aaaLarge ? 'AAA Large ✓' : 'AAA Large ✗';
+}
+
+[fgPicker, bgPicker, fg2, bg2].forEach(el => el.addEventListener('input', update));
+window.addEventListener('load', update);
+</script>
+</body>
+</html>

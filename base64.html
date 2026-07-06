@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Base64 Tool</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px}
+.container{display:flex;flex-direction:column;gap:16px;width:100%;max-width:520px;align-items:center}
+.title{font-size:24px;font-weight:700;color:#00ff88;letter-spacing:2px}
+textarea{width:100%;height:100px;background:#0d0d14;border:1px solid #1a1a2e;color:#ccc;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:13px;resize:none;outline:none;line-height:1.5}
+textarea:focus{border-color:#00ff8844}
+.controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.btn{background:#12121a;border:1px solid #1a1a2e;color:#888;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;transition:all .15s;font-family:inherit}
+.btn:hover{background:#1a1a2e;color:#ccc}
+.btn.primary{background:#00ff88;color:#0a0a0f;border-color:#00ff88;font-weight:600}
+.btn.primary:hover{background:#00cc6a}
+.file-area{border:2px dashed #1a1a2e;border-radius:10px;padding:20px;text-align:center;color:#666;cursor:pointer;transition:all .15s;font-size:13px;width:100%}
+.file-area:hover{border-color:#00ff8844;color:#888}
+.file-area.drag{border-color:#00ff88;background:#00ff8808}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="title">Base64 Tool</div>
+<div class="file-area" id="drop">Drop file here or click to encode</div>
+<input type="file" id="file-input" hidden>
+<textarea id="input" placeholder="Enter text or Base64 string..."></textarea>
+<div class="controls">
+<button class="btn primary" id="btn-encode">Encode → Base64</button>
+<button class="btn" id="btn-decode">Decode ← Text</button>
+<button class="btn" id="btn-copy">Copy Output</button>
+<button class="btn" id="btn-swap">⇅ Swap</button>
+</div>
+<textarea id="output" placeholder="Result..." readonly></textarea>
+</div>
+<script>
+const input = document.getElementById('input'), output = document.getElementById('output'),
+drop = document.getElementById('drop'), fileInput = document.getElementById('file-input');
+
+function isBase64(str) { return /^[A-Za-z0-9+/]*={0,2}$/.test(str.trim()) && str.trim().length > 0 && str.trim().length % 4 === 0; }
+
+document.getElementById('btn-encode').addEventListener('click', () => { try { output.value = btoa(unescape(encodeURIComponent(input.value))); } catch(e) { output.value = 'Encode error: ' + e.message; } });
+document.getElementById('btn-decode').addEventListener('click', () => { try { output.value = decodeURIComponent(escape(atob(input.value.trim()))); } catch(e) { output.value = 'Decode error (not valid Base64?)'; } });
+document.getElementById('btn-copy').addEventListener('click', () => navigator.clipboard.writeText(output.value));
+document.getElementById('btn-swap').addEventListener('click', () => { const t = input.value; input.value = output.value; output.value = t; });
+input.addEventListener('input', () => { try { output.value = btoa(unescape(encodeURIComponent(input.value))); } catch(e){} });
+
+drop.addEventListener('click', () => fileInput.click());
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('drag'));
+drop.addEventListener('drop', e => {
+e.preventDefault(); drop.classList.remove('drag');
+const file = e.dataTransfer.files[0]; if (!file) return;
+const r = new FileReader();
+r.onload = () => { input.value = r.result; output.value = btoa(r.result); };
+if (file.type.startsWith('text/')) r.readAsText(file);
+else r.readAsDataURL(file);
+});
+
+fileInput.addEventListener('change', () => {
+const file = fileInput.files[0]; if (!file) return;
+const r = new FileReader();
+r.onload = () => { input.value = r.result; output.value = btoa(r.result); };
+if (file.type.startsWith('text/')) r.readAsText(file);
+else r.readAsDataURL(file);
+});
+</script>
+</body>
+</html>
