@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Color Picker</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px}
+.container{display:flex;flex-direction:column;gap:16px;width:100%;max-width:460px;align-items:center}
+.title{font-size:24px;font-weight:700;color:#00ff88;letter-spacing:2px}
+.picker-area{display:flex;flex-direction:column;align-items:center;gap:12px}
+.canvas-wrap{position:relative;width:280px;height:280px;border-radius:14px;overflow:hidden;cursor:crosshair;box-shadow:0 0 30px rgba(0,255,136,.1)}
+.canvas-wrap canvas{display:block}
+.canvas-wrap .cursor{position:absolute;width:14px;height:14px;border:2px solid #fff;border-radius:50%;pointer-events:none;transform:translate(-50%,-50%);box-shadow:0 0 6px rgba(0,0,0,.5)}
+.hue-slider{width:280px;display:flex;flex-direction:column;gap:4px}
+.hue-slider input[type=range]{-webkit-appearance:none;width:100%;height:12px;border-radius:6px;outline:none;background:linear-gradient(to right,red,yellow,lime,cyan,blue,magenta,red)}
+.hue-slider input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#fff;border:2px solid #333;cursor:pointer}
+.preview{width:80px;height:80px;border-radius:12px;border:2px solid #1a1a2e;box-shadow:0 0 20px rgba(0,255,136,.1)}
+.values{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}
+.val-group{display:flex;flex-direction:column;align-items:center;gap:4px}
+.val-group label{font-size:10px;color:#444;text-transform:uppercase;letter-spacing:2px}
+.val-group input{background:#0d0d14;border:1px solid #1a1a2e;color:#ccc;padding:8px;border-radius:6px;font-family:'Courier New',monospace;font-size:14px;text-align:center;width:100%;outline:none}
+.val-group input:focus{border-color:#00ff8844}
+.color-list{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.color-dot{width:28px;height:28px;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:all .15s}
+.color-dot:hover{border-color:#fff6;transform:scale(1.15)}
+.color-dot.active{border-color:#fff;box-shadow:0 0 10px currentColor}
+.btn-row{display:flex;gap:8px}
+.btn{background:#12121a;border:1px solid #1a1a2e;color:#888;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:12px;transition:all .15s;font-family:inherit}
+.btn:hover{background:#1a1a2e;color:#ccc}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="title">Color Picker</div>
+<div class="picker-area">
+<div class="preview" id="preview"></div>
+<div class="canvas-wrap" id="canvas-wrap">
+<canvas id="sat-val" width="280" height="280"></canvas>
+<div class="cursor" id="cursor"></div>
+</div>
+<div class="hue-slider"><input type="range" id="hue" min="0" max="360" value="150"></div>
+</div>
+<div class="values">
+<div class="val-group"><label>HEX</label><input id="hex" value="#00ff88"></div>
+<div class="val-group"><label>RGB</label><input id="rgb" value="0, 255, 136"></div>
+<div class="val-group"><label>HSL</label><input id="hsl" value="150, 100, 50"></div>
+</div>
+<div class="color-list" id="saved"></div>
+<div class="btn-row">
+<button class="btn" id="btn-save">Save Color</button>
+<button class="btn" id="btn-copy">Copy HEX</button>
+</div>
+</div>
+<script>
+const STORAGE_KEY = 'color-picker-saved';
+let hue = 150, sat = 100, val = 100, saved = [];
+
+const canvas = document.getElementById('sat-val'), ctx = canvas.getContext('2d'),
+wrap = document.getElementById('canvas-wrap'), cursor = document.getElementById('cursor'),
+hueSlider = document.getElementById('hue'), preview = document.getElementById('preview'),
+hexEl = document.getElementById('hex'), rgbEl = document.getElementById('rgb'), hslEl = document.getElementById('hsl');
+
+function drawSatVal() {
+const w = 280, h = 280;
+const imageData = ctx.createImageData(w, h);
+for (let y = 0; y < h; y++) {
+for (let x = 0; x < w; x++) {
+const s = x / w, v = 1 - y / h;
+const [r, g, b] = hsvToRgb(hue, s, v);
+const idx = (y * w + x) * 4;
+imageData.data[idx] = r; imageData.data[idx+1] = g; imageData.data[idx+2] = b; imageData.data[idx+3] = 255;
+}
+}
+ctx.putImageData(imageData, 0, 0);
+}
+
+function hsvToRgb(h, s, v) {
+h /= 360;
+let r, g, b;
+const i = Math.floor(h * 6), f = h * 6 - i, p = v * (1 - s), q = v * (1 - f * s), t = v * (1 - (1 - f) * s);
+switch (i % 6) {
+case 0: r = v; g = t; b = p; break;
+case 1: r = q; g = v; b = p; break;
+case 2: r = p; g = v; b = t; break;
+case 3: r = p; g = q; b = v; break;
+case 4: r = t; g = p; b = v; break;
+case 5: r = v; g = p; b = q; break;
+}
+return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+}
+
+function rgbToHex(r, g, b) { return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join(''); }
+function rgbToHsl(r, g, b) {
+r /= 255; g /= 255; b /= 255;
+const max = Math.max(r, g, b), min = Math.min(r, g, b);
+let h, s, l = (max + min) / 2;
+if (max === min) h = s = 0;
+else {
+const d = max - min; s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+switch (max) {
+case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+case g: h = ((b - r) / d + 2) / 6; break;
+case b: h = ((r - g) / d + 4) / 6; break;
+}
+}
+return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
+}
+
+function updateFromSV(s, v) {
+sat = s; val = v;
+const [r, g, b] = hsvToRgb(hue, sat / 100, val / 100);
+updateDisplay(r, g, b);
+cursor.style.left = (sat / 100 * 280) + 'px';
+cursor.style.top = ((1 - val / 100) * 280) + 'px';
+}
+
+function updateDisplay(r, g, b) {
+const hex = rgbToHex(r, g, b);
+const [h, s, l] = rgbToHsl(r, g, b);
+preview.style.background = hex;
+hexEl.value = hex;
+rgbEl.value = r + ', ' + g + ', ' + b;
+hslEl.value = h + ', ' + s + ', ' + l;
+}
+
+function updateFromHue(h) {
+hue = h;
+drawSatVal();
+const [r, g, b] = hsvToRgb(hue, sat / 100, val / 100);
+updateDisplay(r, g, b);
+}
+
+wrap.addEventListener('pointerdown', e => {
+const rect = canvas.getBoundingClientRect();
+const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+updateFromSV(Math.round(x * 100), Math.round((1 - y) * 100));
+const onMove = ev => {
+const rx = Math.max(0, Math.min(1, (ev.clientX - rect.left) / rect.width));
+const ry = Math.max(0, Math.min(1, (ev.clientY - rect.top) / rect.height));
+updateFromSV(Math.round(rx * 100), Math.round((1 - ry) * 100));
+};
+const onUp = () => { document.removeEventListener('pointermove', onMove); document.removeEventListener('pointerup', onUp); };
+document.addEventListener('pointermove', onMove); document.addEventListener('pointerup', onUp);
+});
+
+hueSlider.addEventListener('input', e => updateFromHue(parseInt(e.target.value)));
+hexEl.addEventListener('change', () => {
+const m = /^#?([a-f\d]{6})$/i.exec(hexEl.value);
+if (!m) return;
+const hex = m[1]; const r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16), b = parseInt(hex.slice(4,6),16);
+const [h, s, l] = rgbToHsl(r, g, b);
+hue = h; sat = s; val = l > 50 ? Math.round(l * 2 - s * l / 100) : Math.round((l * (100 + s)) / 100) || 50;
+drawSatVal(); updateDisplay(r, g, b); hueSlider.value = hue;
+cursor.style.left = (sat / 100 * 280) + 'px'; cursor.style.top = ((1 - val / 100) * 280) + 'px';
+});
+
+function saveColor() {
+const hex = hexEl.value;
+if (!saved.includes(hex)) { saved.unshift(hex); if (saved.length > 20) saved.pop(); }
+renderSaved();
+}
+function renderSaved() {
+document.getElementById('saved').innerHTML = saved.map(h => `<div class="color-dot${h === hexEl.value ? ' active' : ''}" style="background:${h}" onclick="pickSaved('${h}')"></div>`).join('');
+try { localStorage.setItem(STORAGE_KEY, JSON.stringify(saved)); } catch(e){}
+}
+function pickSaved(hex) {
+hexEl.value = hex; hexEl.dispatchEvent(new Event('change'));
+}
+
+document.getElementById('btn-save').addEventListener('click', saveColor);
+document.getElementById('btn-copy').addEventListener('click', () => navigator.clipboard.writeText(hexEl.value));
+
+window.addEventListener('load', () => {
+try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch(e){ saved = []; }
+drawSatVal(); updateDisplay(...hsvToRgb(hue, 1, 1));
+cursor.style.left = '280px'; cursor.style.top = '0px';
+renderSaved();
+});
+</script>
+</body>
+</html>
