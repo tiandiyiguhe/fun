@@ -1,0 +1,1182 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Neon Snake</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07090d;
+      --bg-2: #0b1017;
+      --panel: rgba(15, 20, 29, 0.88);
+      --panel-strong: rgba(18, 25, 36, 0.96);
+      --line: rgba(209, 230, 255, 0.16);
+      --line-hot: rgba(61, 255, 216, 0.52);
+      --text: #eef7fb;
+      --text-soft: #a8b7c7;
+      --muted: #6f7e8d;
+      --cyan: #3dffd8;
+      --green: #9dff5f;
+      --pink: #ff4fc3;
+      --amber: #ffd166;
+      --red: #ff536b;
+      --blue: #5ca7ff;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.44);
+      --radius: 8px;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      letter-spacing: 0;
+    }
+
+    body {
+      min-height: 100dvh;
+      overflow-x: hidden;
+      background:
+        radial-gradient(circle at 12% 10%, rgba(61, 255, 216, 0.13), transparent 28%),
+        radial-gradient(circle at 88% 18%, rgba(255, 79, 195, 0.1), transparent 24%),
+        linear-gradient(135deg, #07090d 0%, #0c1118 50%, #080b11 100%);
+    }
+
+    body::before {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      content: "";
+      pointer-events: none;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.034) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.026) 1px, transparent 1px);
+      background-size: 36px 36px;
+      mask-image: linear-gradient(to bottom, black, transparent 88%);
+    }
+
+    body::after {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      content: "";
+      pointer-events: none;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 30%),
+        linear-gradient(90deg, rgba(61, 255, 216, 0.04), transparent 30%, transparent 70%, rgba(255, 79, 195, 0.045));
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      color: inherit;
+      cursor: pointer;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 18px;
+      width: min(1180px, 100%);
+      min-height: 100dvh;
+      margin: 0 auto;
+      padding: 18px;
+      align-items: center;
+    }
+
+    .stage {
+      display: grid;
+      min-width: 0;
+      gap: 14px;
+    }
+
+    .topbar,
+    .panel,
+    .mobile-strip {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.058), rgba(255, 255, 255, 0.014)),
+        var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px) saturate(1.18);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      min-height: 78px;
+      padding: 14px 16px;
+    }
+
+    .brand {
+      min-width: 0;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.35rem, 3vw, 2.4rem);
+      line-height: 1;
+      font-weight: 850;
+    }
+
+    .subtitle {
+      margin: 7px 0 0;
+      color: var(--text-soft);
+      font-size: 0.88rem;
+    }
+
+    .status-pill {
+      display: inline-grid;
+      grid-template-columns: 9px auto;
+      align-items: center;
+      gap: 8px;
+      min-height: 34px;
+      padding: 0 12px;
+      border: 1px solid rgba(61, 255, 216, 0.3);
+      border-radius: 999px;
+      background: rgba(61, 255, 216, 0.08);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+
+    .status-pill::before {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 16px var(--cyan);
+      content: "";
+    }
+
+    .status-pill[data-state="paused"] {
+      border-color: rgba(255, 209, 102, 0.36);
+      background: rgba(255, 209, 102, 0.09);
+    }
+
+    .status-pill[data-state="paused"]::before {
+      background: var(--amber);
+      box-shadow: 0 0 16px var(--amber);
+    }
+
+    .status-pill[data-state="gameOver"] {
+      border-color: rgba(255, 83, 107, 0.38);
+      background: rgba(255, 83, 107, 0.09);
+    }
+
+    .status-pill[data-state="gameOver"]::before {
+      background: var(--red);
+      box-shadow: 0 0 16px var(--red);
+    }
+
+    .canvas-shell {
+      position: relative;
+      overflow: hidden;
+      width: min(100%, calc(100dvh - 132px));
+      max-width: 800px;
+      aspect-ratio: 1;
+      margin: 0 auto;
+      border: 1px solid rgba(61, 255, 216, 0.26);
+      border-radius: var(--radius);
+      background:
+        radial-gradient(circle at 50% 50%, rgba(61, 255, 216, 0.11), transparent 58%),
+        linear-gradient(145deg, #091019, #0d1018);
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.035),
+        0 0 42px rgba(61, 255, 216, 0.1),
+        var(--shadow);
+      touch-action: none;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      image-rendering: auto;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 180ms ease;
+    }
+
+    .overlay.visible {
+      opacity: 1;
+    }
+
+    .overlay-card {
+      width: min(360px, 100%);
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: var(--radius);
+      background: rgba(8, 12, 18, 0.82);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.46), 0 0 34px rgba(61, 255, 216, 0.12);
+      backdrop-filter: blur(14px);
+      text-align: center;
+    }
+
+    .overlay-title {
+      margin: 0;
+      font-size: 1.35rem;
+      line-height: 1.1;
+      font-weight: 850;
+    }
+
+    .overlay-text {
+      margin: 10px 0 0;
+      color: var(--text-soft);
+      font-size: 0.93rem;
+      line-height: 1.45;
+    }
+
+    .sidebar {
+      display: grid;
+      align-content: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .panel {
+      padding: 14px;
+    }
+
+    .score-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .metric {
+      display: grid;
+      gap: 5px;
+      min-height: 82px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 750;
+      text-transform: uppercase;
+    }
+
+    .metric-value {
+      align-self: end;
+      color: var(--cyan);
+      font-family: var(--mono);
+      font-size: 1.55rem;
+      font-weight: 850;
+      line-height: 1;
+    }
+
+    .metric-value.accent {
+      color: var(--green);
+    }
+
+    .controls {
+      display: grid;
+      gap: 10px;
+    }
+
+    .button-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .primary-btn,
+    .ghost-btn {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      transition: transform 140ms ease, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    }
+
+    .primary-btn {
+      color: #051011;
+      font-weight: 850;
+      background: linear-gradient(135deg, var(--cyan), var(--green));
+      border-color: rgba(61, 255, 216, 0.72);
+      box-shadow: 0 0 24px rgba(61, 255, 216, 0.16);
+    }
+
+    .ghost-btn {
+      background: rgba(255, 255, 255, 0.045);
+      color: var(--text);
+    }
+
+    .primary-btn:hover,
+    .ghost-btn:hover,
+    .primary-btn:focus-visible,
+    .ghost-btn:focus-visible {
+      border-color: var(--line-hot);
+      box-shadow: 0 0 0 3px rgba(61, 255, 216, 0.09), 0 0 24px rgba(61, 255, 216, 0.1);
+      outline: none;
+      transform: translateY(-1px);
+    }
+
+    .primary-btn:active,
+    .ghost-btn:active {
+      transform: translateY(0);
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 48px;
+      padding: 0 2px;
+      color: var(--text-soft);
+      font-size: 0.92rem;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-flex;
+      width: 54px;
+      height: 30px;
+      flex: 0 0 auto;
+    }
+
+    .switch input {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .track {
+      position: absolute;
+      inset: 0;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.055);
+      pointer-events: none;
+      transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+    }
+
+    .track::before {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--text-soft);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+      content: "";
+      transition: transform 160ms ease, background 160ms ease;
+    }
+
+    .switch input:checked + .track {
+      border-color: rgba(61, 255, 216, 0.72);
+      background: rgba(61, 255, 216, 0.14);
+      box-shadow: 0 0 18px rgba(61, 255, 216, 0.1);
+    }
+
+    .switch input:checked + .track::before {
+      transform: translateX(24px);
+      background: var(--cyan);
+    }
+
+    .switch input:focus-visible + .track {
+      outline: 2px solid rgba(61, 255, 216, 0.55);
+      outline-offset: 3px;
+    }
+
+    .help {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      color: var(--text-soft);
+      font-size: 0.86rem;
+      line-height: 1.35;
+    }
+
+    .help kbd {
+      display: inline-grid;
+      min-width: 26px;
+      min-height: 24px;
+      place-items: center;
+      margin-right: 5px;
+      padding: 0 6px;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.055);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      font-weight: 800;
+    }
+
+    .mobile-strip {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      color: var(--text-soft);
+      font-size: 0.82rem;
+    }
+
+    .pulse {
+      animation: pulse 260ms ease;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+      }
+
+      45% {
+        transform: scale(1.045);
+        filter: drop-shadow(0 0 16px rgba(61, 255, 216, 0.38));
+      }
+
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    @media (max-width: 880px) {
+      .app {
+        grid-template-columns: 1fr;
+        align-items: start;
+        padding: 12px;
+      }
+
+      .canvas-shell {
+        width: min(100%, calc(100dvh - 285px));
+        min-width: 280px;
+      }
+
+      .sidebar {
+        grid-template-columns: 1fr;
+        align-content: start;
+      }
+
+      .help-panel {
+        display: none;
+      }
+
+      .mobile-strip {
+        display: flex;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .status-pill {
+        align-self: stretch;
+        justify-content: center;
+      }
+
+      .canvas-shell {
+        width: min(100%, calc(100dvh - 320px));
+      }
+
+      .score-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+
+      .metric {
+        min-height: 66px;
+        padding: 9px;
+      }
+
+      .metric-label {
+        font-size: 0.64rem;
+      }
+
+      .metric-value {
+        font-size: 1.05rem;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .app {
+        padding: 9px;
+      }
+
+      .score-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .canvas-shell {
+        min-width: 0;
+        width: 100%;
+      }
+
+      .button-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="stage" aria-label="Snake game">
+      <header class="topbar">
+        <div class="brand">
+          <h1>Neon Snake</h1>
+          <p class="subtitle">Eat, grow, and ride the grid.</p>
+        </div>
+        <div class="status-pill" id="statusPill" data-state="running" aria-live="polite">RUNNING</div>
+      </header>
+
+      <div class="canvas-shell" id="canvasShell">
+        <canvas id="gameCanvas" aria-label="Snake game canvas" role="img"></canvas>
+        <div class="overlay" id="overlay" aria-hidden="true">
+          <div class="overlay-card">
+            <h2 class="overlay-title" id="overlayTitle">Paused</h2>
+            <p class="overlay-text" id="overlayText">Press Space to resume.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="mobile-strip">
+        <span>Swipe anywhere on the board</span>
+        <span>Space pauses</span>
+      </div>
+    </section>
+
+    <aside class="sidebar" aria-label="Game controls and score">
+      <section class="panel score-grid" aria-label="Scoreboard">
+        <div class="metric">
+          <span class="metric-label">Score</span>
+          <span class="metric-value" id="scoreValue">0</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">High</span>
+          <span class="metric-value accent" id="highScoreValue">0</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Speed</span>
+          <span class="metric-value" id="speedValue">7.5</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Length</span>
+          <span class="metric-value" id="lengthValue">4</span>
+        </div>
+      </section>
+
+      <section class="panel controls" aria-label="Controls">
+        <div class="button-row">
+          <button class="primary-btn" id="restartButton" type="button">Restart</button>
+          <button class="ghost-btn" id="pauseButton" type="button">Pause</button>
+        </div>
+        <label class="toggle-row" for="wallWrap">
+          <span>Wall wrapping</span>
+          <span class="switch">
+            <input id="wallWrap" type="checkbox" checked>
+            <span class="track" aria-hidden="true"></span>
+          </span>
+        </label>
+      </section>
+
+      <section class="panel help-panel" aria-label="Keyboard controls">
+        <ul class="help">
+          <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrow keys steer.</li>
+          <li><kbd>Space</kbd> pauses and resumes the run.</li>
+          <li><kbd>R</kbd> or <kbd>Enter</kbd> restarts after game over.</li>
+          <li>Speed increases every 5 points.</li>
+        </ul>
+      </section>
+    </aside>
+  </main>
+
+  <script>
+    (() => {
+      'use strict';
+
+      /* CORE_LOGIC_START */
+      const DIRECTIONS = Object.freeze({
+        UP: Object.freeze({ x: 0, y: -1, name: 'UP' }),
+        DOWN: Object.freeze({ x: 0, y: 1, name: 'DOWN' }),
+        LEFT: Object.freeze({ x: -1, y: 0, name: 'LEFT' }),
+        RIGHT: Object.freeze({ x: 1, y: 0, name: 'RIGHT' })
+      });
+
+      const SnakeCore = Object.freeze({
+        DIRECTIONS,
+        positionsEqual(a, b) {
+          return a.x === b.x && a.y === b.y;
+        },
+        isOpposite(a, b) {
+          return a.x + b.x === 0 && a.y + b.y === 0;
+        },
+        nextHead(head, direction) {
+          return { x: head.x + direction.x, y: head.y + direction.y };
+        },
+        wrapPoint(point, columns, rows) {
+          return {
+            x: (point.x + columns) % columns,
+            y: (point.y + rows) % rows
+          };
+        },
+        isOutOfBounds(point, columns, rows) {
+          return point.x < 0 || point.y < 0 || point.x >= columns || point.y >= rows;
+        },
+        speedForScore(score) {
+          return Math.min(16, 7.5 + Math.floor(score / 5) * 1.1);
+        }
+      });
+      /* CORE_LOGIC_END */
+
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      const shell = document.getElementById('canvasShell');
+      const overlay = document.getElementById('overlay');
+      const overlayTitle = document.getElementById('overlayTitle');
+      const overlayText = document.getElementById('overlayText');
+      const statusPill = document.getElementById('statusPill');
+      const scoreValue = document.getElementById('scoreValue');
+      const highScoreValue = document.getElementById('highScoreValue');
+      const speedValue = document.getElementById('speedValue');
+      const lengthValue = document.getElementById('lengthValue');
+      const restartButton = document.getElementById('restartButton');
+      const pauseButton = document.getElementById('pauseButton');
+      const wallWrap = document.getElementById('wallWrap');
+
+      const GRID = Object.freeze({ columns: 28, rows: 28 });
+      const STORAGE_KEY = 'neonSnakeHighScore';
+      const FOOD_POINTS = 1;
+      const START_LENGTH = 4;
+      const PARTICLE_COUNT = 22;
+      const randomBetween = (min, max) => min + Math.random() * (max - min);
+
+      let state = createInitialState();
+      let highScore = readHighScore();
+      let accumulator = 0;
+      let lastTime = performance.now();
+      let cellSize = 1;
+      let boardSize = 1;
+      let touchStart = null;
+
+      highScoreValue.textContent = String(highScore);
+
+      function createInitialState() {
+        const center = {
+          x: Math.floor(GRID.columns / 2),
+          y: Math.floor(GRID.rows / 2)
+        };
+        const snake = Array.from({ length: START_LENGTH }, (_, index) => ({
+          x: center.x - index,
+          y: center.y
+        }));
+
+        return {
+          snake,
+          previousSnake: snake.map((part) => ({ ...part })),
+          direction: SnakeCore.DIRECTIONS.RIGHT,
+          nextDirection: SnakeCore.DIRECTIONS.RIGHT,
+          food: { x: center.x + 6, y: center.y },
+          score: 0,
+          particles: [],
+          status: 'running',
+          flash: 0
+        };
+      }
+
+      function readHighScore() {
+        try {
+          const value = Number(localStorage.getItem(STORAGE_KEY));
+          return Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
+        } catch (error) {
+          return 0;
+        }
+      }
+
+      function writeHighScore(value) {
+        try {
+          localStorage.setItem(STORAGE_KEY, String(value));
+        } catch (error) {
+          // Storage may be unavailable in private contexts; the in-memory score still works.
+        }
+      }
+
+      function resizeCanvas() {
+        const rect = shell.getBoundingClientRect();
+        const size = Math.max(280, Math.floor(Math.min(rect.width, rect.height)));
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.floor(size * dpr);
+        canvas.height = Math.floor(size * dpr);
+        canvas.style.width = `${size}px`;
+        canvas.style.height = `${size}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        boardSize = size;
+        cellSize = boardSize / GRID.columns;
+      }
+
+      function restartGame() {
+        state = createInitialState();
+        state.food = spawnFood();
+        accumulator = 0;
+        lastTime = performance.now();
+        updateHud();
+      }
+
+      function togglePause() {
+        if (state.status === 'gameOver') {
+          restartGame();
+          return;
+        }
+        state.status = state.status === 'paused' ? 'running' : 'paused';
+        lastTime = performance.now();
+        updateHud();
+      }
+
+      function setDirection(direction) {
+        if (state.status === 'gameOver') {
+          return;
+        }
+        if (!SnakeCore.isOpposite(direction, state.direction)) {
+          state.nextDirection = direction;
+        }
+      }
+
+      function spawnFood() {
+        const occupied = new Set(state.snake.map((part) => `${part.x},${part.y}`));
+        const openCells = [];
+
+        for (let y = 0; y < GRID.rows; y += 1) {
+          for (let x = 0; x < GRID.columns; x += 1) {
+            const key = `${x},${y}`;
+            if (!occupied.has(key)) {
+              openCells.push({ x, y });
+            }
+          }
+        }
+
+        if (openCells.length === 0) {
+          return { ...state.food };
+        }
+
+        return openCells[Math.floor(Math.random() * openCells.length)];
+      }
+
+      function stepGame() {
+        if (state.status !== 'running') {
+          return;
+        }
+
+        state.previousSnake = state.snake.map((part) => ({ ...part }));
+        state.direction = state.nextDirection;
+
+        let head = SnakeCore.nextHead(state.snake[0], state.direction);
+        if (wallWrap.checked) {
+          head = SnakeCore.wrapPoint(head, GRID.columns, GRID.rows);
+        } else if (SnakeCore.isOutOfBounds(head, GRID.columns, GRID.rows)) {
+          endGame();
+          return;
+        }
+
+        const ateFood = SnakeCore.positionsEqual(head, state.food);
+        const bodyToCheck = ateFood ? state.snake : state.snake.slice(0, -1);
+        if (bodyToCheck.some((part) => SnakeCore.positionsEqual(part, head))) {
+          endGame();
+          return;
+        }
+
+        state.snake = [head, ...state.snake];
+
+        if (ateFood) {
+          state.score += FOOD_POINTS;
+          state.food = spawnFood();
+          state.flash = 1;
+          spawnParticles(head);
+          pulse(scoreValue);
+
+          if (state.score > highScore) {
+            highScore = state.score;
+            writeHighScore(highScore);
+            pulse(highScoreValue);
+          }
+        } else {
+          state.snake.pop();
+        }
+
+        updateHud();
+      }
+
+      function endGame() {
+        state.status = 'gameOver';
+        state.previousSnake = state.snake.map((part) => ({ ...part }));
+        updateHud();
+      }
+
+      function spawnParticles(cell) {
+        const origin = cellCenter(cell);
+        for (let index = 0; index < PARTICLE_COUNT; index += 1) {
+          const angle = randomBetween(0, Math.PI * 2);
+          const speed = randomBetween(55, 160);
+          state.particles.push({
+            x: origin.x,
+            y: origin.y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: randomBetween(0.34, 0.7),
+            maxLife: 0,
+            size: randomBetween(1.6, 4.2),
+            hue: Math.random() > 0.42 ? 'cyan' : 'pink'
+          });
+          state.particles[state.particles.length - 1].maxLife = state.particles[state.particles.length - 1].life;
+        }
+      }
+
+      function updateParticles(deltaSeconds) {
+        state.particles = state.particles.filter((particle) => {
+          particle.x += particle.vx * deltaSeconds;
+          particle.y += particle.vy * deltaSeconds;
+          particle.vx *= 0.985;
+          particle.vy *= 0.985;
+          particle.life -= deltaSeconds;
+          return particle.life > 0;
+        });
+      }
+
+      function pulse(element) {
+        element.classList.remove('pulse');
+        void element.offsetWidth;
+        element.classList.add('pulse');
+      }
+
+      function updateHud() {
+        scoreValue.textContent = String(state.score);
+        highScoreValue.textContent = String(highScore);
+        speedValue.textContent = SnakeCore.speedForScore(state.score).toFixed(1);
+        lengthValue.textContent = String(state.snake.length);
+        pauseButton.textContent = state.status === 'paused' ? 'Resume' : 'Pause';
+
+        const labels = {
+          running: 'RUNNING',
+          paused: 'PAUSED',
+          gameOver: 'GAME OVER'
+        };
+        statusPill.dataset.state = state.status;
+        statusPill.textContent = labels[state.status];
+
+        if (state.status === 'paused') {
+          overlay.classList.add('visible');
+          overlay.setAttribute('aria-hidden', 'false');
+          overlayTitle.textContent = 'Paused';
+          overlayText.textContent = 'Press Space or Resume to keep moving.';
+        } else if (state.status === 'gameOver') {
+          overlay.classList.add('visible');
+          overlay.setAttribute('aria-hidden', 'false');
+          overlayTitle.textContent = 'Game Over';
+          overlayText.textContent = 'Press R, Enter, or Restart for another run.';
+        } else {
+          overlay.classList.remove('visible');
+          overlay.setAttribute('aria-hidden', 'true');
+        }
+      }
+
+      function animate(time) {
+        const delta = Math.min(80, time - lastTime);
+        lastTime = time;
+
+        if (state.status === 'running') {
+          accumulator += delta;
+          const stepMs = 1000 / SnakeCore.speedForScore(state.score);
+          while (accumulator >= stepMs) {
+            stepGame();
+            accumulator -= stepMs;
+          }
+        }
+
+        updateParticles(delta / 1000);
+        state.flash = Math.max(0, state.flash - delta / 220);
+        render(Math.min(1, accumulator / (1000 / SnakeCore.speedForScore(state.score))));
+        requestAnimationFrame(animate);
+      }
+
+      function render(alpha) {
+        ctx.clearRect(0, 0, boardSize, boardSize);
+        drawBoard();
+        drawFood();
+        drawSnake(alpha);
+        drawParticles();
+
+        if (state.flash > 0) {
+          ctx.save();
+          ctx.globalAlpha = state.flash * 0.12;
+          ctx.fillStyle = '#3dffd8';
+          ctx.fillRect(0, 0, boardSize, boardSize);
+          ctx.restore();
+        }
+      }
+
+      function drawBoard() {
+        const gradient = ctx.createLinearGradient(0, 0, boardSize, boardSize);
+        gradient.addColorStop(0, '#08111a');
+        gradient.addColorStop(0.55, '#0b1017');
+        gradient.addColorStop(1, '#100d17');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, boardSize, boardSize);
+
+        ctx.save();
+        ctx.strokeStyle = 'rgba(218, 238, 255, 0.055)';
+        ctx.lineWidth = 1;
+        for (let index = 1; index < GRID.columns; index += 1) {
+          const position = index * cellSize;
+          ctx.beginPath();
+          ctx.moveTo(position, 0);
+          ctx.lineTo(position, boardSize);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(0, position);
+          ctx.lineTo(boardSize, position);
+          ctx.stroke();
+        }
+
+        ctx.strokeStyle = wallWrap.checked ? 'rgba(61, 255, 216, 0.36)' : 'rgba(255, 83, 107, 0.4)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(1, 1, boardSize - 2, boardSize - 2);
+        ctx.restore();
+      }
+
+      function drawFood() {
+        const center = cellCenter(state.food);
+        const pulseScale = 0.82 + Math.sin(performance.now() / 130) * 0.08;
+        const radius = cellSize * 0.34 * pulseScale;
+
+        ctx.save();
+        ctx.shadowColor = 'rgba(255, 79, 195, 0.86)';
+        ctx.shadowBlur = 22;
+        ctx.fillStyle = '#ff4fc3';
+        ctx.beginPath();
+        ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.72)';
+        ctx.beginPath();
+        ctx.arc(center.x - radius * 0.28, center.y - radius * 0.3, radius * 0.22, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawSnake(alpha) {
+        const rendered = state.snake.map((part, index) => {
+          const previous = state.previousSnake[index] || part;
+          const crossedWrap = Math.abs(part.x - previous.x) > 1 || Math.abs(part.y - previous.y) > 1;
+          if (crossedWrap) {
+            return part;
+          }
+          return {
+            x: previous.x + (part.x - previous.x) * alpha,
+            y: previous.y + (part.y - previous.y) * alpha
+          };
+        });
+
+        ctx.save();
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        for (let index = rendered.length - 1; index >= 0; index -= 1) {
+          const part = rendered[index];
+          const center = cellCenter(part);
+          const taper = 1 - index / Math.max(rendered.length, 1);
+          const size = cellSize * (0.48 + taper * 0.22);
+          const isHead = index === 0;
+
+          ctx.shadowColor = isHead ? 'rgba(61, 255, 216, 0.95)' : 'rgba(157, 255, 95, 0.42)';
+          ctx.shadowBlur = isHead ? 20 : 10;
+          ctx.fillStyle = isHead ? '#3dffd8' : blendSnakeColor(taper);
+          roundRect(center.x - size / 2, center.y - size / 2, size, size, Math.max(4, size * 0.28));
+          ctx.fill();
+
+          if (isHead) {
+            drawEyes(center, size);
+          }
+        }
+
+        ctx.restore();
+      }
+
+      function blendSnakeColor(taper) {
+        const green = Math.floor(160 + taper * 60);
+        const blue = Math.floor(94 + taper * 110);
+        return `rgb(112, ${green}, ${blue})`;
+      }
+
+      function drawEyes(center, size) {
+        const perpendicular = { x: -state.direction.y, y: state.direction.x };
+        const forward = state.direction;
+        const eyeOffset = size * 0.19;
+        const frontOffset = size * 0.16;
+
+        ctx.save();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#061114';
+        [-1, 1].forEach((side) => {
+          ctx.beginPath();
+          ctx.arc(
+            center.x + perpendicular.x * eyeOffset * side + forward.x * frontOffset,
+            center.y + perpendicular.y * eyeOffset * side + forward.y * frontOffset,
+            Math.max(1.8, size * 0.075),
+            0,
+            Math.PI * 2
+          );
+          ctx.fill();
+        });
+        ctx.restore();
+      }
+
+      function drawParticles() {
+        ctx.save();
+        state.particles.forEach((particle) => {
+          const ratio = particle.life / particle.maxLife;
+          ctx.globalAlpha = Math.max(0, ratio);
+          ctx.shadowBlur = 14;
+          ctx.shadowColor = particle.hue === 'cyan' ? 'rgba(61, 255, 216, 0.84)' : 'rgba(255, 79, 195, 0.84)';
+          ctx.fillStyle = particle.hue === 'cyan' ? '#3dffd8' : '#ff4fc3';
+          ctx.beginPath();
+          ctx.arc(particle.x, particle.y, particle.size * ratio, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.restore();
+      }
+
+      function roundRect(x, y, width, height, radius) {
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.arcTo(x + width, y, x + width, y + height, radius);
+        ctx.arcTo(x + width, y + height, x, y + height, radius);
+        ctx.arcTo(x, y + height, x, y, radius);
+        ctx.arcTo(x, y, x + width, y, radius);
+        ctx.closePath();
+      }
+
+      function cellCenter(cell) {
+        return {
+          x: (cell.x + 0.5) * cellSize,
+          y: (cell.y + 0.5) * cellSize
+        };
+      }
+
+      function handleKeyDown(event) {
+        const key = event.key;
+        const directionByKey = {
+          ArrowUp: SnakeCore.DIRECTIONS.UP,
+          w: SnakeCore.DIRECTIONS.UP,
+          W: SnakeCore.DIRECTIONS.UP,
+          ArrowDown: SnakeCore.DIRECTIONS.DOWN,
+          s: SnakeCore.DIRECTIONS.DOWN,
+          S: SnakeCore.DIRECTIONS.DOWN,
+          ArrowLeft: SnakeCore.DIRECTIONS.LEFT,
+          a: SnakeCore.DIRECTIONS.LEFT,
+          A: SnakeCore.DIRECTIONS.LEFT,
+          ArrowRight: SnakeCore.DIRECTIONS.RIGHT,
+          d: SnakeCore.DIRECTIONS.RIGHT,
+          D: SnakeCore.DIRECTIONS.RIGHT
+        };
+
+        if (directionByKey[key]) {
+          event.preventDefault();
+          setDirection(directionByKey[key]);
+          return;
+        }
+
+        if (event.code === 'Space') {
+          event.preventDefault();
+          togglePause();
+          return;
+        }
+
+        if (key === 'r' || key === 'R' || key === 'Enter') {
+          event.preventDefault();
+          restartGame();
+        }
+      }
+
+      function handleTouchStart(event) {
+        const touch = event.changedTouches[0];
+        touchStart = {
+          x: touch.clientX,
+          y: touch.clientY,
+          time: performance.now()
+        };
+      }
+
+      function handleTouchEnd(event) {
+        if (!touchStart) {
+          return;
+        }
+
+        const touch = event.changedTouches[0];
+        const dx = touch.clientX - touchStart.x;
+        const dy = touch.clientY - touchStart.y;
+        const distance = Math.hypot(dx, dy);
+        const elapsed = performance.now() - touchStart.time;
+        touchStart = null;
+
+        if (distance < 24 || elapsed > 900) {
+          return;
+        }
+
+        event.preventDefault();
+        if (Math.abs(dx) > Math.abs(dy)) {
+          setDirection(dx > 0 ? SnakeCore.DIRECTIONS.RIGHT : SnakeCore.DIRECTIONS.LEFT);
+        } else {
+          setDirection(dy > 0 ? SnakeCore.DIRECTIONS.DOWN : SnakeCore.DIRECTIONS.UP);
+        }
+      }
+
+      window.addEventListener('resize', resizeCanvas);
+      window.addEventListener('keydown', handleKeyDown);
+      shell.addEventListener('touchstart', handleTouchStart, { passive: true });
+      shell.addEventListener('touchend', handleTouchEnd, { passive: false });
+      restartButton.addEventListener('click', restartGame);
+      pauseButton.addEventListener('click', togglePause);
+      wallWrap.addEventListener('change', () => {
+        pulse(wallWrap.closest('.toggle-row'));
+      });
+
+      window.SnakeCore = SnakeCore;
+
+      resizeCanvas();
+      restartGame();
+      updateHud();
+      requestAnimationFrame(animate);
+    })();
+  </script>
+</body>
+</html>
