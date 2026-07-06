@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Whac-a-Mole</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;user-select:none;padding:20px}
+.game{display:flex;flex-direction:column;align-items:center;gap:16px;max-width:420px;width:100%}
+.title{font-size:28px;font-weight:700;color:#00ff88;letter-spacing:3px}
+.hud{display:flex;gap:24px;font-family:'Courier New',monospace}
+.stat{text-align:center}
+.stat .label{font-size:10px;color:#444;text-transform:uppercase;letter-spacing:2px}
+.stat .value{font-size:24px;font-weight:700;color:#00ff88}
+.stat .value.warn{color:#ffaa00}
+.stat .value.danger{color:#ff3366;animation:pulse .5s infinite alternate}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;max-width:360px}
+.hole{aspect-ratio:1;background:#0d0d14;border-radius:50%;position:relative;overflow:hidden;border:2px solid #1a1a2e;cursor:pointer}
+.hole .mole{position:absolute;bottom:-100%;left:50%;transform:translateX(-50%);width:70%;height:70%;background:#ffaa00;border-radius:50% 50% 40% 40%;transition:bottom .12s ease-out;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 0 20px rgba(255,170,0,.4)}
+.hole.up .mole{bottom:15%}
+.hole.whacked .mole{background:#ff3366;box-shadow:0 0 25px rgba(255,51,102,.6)}
+.hole .particles{position:absolute;inset:0;pointer-events:none}
+.particle{position:absolute;width:6px;height:6px;border-radius:50%;background:#ffaa00;animation:particle .4s ease-out forwards}
+@keyframes particle{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(0)}}
+.controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.btn{background:#12121a;border:1px solid #1a1a2e;color:#888;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:14px;transition:all .15s;font-family:inherit}
+.btn:hover{background:#1a1a2e;color:#ccc}
+.btn.primary{background:#00ff88;color:#0a0a0f;border-color:#00ff88;font-weight:600}
+.btn.primary:hover{background:#00cc6a}
+.difficulty{display:flex;gap:4px}
+.diff-btn{background:#12121a;border:1px solid #1a1a2e;color:#666;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:11px;transition:all .15s}
+.diff-btn:hover{color:#ccc}
+.diff-btn.active{background:#00ff8820;border-color:#00ff8844;color:#00ff88}
+@keyframes pulse{from{opacity:1}to{opacity:.5}}
+</style>
+</head>
+<body>
+<div class="game">
+<div class="title">Whac-a-Mole</div>
+<div class="difficulty" id="difficulty">
+<button class="diff-btn" data-diff="easy">Easy</button>
+<button class="diff-btn active" data-diff="normal">Normal</button>
+<button class="diff-btn" data-diff="hard">Hard</button>
+</div>
+<div class="hud">
+<div class="stat"><div class="label">Score</div><div class="value" id="score">0</div></div>
+<div class="stat"><div class="label">Time</div><div class="value" id="time">30</div></div>
+<div class="stat"><div class="label">Best</div><div class="value" id="best">0</div></div>
+</div>
+<div class="grid" id="grid"></div>
+<div class="controls">
+<button class="btn primary" id="btn-start">Start</button>
+</div>
+</div>
+<script>
+const STORAGE_KEY = 'whac-best';
+let gridSize = 9, moleTimer = null, gameTimer = null, score = 0, timeLeft = 30, playing = false, best = 0, diff = 'normal';
+
+const diffSettings = { easy: { duration: 45, minDelay: 800, maxDelay: 1800, lifetime: 1500 },
+normal: { duration: 30, minDelay: 500, maxDelay: 1200, lifetime: 1200 },
+hard: { duration: 20, minDelay: 350, maxDelay: 900, lifetime: 900 } };
+
+const scoreEl = document.getElementById('score'), timeEl = document.getElementById('time'), bestEl = document.getElementById('best'),
+gridEl = document.getElementById('grid'), btnStart = document.getElementById('btn-start');
+
+function sound(freq = 660, dur = 0.08) { try { const ctx = new AudioContext(); const o = ctx.createOscillator(); const g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value = freq; o.type = 'square'; g.gain.value = 0.1; o.start(); o.stop(ctx.currentTime + dur); } catch(e){} }
+
+function buildGrid() {
+gridEl.innerHTML = '';
+for (let i = 0; i < gridSize; i++) {
+const hole = document.createElement('div');
+hole.className = 'hole';
+hole.dataset.idx = i;
+hole.innerHTML = '<div class="mole">🐹</div><div class="particles"></div>';
+hole.addEventListener('pointerdown', () => whack(hole));
+gridEl.appendChild(hole);
+}
+}
+
+function randomHole() {
+const holes = document.querySelectorAll('.hole:not(.up)');
+if (holes.length === 0) return;
+const hole = holes[Math.floor(Math.random() * holes.length)];
+hole.classList.add('up');
+const settings = diffSettings[diff];
+const duration = settings.lifetime * (0.8 + Math.random() * 0.4);
+setTimeout(() => { if (hole.classList.contains('up')) hole.classList.remove('up'); }, duration);
+}
+
+function whack(hole) {
+if (!playing || !hole.classList.contains('up')) return;
+hole.classList.remove('up');
+hole.classList.add('whacked');
+score++;
+scoreEl.textContent = score;
+scoreEl.className = 'value';
+sound(880, 0.08);
+const particles = hole.querySelector('.particles');
+for (let i = 0; i < 8; i++) {
+const p = document.createElement('div');
+p.className = 'particle';
+p.style.setProperty('--dx', (Math.random() - 0.5) * 60 + 'px');
+p.style.setProperty('--dy', (Math.random() - 0.5) * 60 - 20 + 'px');
+p.style.background = '#ffaa00';
+particles.appendChild(p);
+setTimeout(() => p.remove(), 400);
+}
+setTimeout(() => hole.classList.remove('whacked'), 200);
+}
+
+function spawnMoles() {
+if (!playing) return;
+const settings = diffSettings[diff];
+randomHole();
+if (Math.random() < 0.3 + (diff === 'hard' ? 0.2 : 0)) setTimeout(() => { if (playing) randomHole(); }, settings.minDelay / 2);
+moleTimer = setTimeout(spawnMoles, settings.minDelay + Math.random() * (settings.maxDelay - settings.minDelay));
+}
+
+function tick() {
+if (!playing) return;
+timeLeft--;
+timeEl.textContent = timeLeft;
+if (timeLeft <= 10) timeEl.className = timeLeft <= 5 ? 'value danger' : 'value warn';
+if (timeLeft <= 0) { endGame(); return; }
+gameTimer = setTimeout(tick, 1000);
+}
+
+function startGame() {
+score = 0; timeLeft = diffSettings[diff].duration;
+scoreEl.textContent = '0'; timeEl.textContent = timeLeft;
+scoreEl.className = 'value'; timeEl.className = 'value';
+playing = true;
+btnStart.textContent = 'Playing...';
+spawnMoles();
+tick();
+}
+
+function endGame() {
+playing = false;
+clearTimeout(moleTimer);
+clearTimeout(gameTimer);
+document.querySelectorAll('.hole.up').forEach(h => h.classList.remove('up'));
+btnStart.textContent = 'Play Again';
+sound(440, 0.3);
+if (score > best) { best = score; bestEl.textContent = best; try { localStorage.setItem(STORAGE_KEY, best); } catch(e){} }
+}
+
+btnStart.addEventListener('click', () => {
+if (playing) return;
+clearTimeout(moleTimer); clearTimeout(gameTimer);
+startGame();
+});
+
+document.getElementById('difficulty').addEventListener('click', e => {
+const b = e.target.closest('.diff-btn');
+if (!b || playing) return;
+diff = b.dataset.diff;
+document.querySelectorAll('.diff-btn').forEach(d => d.classList.remove('active'));
+b.classList.add('active');
+timeLeft = diffSettings[diff].duration;
+timeEl.textContent = timeLeft;
+timeEl.className = 'value';
+});
+
+document.addEventListener('keydown', e => { if (e.code === 'Space' && !playing) { e.preventDefault(); startGame(); } });
+
+window.addEventListener('load', () => {
+try { best = parseInt(localStorage.getItem(STORAGE_KEY)) || 0; bestEl.textContent = best; } catch(e){}
+buildGrid();
+});
+</script>
+</body>
+</html>

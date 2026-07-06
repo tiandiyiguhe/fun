@@ -852,11 +852,17 @@
         if (!canAct()) {
           return false;
         }
+        return stepDown(true);
+      }
+
+      function stepDown(manual) {
         const dropped = { ...state.active, y: state.active.y + 1 };
         if (!collides(dropped)) {
           state.active = dropped;
-          addScore(1);
-          playSound("soft");
+          if (manual) {
+            addScore(1);
+            playSound("soft");
+          }
           return true;
         }
         lockPiece();
@@ -1203,6 +1209,7 @@
       }
 
       function endGame() {
+        state.elapsedBeforePause = performance.now() - state.startedAt;
         state.gameOver = true;
         state.paused = false;
         updateHighScore();
@@ -1236,7 +1243,7 @@
 
       function getElapsedMs() {
         if (state.gameOver) {
-          return performance.now() - state.startedAt;
+          return state.elapsedBeforePause;
         }
         if (state.paused) {
           return state.pauseStartedAt - state.startedAt;
@@ -1270,8 +1277,7 @@
           overlay.classList.add("is-visible");
           overlayTitle.textContent = "Game Over";
           overlayPrimary.textContent = "New";
-          overlaySecondary.textContent = "Pause";
-          overlaySecondary.disabled = true;
+          overlaySecondary.style.display = "none";
           overlayStats.innerHTML = statsMarkup();
         } else if (state.paused) {
           statusSignal.dataset.state = "paused";
@@ -1280,13 +1286,13 @@
           overlayTitle.textContent = "Paused";
           overlayPrimary.textContent = "Resume";
           overlaySecondary.textContent = "New";
-          overlaySecondary.disabled = false;
+          overlaySecondary.style.display = "";
           overlayStats.innerHTML = statsMarkup();
         } else {
           statusSignal.dataset.state = "running";
           statusSignal.textContent = "LIVE";
           overlay.classList.remove("is-visible");
-          overlaySecondary.disabled = false;
+          overlaySecondary.style.display = "";
         }
         pauseButton.textContent = state.paused ? "Resume" : "Pause";
       }
@@ -1518,7 +1524,7 @@
         if (!state.paused && !state.gameOver) {
           dropCounter += delta;
           while (dropCounter >= getDropInterval()) {
-            softDrop();
+            stepDown(false);
             dropCounter -= getDropInterval();
           }
         }

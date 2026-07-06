@@ -273,6 +273,43 @@
       font-size: 0.96rem;
     }
 
+    .final-stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin: 0 0 18px;
+    }
+
+    .final-stats[hidden] {
+      display: none;
+    }
+
+    .final-stat {
+      min-width: 0;
+      padding: 10px;
+      border: 1px solid rgba(216, 235, 255, 0.13);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.04);
+      box-shadow: inset 0 0 18px rgba(91, 255, 229, 0.04);
+    }
+
+    .final-stat span {
+      display: block;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.66rem;
+      text-transform: uppercase;
+    }
+
+    .final-stat strong {
+      display: block;
+      margin-top: 4px;
+      overflow-wrap: anywhere;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 1rem;
+    }
+
     .overlay-actions {
       display: flex;
       gap: 10px;
@@ -456,6 +493,14 @@
           <div class="overlay-panel">
             <h2 id="overlayTitle">Neon Breakout</h2>
             <p id="overlayText">Level 01 is armed.</p>
+            <div class="final-stats" id="finalStats" hidden>
+              <div class="final-stat"><span>Score</span><strong id="finalScore">0</strong></div>
+              <div class="final-stat"><span>Level</span><strong id="finalLevel">1</strong></div>
+              <div class="final-stat"><span>Bricks</span><strong id="finalBricks">0</strong></div>
+              <div class="final-stat"><span>Best Combo</span><strong id="finalCombo">x1</strong></div>
+              <div class="final-stat"><span>Power Ups</span><strong id="finalPowers">0</strong></div>
+              <div class="final-stat"><span>Time</span><strong id="finalTime">00:00</strong></div>
+            </div>
             <div class="overlay-actions">
               <button id="overlayPrimary" type="button">Launch</button>
               <button id="overlaySecondary" type="button">Reset</button>
@@ -530,11 +575,167 @@
     (() => {
       "use strict";
 
+      // BREAKOUT_CORE_START
+      const BreakoutRules = (() => {
+        const WORLD = { width: 960, height: 640 };
+        const BRICK_GAP = 9;
+        const BRICK_PALETTE = [
+          { color: "#5bffe5", glow: "rgba(91, 255, 229, 0.7)" },
+          { color: "#ff4fc3", glow: "rgba(255, 79, 195, 0.66)" },
+          { color: "#ffd166", glow: "rgba(255, 209, 102, 0.62)" },
+          { color: "#9dff6f", glow: "rgba(157, 255, 111, 0.62)" },
+          { color: "#a78bfa", glow: "rgba(167, 139, 250, 0.62)" },
+          { color: "#64a7ff", glow: "rgba(100, 167, 255, 0.62)" }
+        ];
+
+        function clamp(value, min, max) {
+          return Math.max(min, Math.min(max, value));
+        }
+
+        function createBrickGrid({ rows = 6, cols = 12, level = 1 } = {}) {
+          const top = 70;
+          const side = 42;
+          const brickWidth = (WORLD.width - side * 2 - BRICK_GAP * (cols - 1)) / cols;
+          const brickHeight = 26;
+          const bricks = [];
+
+          for (let row = 0; row < rows; row += 1) {
+            for (let col = 0; col < cols; col += 1) {
+              const palette = BRICK_PALETTE[(row + col + level) % BRICK_PALETTE.length];
+              const armored = level > 2 && (row === 0 || (row + col + level) % 7 === 0);
+              const hp = armored ? 2 + Math.floor(level / 5) : 1;
+              bricks.push({
+                x: side + col * (brickWidth + BRICK_GAP),
+                y: top + row * (brickHeight + BRICK_GAP),
+                width: brickWidth,
+                height: brickHeight,
+                row,
+                col,
+                color: palette.color,
+                glow: palette.glow,
+                hp,
+                maxHp: hp,
+                alive: true
+              });
+            }
+          }
+
+          return bricks;
+        }
+
+        function scoreForBrick(brick, comboMultiplier = 1) {
+          const base = 80 + brick.row * 30 + Math.max(0, brick.hp - 1) * 40;
+          return base * clamp(comboMultiplier, 1, 8);
+        }
+
+        function resolvePaddleBounce(ball, paddle, speed) {
+          const width = paddle.w || paddle.width;
+          const normalizedHit = clamp((ball.x - paddle.x) / (width / 2), -1, 1);
+          const maxBounce = Math.PI * 0.43;
+          return {
+            ...ball,
+            vx: Math.sin(normalizedHit * maxBounce) * speed,
+            vy: -Math.cos(normalizedHit * maxBounce) * speed
+          };
+        }
+
+        function rotateVelocity(ball, angle) {
+          const cos = Math.cos(angle);
+          const sin = Math.sin(angle);
+          return {
+            vx: ball.vx * cos - ball.vy * sin,
+            vy: ball.vx * sin + ball.vy * cos
+          };
+        }
+
+        function scaleBallSpeed(ball, multiplier, minSpeed = 220) {
+          const speed = Math.hypot(ball.vx, ball.vy) || minSpeed;
+          const target = Math.max(minSpeed, speed * multiplier);
+          ball.vx = (ball.vx / speed) * target;
+          ball.vy = (ball.vy / speed) * target;
+        }
+
+        function applyPowerUp(game, rawType, now = 0) {
+          const type = {
+            multiBall: "multi",
+            multi: "multi",
+            widePaddle: "wide",
+            wide: "wide",
+            slowBall: "slow",
+            slow: "slow",
+            laser: "laser"
+          }[rawType];
+
+          if (type === "multi") {
+            const sourceBalls = game.balls.filter((ball) => !ball.stuck);
+            const balls = sourceBalls.length > 0 ? sourceBalls : game.balls.slice(0, 1);
+            const clones = [];
+            for (const ball of balls) {
+              for (const angle of [-0.38, 0.38]) {
+                if (game.balls.length + clones.length >= 9) {
+                  break;
+                }
+                const velocity = rotateVelocity(ball, angle);
+                clones.push({
+                  x: ball.x,
+                  y: ball.y,
+                  vx: velocity.vx,
+                  vy: velocity.vy,
+                  r: ball.r,
+                  radius: ball.radius || ball.r,
+                  stuck: false
+                });
+              }
+            }
+            game.balls.push(...clones);
+          }
+
+          if (type === "wide") {
+            const baseW = game.paddle.baseW || game.paddle.baseWidth || game.paddle.w || game.paddle.width;
+            game.paddle.w = baseW * 1.55;
+            game.paddle.width = game.paddle.w;
+            game.wideUntil = now + 12000;
+          }
+
+          if (type === "slow") {
+            for (const ball of game.balls) {
+              scaleBallSpeed(ball, 0.72);
+            }
+            game.slowUntil = now + 9000;
+          }
+
+          if (type === "laser") {
+            game.laserUntil = now + 11000;
+            game.laserCharge = 100;
+          }
+
+          return game;
+        }
+
+        return {
+          applyPowerUp,
+          clamp,
+          createBrickGrid,
+          resolvePaddleBounce,
+          scoreForBrick
+        };
+      })();
+
+      globalThis.BreakoutRules = BreakoutRules;
+      // BREAKOUT_CORE_END
+
       const canvas = document.getElementById("gameCanvas");
       const ctx = canvas.getContext("2d");
       const overlay = document.getElementById("overlay");
       const overlayTitle = document.getElementById("overlayTitle");
       const overlayText = document.getElementById("overlayText");
+      const finalStats = document.getElementById("finalStats");
+      const finalScore = document.getElementById("finalScore");
+      const finalLevel = document.getElementById("finalLevel");
+      const finalBricks = document.getElementById("finalBricks");
+      const finalCombo = document.getElementById("finalCombo");
+      const finalPowers = document.getElementById("finalPowers");
+      const finalTime = document.getElementById("finalTime");
       const overlayPrimary = document.getElementById("overlayPrimary");
       const overlaySecondary = document.getElementById("overlaySecondary");
       const startButton = document.getElementById("startButton");
@@ -601,6 +802,12 @@
         powerUps: [],
         lasers: [],
         trails: [],
+        stats: {
+          startedAt: performance.now(),
+          bricksBroken: 0,
+          bestCombo: 1,
+          powerUpsCollected: 0
+        },
         activeEffects: {
           widePaddle: 0,
           slowBall: 0,
@@ -616,6 +823,13 @@
 
       function formatLevel(value) {
         return String(value).padStart(2, "0");
+      }
+
+      function formatDuration(ms) {
+        const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
       }
 
       function baseBallSpeed() {
@@ -754,6 +968,10 @@
         state.comboMultiplier = 1;
         state.charge = 0;
         state.mode = "ready";
+        state.stats.startedAt = performance.now();
+        state.stats.bricksBroken = 0;
+        state.stats.bestCombo = 1;
+        state.stats.powerUpsCollected = 0;
         resetLevel();
         updateHud();
       }
@@ -790,6 +1008,23 @@
         overlayText.textContent = message;
         overlayPrimary.textContent = primaryLabel;
         overlaySecondary.style.display = visibleSecondary ? "" : "none";
+        finalStats.hidden = true;
+        overlay.dataset.visible = "true";
+      }
+
+      function showGameOverOverlay() {
+        const elapsed = performance.now() - state.stats.startedAt;
+        finalScore.textContent = String(state.score);
+        finalLevel.textContent = String(state.level);
+        finalBricks.textContent = String(state.stats.bricksBroken);
+        finalCombo.textContent = `x${state.stats.bestCombo}`;
+        finalPowers.textContent = String(state.stats.powerUpsCollected);
+        finalTime.textContent = formatDuration(elapsed);
+        finalStats.hidden = false;
+        overlayTitle.textContent = "Game Over";
+        overlayText.textContent = "Run statistics locked.";
+        overlayPrimary.textContent = "Restart";
+        overlaySecondary.style.display = "none";
         overlay.dataset.visible = "true";
       }
 
@@ -842,7 +1077,7 @@
         state.balls = [];
         state.activeEffects.laser = 0;
         playSound("gameOver");
-        showOverlay("Game Over", `${state.score} points banked.`, "Restart", false);
+        showGameOverOverlay();
         updateHud();
       }
 
@@ -975,6 +1210,7 @@
       function activatePowerUp(type) {
         playSound("power");
         state.charge = clamp(state.charge + 12, 0, 100);
+        state.stats.powerUpsCollected += 1;
 
         if (type === "multiBall") {
           const clones = [];
@@ -1083,6 +1319,8 @@
         state.bricksRemaining -= 1;
         state.combo += 1;
         state.comboMultiplier = clamp(1 + Math.floor(state.combo / 4), 1, 8);
+        state.stats.bricksBroken += 1;
+        state.stats.bestCombo = Math.max(state.stats.bestCombo, state.comboMultiplier);
         state.score += 100 * state.comboMultiplier + state.level * 12;
         state.charge = clamp(state.charge + 2.8, 0, 100);
         createBrickParticles(brick);

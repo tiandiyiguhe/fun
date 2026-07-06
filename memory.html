@@ -1,15 +1,16 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Neon Memory Match</title>
   <style>
     :root {
       color-scheme: dark;
-      --bg: #070711;
-      --panel: rgba(15, 18, 35, 0.78);
-      --panel-strong: rgba(19, 24, 46, 0.94);
+      --bg: #050611;
+      --panel: rgba(13, 17, 34, 0.82);
+      --panel-strong: rgba(18, 24, 46, 0.96);
+      --line: rgba(235, 246, 255, 0.18);
       --text: #f4fbff;
       --muted: #9aa8c7;
       --cyan: #38f8ff;
@@ -17,8 +18,6 @@
       --lime: #9dff43;
       --gold: #ffd166;
       --violet: #9f7cff;
-      --danger: #ff5b7f;
-      --card-size: minmax(0, 1fr);
       --grid-cols: 4;
       --grid-rows: 4;
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -49,13 +48,13 @@
     }
 
     .app {
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 18px;
       width: min(1120px, calc(100vw - 28px));
       min-height: 100svh;
       margin: 0 auto;
       padding: 24px 0 30px;
-      display: grid;
-      grid-template-rows: auto auto 1fr;
-      gap: 18px;
     }
 
     .topbar {
@@ -63,10 +62,6 @@
       grid-template-columns: minmax(0, 1fr) auto;
       align-items: end;
       gap: 18px;
-    }
-
-    .brand {
-      min-width: 0;
     }
 
     .eyebrow {
@@ -85,16 +80,14 @@
       line-height: 0.9;
       letter-spacing: 0;
       text-transform: uppercase;
-      text-shadow:
-        0 0 10px rgba(56, 248, 255, 0.58),
-        0 0 26px rgba(255, 71, 199, 0.34);
+      text-shadow: 0 0 10px rgba(56, 248, 255, 0.58), 0 0 26px rgba(255, 71, 199, 0.34);
     }
 
     .subline {
       margin: 10px 0 0;
+      max-width: 58ch;
       color: var(--muted);
       font-size: clamp(0.92rem, 2vw, 1.02rem);
-      max-width: 58ch;
     }
 
     .status-pill {
@@ -131,7 +124,6 @@
 
     .stats,
     .controls {
-      min-width: 0;
       border: 1px solid rgba(154, 168, 199, 0.22);
       border-radius: 8px;
       background: var(--panel);
@@ -190,19 +182,20 @@
     }
 
     .difficulty,
-    .tool-btn {
+    .tool-btn,
+    .primary-action {
+      min-height: 42px;
       border: 1px solid transparent;
       border-radius: 7px;
-      min-height: 42px;
-      padding: 0 12px;
-      color: var(--muted);
-      background: transparent;
       cursor: pointer;
       touch-action: manipulation;
       transition: transform 150ms ease, color 150ms ease, border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
     }
 
     .difficulty {
+      padding: 0 12px;
+      color: var(--muted);
+      background: transparent;
       font-weight: 900;
     }
 
@@ -223,6 +216,7 @@
       display: inline-grid;
       place-items: center;
       min-width: 44px;
+      padding: 0 12px;
       color: var(--text);
       background: rgba(18, 23, 44, 0.86);
       border-color: rgba(154, 168, 199, 0.22);
@@ -241,28 +235,28 @@
 
     .table {
       position: relative;
-      min-height: 0;
       display: grid;
       place-items: center;
+      min-height: 0;
       padding: clamp(8px, 2vw, 18px);
     }
 
     .board-wrap {
+      display: grid;
+      place-items: center;
       width: min(100%, 780px);
       aspect-ratio: var(--grid-cols) / var(--grid-rows);
       min-height: 0;
-      display: grid;
-      place-items: center;
       filter: drop-shadow(0 22px 48px rgba(0, 0, 0, 0.42));
     }
 
     .board {
+      display: grid;
+      grid-template-columns: repeat(var(--grid-cols), minmax(0, 1fr));
+      grid-template-rows: repeat(var(--grid-rows), minmax(0, 1fr));
+      gap: clamp(8px, 1.5vw, 14px);
       width: 100%;
       height: 100%;
-      display: grid;
-      grid-template-columns: repeat(var(--grid-cols), var(--card-size));
-      grid-template-rows: repeat(var(--grid-rows), var(--card-size));
-      gap: clamp(8px, 1.5vw, 14px);
       perspective: 1200px;
       user-select: none;
     }
@@ -317,9 +311,7 @@
         linear-gradient(135deg, rgba(56, 248, 255, 0.18), rgba(255, 71, 199, 0.16)),
         repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.08) 0 2px, transparent 2px 8px),
         #10162a;
-      box-shadow:
-        inset 0 0 26px rgba(56, 248, 255, 0.12),
-        0 0 20px rgba(56, 248, 255, 0.12);
+      box-shadow: inset 0 0 26px rgba(56, 248, 255, 0.12), 0 0 20px rgba(56, 248, 255, 0.12);
     }
 
     .card-back::before {
@@ -328,9 +320,7 @@
       aspect-ratio: 1;
       border: 2px solid rgba(157, 255, 67, 0.62);
       transform: rotate(45deg);
-      box-shadow:
-        0 0 12px rgba(157, 255, 67, 0.5),
-        inset 0 0 16px rgba(255, 71, 199, 0.22);
+      box-shadow: 0 0 12px rgba(157, 255, 67, 0.5), inset 0 0 16px rgba(255, 71, 199, 0.22);
     }
 
     .card-back::after {
@@ -344,16 +334,10 @@
     .card-front {
       transform: rotateY(180deg);
       border: 1px solid rgba(255, 71, 199, 0.56);
-      background:
-        linear-gradient(145deg, rgba(255, 71, 199, 0.2), rgba(56, 248, 255, 0.16)),
-        #101321;
-      box-shadow:
-        inset 0 0 32px rgba(255, 71, 199, 0.14),
-        0 0 18px rgba(255, 71, 199, 0.14);
+      background: linear-gradient(145deg, rgba(255, 71, 199, 0.2), rgba(56, 248, 255, 0.16)), #101321;
+      box-shadow: inset 0 0 32px rgba(255, 71, 199, 0.14), 0 0 18px rgba(255, 71, 199, 0.14);
       font-size: clamp(1.55rem, 7vw, 3.7rem);
-      text-shadow:
-        0 0 12px rgba(255, 255, 255, 0.68),
-        0 0 30px var(--face-glow, rgba(56, 248, 255, 0.6));
+      text-shadow: 0 0 12px rgba(255, 255, 255, 0.68), 0 0 30px var(--face-glow, rgba(56, 248, 255, 0.6));
     }
 
     .card.is-matched .card-inner {
@@ -378,11 +362,10 @@
       position: absolute;
       left: 50%;
       bottom: 10px;
-      transform: translateX(-50%);
-      width: min(520px, calc(100% - 26px));
-      min-height: 42px;
       display: grid;
       place-items: center;
+      width: min(520px, calc(100% - 26px));
+      min-height: 42px;
       padding: 9px 14px;
       border: 1px solid rgba(255, 209, 102, 0.26);
       border-radius: 8px;
@@ -392,6 +375,7 @@
       text-align: center;
       opacity: 0;
       pointer-events: none;
+      transform: translateX(-50%);
       transition: opacity 180ms ease, transform 180ms ease;
     }
 
@@ -419,16 +403,11 @@
       position: relative;
       z-index: 2;
       width: min(480px, 100%);
+      padding: clamp(22px, 5vw, 34px);
       border: 1px solid rgba(56, 248, 255, 0.38);
       border-radius: 8px;
-      padding: clamp(22px, 5vw, 34px);
-      background:
-        linear-gradient(135deg, rgba(56, 248, 255, 0.12), rgba(255, 71, 199, 0.12)),
-        var(--panel-strong);
-      box-shadow:
-        0 0 0 1px rgba(255, 255, 255, 0.04),
-        0 24px 84px rgba(0, 0, 0, 0.55),
-        0 0 48px rgba(56, 248, 255, 0.18);
+      background: linear-gradient(135deg, rgba(56, 248, 255, 0.12), rgba(255, 71, 199, 0.12)), var(--panel-strong);
+      box-shadow: 0 24px 84px rgba(0, 0, 0, 0.55), 0 0 48px rgba(56, 248, 255, 0.18);
       text-align: center;
     }
 
@@ -476,21 +455,19 @@
     .primary-action {
       width: 100%;
       min-height: 48px;
-      border: 1px solid rgba(157, 255, 67, 0.34);
-      border-radius: 8px;
       color: #061017;
       background: linear-gradient(135deg, var(--lime), var(--cyan));
-      font-weight: 950;
-      cursor: pointer;
+      border-color: rgba(157, 255, 67, 0.34);
       box-shadow: 0 0 26px rgba(157, 255, 67, 0.26);
+      font-weight: 950;
     }
 
     .confetti-layer {
       position: fixed;
       inset: 0;
+      z-index: 1;
       overflow: hidden;
       pointer-events: none;
-      z-index: 1;
     }
 
     .confetti {
@@ -502,9 +479,9 @@
       border-radius: 2px;
       background: var(--c);
       box-shadow: 0 0 12px var(--c);
+      transform: translate3d(0, 0, 0) rotate(var(--spin));
       animation: confettiFall var(--duration) linear forwards;
       animation-delay: var(--delay);
-      transform: translate3d(0, 0, 0) rotate(var(--spin));
     }
 
     @keyframes pulseDot {
@@ -608,8 +585,8 @@
       }
 
       .difficulty {
-        padding: 0 7px;
         min-height: 40px;
+        padding: 0 7px;
         font-size: 0.88rem;
       }
 
@@ -659,22 +636,10 @@
 
     <section class="hud" aria-label="Game controls and score">
       <div class="stats">
-        <div class="stat">
-          <span>Moves</span>
-          <strong id="moves">0</strong>
-        </div>
-        <div class="stat">
-          <span>Timer</span>
-          <strong id="timer">00:00</strong>
-        </div>
-        <div class="stat">
-          <span>Best</span>
-          <strong id="best">--:--</strong>
-        </div>
-        <div class="stat">
-          <span>Pairs</span>
-          <strong id="pairs">0/8</strong>
-        </div>
+        <div class="stat"><span>Moves</span><strong id="moves">0</strong></div>
+        <div class="stat"><span>Timer</span><strong id="timer">00:00</strong></div>
+        <div class="stat"><span>Best</span><strong id="best">--:--</strong></div>
+        <div class="stat"><span>Pairs</span><strong id="pairs">0/8</strong></div>
       </div>
 
       <div class="controls">
@@ -702,18 +667,9 @@
       <h2 id="victoryTitle">Matched</h2>
       <p id="victoryCopy">Neon recall locked in.</p>
       <div class="victory-metrics">
-        <div class="metric">
-          <span>Time</span>
-          <strong id="winTime">00:00</strong>
-        </div>
-        <div class="metric">
-          <span>Moves</span>
-          <strong id="winMoves">0</strong>
-        </div>
-        <div class="metric">
-          <span>Best</span>
-          <strong id="winBest">--:--</strong>
-        </div>
+        <div class="metric"><span>Time</span><strong id="winTime">00:00</strong></div>
+        <div class="metric"><span>Moves</span><strong id="winMoves">0</strong></div>
+        <div class="metric"><span>Best</span><strong id="winBest">--:--</strong></div>
       </div>
       <button class="primary-action" type="button" id="playAgain">Shuffle Again</button>
     </div>
@@ -725,9 +681,7 @@
         "⚡", "💎", "🔥", "🌙", "🛸", "🎧", "👾", "🧠", "🪩",
         "🚀", "🧬", "🕹️", "🍒", "🧿", "🌈", "💿", "🔮", "✨"
       ];
-      const GLOWS = [
-        "#38f8ff", "#ff47c7", "#9dff43", "#ffd166", "#9f7cff", "#ff5b7f"
-      ];
+      const GLOWS = ["#38f8ff", "#ff47c7", "#9dff43", "#ffd166", "#9f7cff", "#ff5b7f"];
       const SIZE_CONFIG = {
         "4x4": { rows: 4, cols: 4 },
         "4x6": { rows: 4, cols: 6 },
@@ -828,9 +782,7 @@
         window.clearTimeout(messageTimer);
         messageEl.textContent = text;
         messageEl.classList.add("is-visible");
-        messageTimer = window.setTimeout(() => {
-          messageEl.classList.remove("is-visible");
-        }, duration);
+        messageTimer = window.setTimeout(() => messageEl.classList.remove("is-visible"), duration);
       }
 
       function setStatus(text) {
@@ -895,9 +847,7 @@
           board.appendChild(button);
         });
 
-        window.setTimeout(() => {
-          board.classList.remove("is-shuffling", "is-locked");
-        }, 820);
+        window.setTimeout(() => board.classList.remove("is-shuffling", "is-locked"), 820);
       }
 
       function newGame(size = currentSize) {
@@ -948,7 +898,6 @@
         startTimer();
         flipCard(cardEl);
         setStatus("Reading");
-
         if (flipped.length < 2) return;
 
         isLocked = true;
@@ -1032,10 +981,7 @@
         confettiLayer.appendChild(fragment);
       }
 
-      difficultyButtons.forEach((button) => {
-        button.addEventListener("click", () => newGame(button.dataset.size));
-      });
-
+      difficultyButtons.forEach((button) => button.addEventListener("click", () => newGame(button.dataset.size)));
       document.getElementById("restart").addEventListener("click", () => newGame());
       document.getElementById("peek").addEventListener("click", peekHint);
       document.getElementById("playAgain").addEventListener("click", () => newGame());

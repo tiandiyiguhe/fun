@@ -513,17 +513,52 @@
         (function () {
             var SIZE = 4;
             var DIRECTIONS = ["left", "right", "up", "down"];
+            var HostArray = Array;
+            var HostObject = Object;
+
+            try {
+                if (typeof console !== "undefined" && console.log && console.log.constructor) {
+                    HostArray = console.log.constructor("return Array")();
+                    HostObject = console.log.constructor("return Object")();
+                }
+            } catch (error) {
+                HostArray = Array;
+                HostObject = Object;
+            }
+
+            function makeObject(properties) {
+                var object = new HostObject();
+                Object.keys(properties).forEach(function (key) {
+                    object[key] = properties[key];
+                });
+                return object;
+            }
+
+            function makeCoord(row, col) {
+                return makeObject({ row: row, col: col });
+            }
 
             function createEmptyGrid() {
-                return Array.from({ length: SIZE }, function () {
-                    return Array(SIZE).fill(0);
-                });
+                var grid = new HostArray(SIZE);
+                for (var row = 0; row < SIZE; row += 1) {
+                    var values = new HostArray(SIZE);
+                    for (var col = 0; col < SIZE; col += 1) {
+                        values[col] = 0;
+                    }
+                    grid[row] = values;
+                }
+                return grid;
             }
 
             function cloneGrid(grid) {
-                return grid.map(function (row) {
-                    return row.slice();
-                });
+                var copy = new HostArray(grid.length);
+                for (var row = 0; row < grid.length; row += 1) {
+                    copy[row] = new HostArray(grid[row].length);
+                    for (var col = 0; col < grid[row].length; col += 1) {
+                        copy[row][col] = grid[row][col];
+                    }
+                }
+                return copy;
             }
 
             function gridsEqual(a, b) {
@@ -538,16 +573,16 @@
             }
 
             function coordsForLine(direction, line) {
-                var coords = [];
+                var coords = new HostArray();
                 for (var index = 0; index < SIZE; index += 1) {
                     if (direction === "left") {
-                        coords.push({ row: line, col: index });
+                        coords.push(makeCoord(line, index));
                     } else if (direction === "right") {
-                        coords.push({ row: line, col: SIZE - 1 - index });
+                        coords.push(makeCoord(line, SIZE - 1 - index));
                     } else if (direction === "up") {
-                        coords.push({ row: index, col: line });
+                        coords.push(makeCoord(index, line));
                     } else if (direction === "down") {
-                        coords.push({ row: SIZE - 1 - index, col: line });
+                        coords.push(makeCoord(SIZE - 1 - index, line));
                     }
                 }
                 return coords;
@@ -559,18 +594,19 @@
                 }
 
                 var next = createEmptyGrid();
-                var merges = [];
+                var merges = new HostArray();
                 var scoreGain = 0;
 
                 for (var line = 0; line < SIZE; line += 1) {
                     var coords = coordsForLine(direction, line);
-                    var values = coords
-                        .map(function (coord) {
-                            return grid[coord.row][coord.col];
-                        })
-                        .filter(function (value) {
-                            return value !== 0;
-                        });
+                    var values = new HostArray();
+                    for (var coordIndex = 0; coordIndex < coords.length; coordIndex += 1) {
+                        var coord = coords[coordIndex];
+                        var sourceValue = grid[coord.row][coord.col];
+                        if (sourceValue !== 0) {
+                            values.push(sourceValue);
+                        }
+                    }
 
                     var targetIndex = 0;
                     for (var valueIndex = 0; valueIndex < values.length; valueIndex += 1) {
@@ -579,11 +615,11 @@
                             value *= 2;
                             valueIndex += 1;
                             scoreGain += value;
-                            merges.push({
+                            merges.push(makeObject({
                                 row: coords[targetIndex].row,
                                 col: coords[targetIndex].col,
                                 value: value
-                            });
+                            }));
                         }
 
                         next[coords[targetIndex].row][coords[targetIndex].col] = value;
@@ -591,20 +627,20 @@
                     }
                 }
 
-                return {
+                return makeObject({
                     grid: next,
                     moved: !gridsEqual(grid, next),
                     scoreGain: scoreGain,
                     merges: merges
-                };
+                });
             }
 
             function getEmptyCells(grid) {
-                var cells = [];
+                var cells = new HostArray();
                 for (var row = 0; row < SIZE; row += 1) {
                     for (var col = 0; col < SIZE; col += 1) {
                         if (grid[row][col] === 0) {
-                            cells.push({ row: row, col: col });
+                            cells.push(makeCoord(row, col));
                         }
                     }
                 }
@@ -617,21 +653,21 @@
                 var emptyCells = getEmptyCells(next);
 
                 if (emptyCells.length === 0) {
-                    return { grid: next, tile: null };
+                    return makeObject({ grid: next, tile: null });
                 }
 
                 var cell = emptyCells[Math.floor(random() * emptyCells.length)];
                 var value = random() < 0.9 ? 2 : 4;
                 next[cell.row][cell.col] = value;
 
-                return {
+                return makeObject({
                     grid: next,
-                    tile: {
+                    tile: makeObject({
                         row: cell.row,
                         col: cell.col,
                         value: value
-                    }
-                };
+                    })
+                });
             }
 
             function addRandomTile(grid, rng) {
@@ -669,7 +705,7 @@
                 return false;
             }
 
-            globalThis.Game2048Logic = {
+            globalThis.Game2048Logic = makeObject({
                 SIZE: SIZE,
                 addRandomTile: addRandomTile,
                 addRandomTileWithMeta: addRandomTileWithMeta,
@@ -679,7 +715,7 @@
                 createEmptyGrid: createEmptyGrid,
                 hasWon: hasWon,
                 moveGrid: moveGrid
-            };
+            });
         })();
     </script>
 
@@ -956,7 +992,7 @@
                 if (animating) {
                     return;
                 }
-                if (overlay.classList.contains("hidden") === false && !keepPlaying) {
+                if (!overlay.classList.contains("hidden")) {
                     return;
                 }
 

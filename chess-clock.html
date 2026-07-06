@@ -1,151 +1,1073 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Chess Clock</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#0a0a0f;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;user-select:none}
-.container{display:flex;flex-direction:column;align-items:center;gap:24px;padding:20px;width:100%;max-width:500px}
-.clocks{display:flex;width:100%;gap:8px}
-.clock{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 12px;border-radius:16px;background:#12121a;border:2px solid #1a1a2e;cursor:pointer;transition:all .15s;position:relative}
-.clock.active{border-color:#00ff88;box-shadow:0 0 20px rgba(0,255,136,.15),inset 0 0 20px rgba(0,255,136,.05)}
-.clock.low{border-color:#ff4444;box-shadow:0 0 20px rgba(255,68,68,.2)}
-.clock.low .time{color:#ff4444;animation:pulse .5s ease-in-out infinite alternate}
-.clock .label{font-size:12px;color:#666;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px}
-.clock .time{font-size:48px;font-weight:700;font-variant-numeric:tabular-nums;color:#00ff88;font-family:'Courier New',monospace}
-.clock .increment{font-size:11px;color:#444;margin-top:4px}
-.clock .moves{font-size:11px;color:#333;margin-top:2px}
-.controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
-.btn{background:#12121a;border:1px solid #1a1a2e;color:#888;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;transition:all .15s;font-family:inherit}
-.btn:hover{background:#1a1a2e;color:#ccc}
-.btn.primary{background:#00ff88;color:#0a0a0f;border-color:#00ff88;font-weight:600}
-.btn.primary:hover{background:#00cc6a}
-.presets{display:flex;gap:4px;flex-wrap:wrap;justify-content:center}
-.preset{background:#12121a;border:1px solid #1a1a2e;color:#666;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-family:'Courier New',monospace;transition:all .15s}
-.preset:hover{color:#ccc;border-color:#333}
-.preset.active{background:#1a1a2e;border-color:#00ff8844;color:#00ff88}
-@keyframes pulse{from{opacity:1}to{opacity:.5}}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Two-player Chess Clock</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #05070b;
+      --panel: rgba(11, 16, 26, 0.9);
+      --panel-strong: rgba(16, 23, 36, 0.98);
+      --line: rgba(211, 229, 255, 0.14);
+      --line-hot: rgba(105, 241, 224, 0.58);
+      --text: #f5f8ff;
+      --soft: #aeb9ca;
+      --muted: #6f7c90;
+      --cyan: #69f1e0;
+      --lime: #a7ff83;
+      --rose: #ff5c89;
+      --amber: #ffd166;
+      --violet: #b38cff;
+      --blue: #66a8ff;
+      --danger: #ff486d;
+      --radius: 8px;
+      --shadow: 0 22px 70px rgba(0, 0, 0, 0.42);
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+      margin: 0;
+    }
+
+    body {
+      min-height: 100dvh;
+      overflow-x: hidden;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 28%),
+        linear-gradient(135deg, #05070b 0%, #09111b 42%, #0b0d15 68%, #05070b 100%);
+      color: var(--text);
+      font-family: var(--font);
+      letter-spacing: 0;
+    }
+
+    body::before {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      content: "";
+      pointer-events: none;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.026) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.86), transparent 82%);
+      opacity: 0.7;
+    }
+
+    body::after {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      content: "";
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(105, 241, 224, 0.1), transparent 28%, transparent 72%, rgba(255, 92, 137, 0.09)),
+        linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.48) 100%);
+    }
+
+    button {
+      border: 0;
+      color: inherit;
+      font: inherit;
+      letter-spacing: 0;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button:focus-visible {
+      outline: 2px solid var(--amber);
+      outline-offset: 3px;
+    }
+
+    .app {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 14px;
+      width: min(1280px, calc(100% - 28px));
+      min-height: 100dvh;
+      margin: 0 auto;
+      padding: 14px 0;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.062), rgba(255, 255, 255, 0.018)),
+        var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px) saturate(1.18);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .mark {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      flex: 0 0 auto;
+      border: 1px solid rgba(105, 241, 224, 0.5);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(135deg, rgba(105, 241, 224, 0.2), rgba(179, 140, 255, 0.13)),
+        rgba(5, 8, 13, 0.84);
+      box-shadow: 0 0 28px rgba(105, 241, 224, 0.16);
+      color: var(--cyan);
+      font-family: var(--mono);
+      font-size: 1.2rem;
+      font-weight: 900;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.56rem;
+      line-height: 1.05;
+      font-weight: 850;
+    }
+
+    .status {
+      margin: 4px 0 0;
+      color: var(--soft);
+      font-size: 0.92rem;
+      min-height: 1.25em;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .tool-button {
+      min-height: 42px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      font-weight: 780;
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+    }
+
+    .tool-button:hover {
+      transform: translateY(-1px);
+      border-color: rgba(105, 241, 224, 0.44);
+      background: rgba(105, 241, 224, 0.08);
+      box-shadow: 0 0 24px rgba(105, 241, 224, 0.1);
+    }
+
+    .tool-button.primary {
+      border-color: rgba(105, 241, 224, 0.62);
+      background: linear-gradient(135deg, rgba(105, 241, 224, 0.96), rgba(167, 255, 131, 0.92));
+      color: #06100f;
+      box-shadow: 0 0 28px rgba(105, 241, 224, 0.2);
+    }
+
+    .tool-button[aria-pressed="false"] {
+      color: var(--soft);
+    }
+
+    .stage {
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) auto;
+      gap: 14px;
+      min-height: 0;
+    }
+
+    .clock-board {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 14px;
+      min-height: min(68dvh, 720px);
+    }
+
+    .player-clock {
+      position: relative;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      min-width: 0;
+      min-height: 340px;
+      padding: clamp(18px, 2.8vw, 30px);
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.058), rgba(255, 255, 255, 0.016)),
+        var(--panel);
+      box-shadow: var(--shadow);
+      text-align: left;
+      backdrop-filter: blur(18px) saturate(1.14);
+      transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+    }
+
+    .player-clock::before {
+      position: absolute;
+      inset: 0;
+      content: "";
+      pointer-events: none;
+      background:
+        linear-gradient(135deg, rgba(105, 241, 224, 0.13), transparent 42%),
+        linear-gradient(315deg, rgba(102, 168, 255, 0.12), transparent 42%);
+      opacity: 0.62;
+      transition: opacity 180ms ease;
+    }
+
+    .player-clock[data-side="1"]::before {
+      background:
+        linear-gradient(135deg, rgba(255, 92, 137, 0.13), transparent 42%),
+        linear-gradient(315deg, rgba(179, 140, 255, 0.13), transparent 42%);
+    }
+
+    .player-clock:hover {
+      transform: translateY(-2px);
+      border-color: rgba(255, 255, 255, 0.22);
+    }
+
+    .player-clock.is-active {
+      border-color: var(--line-hot);
+      box-shadow:
+        0 22px 70px rgba(0, 0, 0, 0.48),
+        0 0 34px rgba(105, 241, 224, 0.18),
+        inset 0 0 34px rgba(105, 241, 224, 0.04);
+    }
+
+    .player-clock[data-side="1"].is-active {
+      border-color: rgba(255, 92, 137, 0.62);
+      box-shadow:
+        0 22px 70px rgba(0, 0, 0, 0.48),
+        0 0 34px rgba(255, 92, 137, 0.18),
+        inset 0 0 34px rgba(255, 92, 137, 0.04);
+    }
+
+    .player-clock.is-idle {
+      opacity: 0.78;
+    }
+
+    .player-clock.is-low {
+      animation: pressurePulse 950ms ease-in-out infinite;
+    }
+
+    .player-clock.is-flagged {
+      border-color: rgba(255, 72, 109, 0.86);
+      background:
+        linear-gradient(180deg, rgba(255, 72, 109, 0.2), rgba(255, 255, 255, 0.014)),
+        var(--panel-strong);
+      box-shadow:
+        0 22px 70px rgba(0, 0, 0, 0.48),
+        0 0 40px rgba(255, 72, 109, 0.22);
+    }
+
+    .player-clock > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .player-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .player-name {
+      min-width: 0;
+      overflow: hidden;
+      color: var(--soft);
+      font-size: 1.12rem;
+      font-weight: 800;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .side-chip {
+      min-width: 72px;
+      padding: 7px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.18);
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 850;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .player-clock.is-active .side-chip {
+      border-color: rgba(105, 241, 224, 0.55);
+      color: var(--cyan);
+    }
+
+    .player-clock[data-side="1"].is-active .side-chip {
+      border-color: rgba(255, 92, 137, 0.58);
+      color: var(--rose);
+    }
+
+    .time-wrap {
+      display: grid;
+      place-items: center;
+      min-width: 0;
+      padding: 14px 0 18px;
+    }
+
+    .time {
+      width: 100%;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 8rem;
+      font-weight: 900;
+      line-height: 0.92;
+      text-align: center;
+      text-shadow: 0 0 24px rgba(245, 248, 255, 0.1);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .player-clock.is-active .time {
+      color: var(--cyan);
+      text-shadow:
+        0 0 20px rgba(105, 241, 224, 0.26),
+        0 0 58px rgba(105, 241, 224, 0.14);
+    }
+
+    .player-clock[data-side="1"].is-active .time {
+      color: var(--rose);
+      text-shadow:
+        0 0 20px rgba(255, 92, 137, 0.28),
+        0 0 58px rgba(255, 92, 137, 0.14);
+    }
+
+    .player-clock.is-flagged .time {
+      color: var(--danger);
+      text-shadow:
+        0 0 22px rgba(255, 72, 109, 0.34),
+        0 0 70px rgba(255, 72, 109, 0.18);
+    }
+
+    .player-foot {
+      display: grid;
+      gap: 12px;
+    }
+
+    .meter {
+      height: 9px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.22);
+    }
+
+    .meter-fill {
+      width: 100%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--cyan), var(--lime));
+      transform-origin: left;
+      transition: transform 160ms linear, background 180ms ease;
+    }
+
+    .player-clock[data-side="1"] .meter-fill {
+      background: linear-gradient(90deg, var(--rose), var(--violet));
+    }
+
+    .player-clock.is-low .meter-fill,
+    .player-clock.is-flagged .meter-fill {
+      background: linear-gradient(90deg, var(--danger), var(--amber));
+    }
+
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.84rem;
+      font-weight: 750;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.95fr) minmax(0, 1fr);
+      gap: 14px;
+    }
+
+    .control-section {
+      display: grid;
+      gap: 10px;
+      min-width: 0;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.052), rgba(255, 255, 255, 0.014)),
+        var(--panel);
+      box-shadow: 0 16px 50px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(18px) saturate(1.12);
+    }
+
+    .section-title {
+      color: var(--soft);
+      font-size: 0.77rem;
+      font-weight: 850;
+      text-transform: uppercase;
+    }
+
+    .segmented {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .segment {
+      min-height: 38px;
+      flex: 1 1 auto;
+      min-width: 64px;
+      padding: 0 11px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--soft);
+      font-size: 0.88rem;
+      font-weight: 800;
+      transition: border-color 160ms ease, background 160ms ease, color 160ms ease, box-shadow 160ms ease;
+    }
+
+    .segment:hover {
+      border-color: rgba(105, 241, 224, 0.38);
+      background: rgba(105, 241, 224, 0.07);
+      color: var(--text);
+    }
+
+    .segment[aria-pressed="true"] {
+      border-color: rgba(105, 241, 224, 0.64);
+      background: rgba(105, 241, 224, 0.14);
+      color: var(--cyan);
+      box-shadow: inset 0 0 18px rgba(105, 241, 224, 0.06);
+    }
+
+    .segment.warn[aria-pressed="true"] {
+      border-color: rgba(255, 209, 102, 0.58);
+      background: rgba(255, 209, 102, 0.13);
+      color: var(--amber);
+    }
+
+    @keyframes pressurePulse {
+      0%,
+      100% {
+        box-shadow:
+          0 22px 70px rgba(0, 0, 0, 0.48),
+          0 0 24px rgba(255, 72, 109, 0.16);
+      }
+      50% {
+        box-shadow:
+          0 22px 70px rgba(0, 0, 0, 0.48),
+          0 0 42px rgba(255, 72, 109, 0.3);
+      }
+    }
+
+    @media (max-width: 980px) {
+      .controls {
+        grid-template-columns: 1fr;
+      }
+
+      .time {
+        font-size: 6rem;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .app {
+        width: min(100% - 18px, 680px);
+        padding: 9px 0;
+        gap: 9px;
+      }
+
+      .topbar {
+        grid-template-columns: 1fr;
+      }
+
+      .actions {
+        justify-content: stretch;
+      }
+
+      .tool-button {
+        flex: 1 1 0;
+      }
+
+      .clock-board {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 9px;
+        min-height: auto;
+      }
+
+      .player-clock {
+        min-height: 248px;
+      }
+
+      .time {
+        font-size: 3.75rem;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .brand {
+        align-items: flex-start;
+      }
+
+      .mark {
+        width: 40px;
+        height: 40px;
+      }
+
+      .player-clock {
+        min-height: 218px;
+        padding: 16px;
+      }
+
+      .time {
+        font-size: 2.55rem;
+      }
+
+      .side-chip {
+        min-width: 58px;
+        padding-inline: 8px;
+      }
+
+      .segment {
+        min-width: 54px;
+        padding-inline: 8px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
 </head>
 <body>
-<div class="container">
-<div class="clocks">
-<div class="clock active" id="clock-top">
-<div class="label">White</div>
-<div class="time" id="time-top">5:00</div>
-<div class="increment" id="inc-top">+0s</div>
-<div class="moves" id="moves-top">Moves: 0</div>
-</div>
-<div class="clock" id="clock-bottom">
-<div class="label">Black</div>
-<div class="time" id="time-bottom">5:00</div>
-<div class="increment" id="inc-bottom">+0s</div>
-<div class="moves" id="moves-bottom">Moves: 0</div>
-</div>
-</div>
-<div class="presets" id="presets">
-<button class="preset" data-min="1" data-inc="0">1+0</button>
-<button class="preset active" data-min="5" data-inc="0">5+0</button>
-<button class="preset" data-min="3" data-inc="2">3+2</button>
-<button class="preset" data-min="5" data-inc="5">5+5</button>
-<button class="preset" data-min="10" data-inc="0">10+0</button>
-</div>
-<div class="controls">
-<button class="btn primary" id="btn-start">Start</button>
-<button class="btn" id="btn-pause">Pause</button>
-<button class="btn" id="btn-reset">Reset</button>
-<button class="btn" id="btn-swap">Swap Sides</button>
-</div>
-</div>
-<script>
-const STORAGE_KEY = 'chess-clock-preset';
-let state = { running: false, paused: false, active: 'top', topTime: 300, bottomTime: 300, inc: 0, topMoves: 0, bottomMoves: 0, lastTick: 0, timer: null };
-const els = {
-top: document.getElementById('time-top'), bottom: document.getElementById('time-bottom'),
-incTop: document.getElementById('inc-top'), incBottom: document.getElementById('inc-bottom'),
-movesTop: document.getElementById('moves-top'), movesBottom: document.getElementById('moves-bottom'),
-clockTop: document.getElementById('clock-top'), clockBottom: document.getElementById('clock-bottom'),
-presets: document.getElementById('presets'),
-start: document.getElementById('btn-start'), pause: document.getElementById('btn-pause')
-};
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark" aria-hidden="true">64</div>
+        <div>
+          <h1>Two-player Chess Clock</h1>
+          <p class="status" id="status">Ready</p>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="tool-button primary" id="playPause" type="button">Start</button>
+        <button class="tool-button" id="reset" type="button">Reset</button>
+        <button class="tool-button" id="sound" type="button" aria-pressed="true">Sound</button>
+      </div>
+    </header>
 
-function fmt(sec) { const m = Math.floor(sec / 60); const s = Math.floor(sec % 60); return m + ':' + String(s).padStart(2, '0'); }
+    <section class="stage" aria-label="Chess clock">
+      <div class="clock-board">
+        <button class="player-clock" type="button" data-side="0" aria-label="White clock">
+          <span class="player-head">
+            <span class="player-name">White</span>
+            <span class="side-chip">Ready</span>
+          </span>
+          <span class="time-wrap">
+            <span class="time" data-time>5:00</span>
+          </span>
+          <span class="player-foot">
+            <span class="meter" aria-hidden="true"><span class="meter-fill" data-meter></span></span>
+            <span class="meta-row">
+              <span data-moves>0 moves</span>
+              <span data-left>100%</span>
+            </span>
+          </span>
+        </button>
 
-function updateDisplay() {
-els.top.textContent = fmt(state.topTime);
-els.bottom.textContent = fmt(state.bottomTime);
-els.incTop.textContent = '+' + state.inc + 's';
-els.incBottom.textContent = '+' + state.inc + 's';
-els.movesTop.textContent = 'Moves: ' + state.topMoves;
-els.movesBottom.textContent = 'Moves: ' + state.bottomMoves;
-els.clockTop.classList.toggle('active', state.active === 'top');
-els.clockBottom.classList.toggle('active', state.active === 'bottom');
-els.clockTop.classList.toggle('low', state.topTime <= 10);
-els.clockBottom.classList.toggle('low', state.bottomTime <= 10);
-}
+        <button class="player-clock" type="button" data-side="1" aria-label="Black clock">
+          <span class="player-head">
+            <span class="player-name">Black</span>
+            <span class="side-chip">Ready</span>
+          </span>
+          <span class="time-wrap">
+            <span class="time" data-time>5:00</span>
+          </span>
+          <span class="player-foot">
+            <span class="meter" aria-hidden="true"><span class="meter-fill" data-meter></span></span>
+            <span class="meta-row">
+              <span data-moves>0 moves</span>
+              <span data-left>100%</span>
+            </span>
+          </span>
+        </button>
+      </div>
 
-function flagSound() { try { const ctx = new AudioContext(); const o = ctx.createOscillator(); const g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value = 440; g.gain.value = 0.3; o.start(); o.stop(ctx.currentTime + 0.3); } catch(e){} }
+      <div class="controls" aria-label="Clock controls">
+        <section class="control-section">
+          <div class="section-title">Time</div>
+          <div class="segmented" id="presetControls"></div>
+        </section>
+        <section class="control-section">
+          <div class="section-title">Mode</div>
+          <div class="segmented" id="modeControls">
+            <button class="segment" type="button" data-mode="none">None</button>
+            <button class="segment" type="button" data-mode="fischer">Increment</button>
+            <button class="segment warn" type="button" data-mode="delay">Delay</button>
+          </div>
+        </section>
+        <section class="control-section">
+          <div class="section-title">Increment</div>
+          <div class="segmented" id="incrementControls"></div>
+        </section>
+      </div>
+    </section>
+  </main>
 
-function tick() {
-const now = Date.now();
-const dt = (now - state.lastTick) / 1000;
-state.lastTick = now;
-if (state.active === 'top') {
-state.topTime = Math.max(0, state.topTime - dt);
-if (state.topTime <= 0) { stop(); flagSound(); els.clockTop.classList.add('low'); updateDisplay(); return; }
-} else {
-state.bottomTime = Math.max(0, state.bottomTime - dt);
-if (state.bottomTime <= 0) { stop(); flagSound(); els.clockBottom.classList.add('low'); updateDisplay(); return; }
-}
-updateDisplay();
-}
+  <script>
+    (function () {
+      "use strict";
 
-function startTimer() { if (!state.timer) { state.lastTick = Date.now(); state.timer = setInterval(tick, 50); } }
-function stopTimer() { clearInterval(state.timer); state.timer = null; }
-function stop() { state.running = false; state.paused = false; stopTimer(); els.start.textContent = 'Start'; }
+      const MS = 1000;
+      const PRESETS = [
+        { label: "1+0", baseSeconds: 60, incrementSeconds: 0, incrementMode: "none" },
+        { label: "3+2", baseSeconds: 180, incrementSeconds: 2, incrementMode: "fischer" },
+        { label: "5+0", baseSeconds: 300, incrementSeconds: 0, incrementMode: "none" },
+        { label: "10+5", baseSeconds: 600, incrementSeconds: 5, incrementMode: "fischer" },
+        { label: "15+10", baseSeconds: 900, incrementSeconds: 10, incrementMode: "fischer" }
+      ];
+      const INCREMENTS = [0, 1, 2, 3, 5, 10];
 
-function switchSide() {
-const prev = state.active;
-state.active = prev === 'top' ? 'bottom' : 'top';
-if (prev === 'top') { state.topTime += state.inc; state.topMoves++; } else { state.bottomTime += state.inc; state.bottomMoves++; }
-updateDisplay();
-}
+      const cloneState = (state) => ({
+        ...state,
+        players: state.players.map((player) => ({ ...player }))
+      });
 
-function setPreset(min, inc) {
-state.topTime = min * 60; state.bottomTime = min * 60; state.inc = inc;
-state.topMoves = 0; state.bottomMoves = 0;
-stop(); state.active = 'top'; updateDisplay();
-document.querySelectorAll('.preset').forEach(b => b.classList.remove('active'));
-document.querySelector(`.preset[data-min="${min}"][data-inc="${inc}"]`)?.classList.add('active');
-try { localStorage.setItem(STORAGE_KEY, `${min}-${inc}`); } catch(e){}
-}
+      function normalizeMode(mode, incrementSeconds) {
+        if (mode === "delay") return "delay";
+        if (mode === "none" || incrementSeconds === 0) return "none";
+        return "fischer";
+      }
 
-els.clockTop.addEventListener('click', () => { if (state.running && !state.paused && state.active === 'top') switchSide(); });
-els.clockBottom.addEventListener('click', () => { if (state.running && !state.paused && state.active === 'bottom') switchSide(); });
-els.start.addEventListener('click', () => {
-if (state.paused) { state.paused = false; startTimer(); els.start.textContent = 'Pause'; return; }
-if (state.running) { state.paused = true; stopTimer(); els.start.textContent = 'Resume'; return; }
-state.running = true; state.paused = false; state.lastTick = Date.now(); startTimer(); els.start.textContent = 'Pause';
-});
-els.pause.addEventListener('click', () => { stop(); updateDisplay(); });
-document.getElementById('btn-reset').addEventListener('click', () => {
-const p = document.querySelector('.preset.active');
-if (p) setPreset(parseInt(p.dataset.min), parseInt(p.dataset.inc));
-});
-document.getElementById('btn-swap').addEventListener('click', () => {
-state.active = state.active === 'top' ? 'bottom' : 'top'; updateDisplay();
-});
-els.presets.addEventListener('click', e => {
-const b = e.target.closest('.preset');
-if (b) setPreset(parseInt(b.dataset.min), parseInt(b.dataset.inc));
-});
-document.addEventListener('keydown', e => { if (e.code === 'Space' && state.running && !state.paused) { e.preventDefault(); switchSide(); } });
+      function createClock(options = {}) {
+        const baseSeconds = Number.isFinite(options.baseSeconds) ? Math.max(1, options.baseSeconds) : 300;
+        const incrementSeconds = Number.isFinite(options.incrementSeconds) ? Math.max(0, options.incrementSeconds) : 0;
+        const incrementMode = normalizeMode(options.incrementMode || "fischer", incrementSeconds);
+        const baseMs = Math.round(baseSeconds * MS);
+        const incrementMs = Math.round(incrementSeconds * MS);
+        return {
+          baseMs,
+          incrementMs,
+          incrementMode,
+          players: [
+            { timeMs: baseMs, moves: 0 },
+            { timeMs: baseMs, moves: 0 }
+          ],
+          active: null,
+          running: false,
+          flagged: null,
+          lastTimestampMs: null,
+          turnStartedAtMs: null,
+          turnStartTimeMs: null
+        };
+      }
 
-window.addEventListener('load', () => {
-try { const v = localStorage.getItem(STORAGE_KEY) || '5-0'; const [m,i] = v.split('-'); setPreset(parseInt(m), parseInt(i)); } catch(e){ setPreset(5,0); }
-});
-</script>
+      function startClock(state, side = 0, nowMs = 0) {
+        if (state.flagged !== null) return cloneState(state);
+        const next = cloneState(state);
+        const active = side === 1 ? 1 : 0;
+        next.active = active;
+        next.running = true;
+        next.lastTimestampMs = nowMs;
+        next.turnStartedAtMs = nowMs;
+        next.turnStartTimeMs = next.players[active].timeMs;
+        return next;
+      }
+
+      function applyTick(state, nowMs = 0) {
+        if (!state.running || state.active === null || state.flagged !== null) {
+          return cloneState(state);
+        }
+
+        const next = cloneState(state);
+        const active = next.active;
+        const previous = Number.isFinite(next.lastTimestampMs) ? next.lastTimestampMs : nowMs;
+        const elapsedMs = Math.max(0, nowMs - previous);
+        let remainingMs = next.players[active].timeMs;
+
+        if (next.incrementMode === "delay" && next.incrementMs > 0) {
+          const turnStartedAt = Number.isFinite(next.turnStartedAtMs) ? next.turnStartedAtMs : nowMs;
+          const turnStartTime = Number.isFinite(next.turnStartTimeMs) ? next.turnStartTimeMs : remainingMs;
+          const elapsedTurnMs = Math.max(0, nowMs - turnStartedAt);
+          remainingMs = turnStartTime - Math.max(0, elapsedTurnMs - next.incrementMs);
+        } else {
+          remainingMs -= elapsedMs;
+        }
+
+        if (remainingMs <= 0) {
+          next.players[active].timeMs = 0;
+          next.running = false;
+          next.flagged = active;
+          next.lastTimestampMs = nowMs;
+          return next;
+        }
+
+        next.players[active].timeMs = remainingMs;
+        next.lastTimestampMs = nowMs;
+        return next;
+      }
+
+      function pauseClock(state, nowMs = 0) {
+        const next = applyTick(state, nowMs);
+        next.running = false;
+        next.lastTimestampMs = null;
+        return next;
+      }
+
+      function switchTurn(state, nowMs = 0) {
+        const ticked = applyTick(state, nowMs);
+        if (!ticked.running || ticked.active === null || ticked.flagged !== null) {
+          return ticked;
+        }
+
+        const next = cloneState(ticked);
+        const moved = next.active;
+        const waiting = moved === 0 ? 1 : 0;
+
+        if (next.incrementMode === "fischer" && next.incrementMs > 0) {
+          next.players[moved].timeMs += next.incrementMs;
+        }
+
+        next.players[moved].moves += 1;
+        next.active = waiting;
+        next.running = true;
+        next.lastTimestampMs = nowMs;
+        next.turnStartedAtMs = nowMs;
+        next.turnStartTimeMs = next.players[waiting].timeMs;
+        return next;
+      }
+
+      function formatTime(timeMs) {
+        const safeMs = Math.max(0, timeMs);
+        if (safeMs === 0) return "0:00";
+        if (safeMs < 10000) {
+          return (safeMs / MS).toFixed(1);
+        }
+
+        const totalSeconds = Math.ceil(safeMs / MS);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        if (hours > 0) {
+          return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+        }
+        return `${minutes}:${String(seconds).padStart(2, "0")}`;
+      }
+
+      window.ChessClockEngine = {
+        PRESETS,
+        INCREMENTS,
+        createClock,
+        startClock,
+        pauseClock,
+        switchTurn,
+        applyTick,
+        formatTime
+      };
+
+      if (typeof document === "undefined") return;
+
+      const engine = window.ChessClockEngine;
+      const names = ["White", "Black"];
+      const status = document.getElementById("status");
+      const playPause = document.getElementById("playPause");
+      const reset = document.getElementById("reset");
+      const sound = document.getElementById("sound");
+      const presetControls = document.getElementById("presetControls");
+      const modeControls = document.getElementById("modeControls");
+      const incrementControls = document.getElementById("incrementControls");
+      const playerButtons = Array.from(document.querySelectorAll(".player-clock"));
+
+      let config = { ...engine.PRESETS[2] };
+      let state = engine.createClock(config);
+      let animationFrame = 0;
+      let soundEnabled = true;
+      let audioContext = null;
+      let flagPlayedFor = null;
+
+      function now() {
+        return performance.now();
+      }
+
+      function ensureAudio() {
+        if (!soundEnabled) return;
+        const AudioCtor = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtor) return;
+        if (!audioContext) audioContext = new AudioCtor();
+        if (audioContext.state === "suspended") {
+          audioContext.resume();
+        }
+      }
+
+      function playFlagSound() {
+        if (!soundEnabled) return;
+        ensureAudio();
+        if (!audioContext) return;
+
+        const start = audioContext.currentTime + 0.02;
+        const master = audioContext.createGain();
+        master.gain.setValueAtTime(0.0001, start);
+        master.connect(audioContext.destination);
+
+        for (let i = 0; i < 3; i += 1) {
+          const tone = audioContext.createOscillator();
+          const gain = audioContext.createGain();
+          const t = start + i * 0.18;
+          tone.type = i % 2 ? "square" : "sawtooth";
+          tone.frequency.setValueAtTime(i % 2 ? 740 : 520, t);
+          gain.gain.setValueAtTime(0.0001, t);
+          gain.gain.exponentialRampToValueAtTime(0.16, t + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
+          tone.connect(gain);
+          gain.connect(master);
+          tone.start(t);
+          tone.stop(t + 0.15);
+        }
+      }
+
+      function maybeFlagFeedback(previousFlag) {
+        if (state.flagged === null || state.flagged === previousFlag || flagPlayedFor === state.flagged) return;
+        flagPlayedFor = state.flagged;
+        playFlagSound();
+        if ("vibrate" in navigator) {
+          navigator.vibrate([110, 70, 140]);
+        }
+      }
+
+      function gameStatus() {
+        if (state.flagged !== null) return `${names[state.flagged]} flagged`;
+        if (state.running && state.active !== null) return `${names[state.active]} running`;
+        if (state.active !== null) return "Paused";
+        return "Ready";
+      }
+
+      function moveLabel(count) {
+        return `${count} ${count === 1 ? "move" : "moves"}`;
+      }
+
+      function renderPlayer(button, side) {
+        const player = state.players[side];
+        const time = button.querySelector("[data-time]");
+        const meter = button.querySelector("[data-meter]");
+        const moves = button.querySelector("[data-moves]");
+        const left = button.querySelector("[data-left]");
+        const chip = button.querySelector(".side-chip");
+        const percentage = Math.max(0, Math.min(100, (player.timeMs / state.baseMs) * 100));
+        const isActive = state.running && state.active === side;
+        const isFlagged = state.flagged === side;
+        const isLow = player.timeMs > 0 && player.timeMs <= Math.min(30000, state.baseMs * 0.12);
+
+        button.classList.toggle("is-active", isActive);
+        button.classList.toggle("is-idle", state.running && !isActive);
+        button.classList.toggle("is-low", isLow && !isFlagged);
+        button.classList.toggle("is-flagged", isFlagged);
+        button.setAttribute("aria-pressed", String(isActive));
+        time.textContent = engine.formatTime(player.timeMs);
+        meter.style.transform = `scaleX(${percentage / 100})`;
+        moves.textContent = moveLabel(player.moves);
+        left.textContent = `${Math.round(percentage)}%`;
+        chip.textContent = isFlagged ? "Flag" : isActive ? "Live" : "Ready";
+      }
+
+      function renderControls() {
+        playPause.textContent = state.running ? "Pause" : state.active === null ? "Start" : "Resume";
+        sound.setAttribute("aria-pressed", String(soundEnabled));
+        sound.textContent = soundEnabled ? "Sound" : "Muted";
+
+        Array.from(presetControls.querySelectorAll("[data-preset]")).forEach((button) => {
+          button.setAttribute("aria-pressed", String(button.dataset.preset === `${config.baseSeconds}+${config.incrementSeconds}`));
+        });
+        Array.from(modeControls.querySelectorAll("[data-mode]")).forEach((button) => {
+          button.setAttribute("aria-pressed", String(button.dataset.mode === config.incrementMode));
+        });
+        Array.from(incrementControls.querySelectorAll("[data-increment]")).forEach((button) => {
+          button.setAttribute("aria-pressed", String(Number(button.dataset.increment) === config.incrementSeconds));
+        });
+      }
+
+      function render() {
+        status.textContent = gameStatus();
+        playerButtons.forEach((button, index) => renderPlayer(button, index));
+        renderControls();
+      }
+
+      function scheduleFrame() {
+        if (animationFrame || !state.running) return;
+        animationFrame = requestAnimationFrame(frame);
+      }
+
+      function frame(timestamp) {
+        animationFrame = 0;
+        const previousFlag = state.flagged;
+        state = engine.applyTick(state, timestamp);
+        maybeFlagFeedback(previousFlag);
+        render();
+        scheduleFrame();
+      }
+
+      function hardReset() {
+        cancelAnimationFrame(animationFrame);
+        animationFrame = 0;
+        state = engine.createClock(config);
+        flagPlayedFor = null;
+        render();
+      }
+
+      function normalizeConfig() {
+        config.incrementMode = config.incrementSeconds === 0 && config.incrementMode !== "delay" ? "none" : config.incrementMode;
+        if (config.incrementMode === "none") {
+          config.incrementSeconds = 0;
+        }
+      }
+
+      function setPreset(preset) {
+        config = { ...preset };
+        hardReset();
+      }
+
+      function setMode(mode) {
+        config.incrementMode = mode;
+        if (mode === "none") {
+          config.incrementSeconds = 0;
+        } else if (config.incrementSeconds === 0) {
+          config.incrementSeconds = 2;
+        }
+        normalizeConfig();
+        hardReset();
+      }
+
+      function setIncrement(seconds) {
+        config.incrementSeconds = seconds;
+        if (seconds === 0) {
+          config.incrementMode = "none";
+        } else if (config.incrementMode === "none") {
+          config.incrementMode = "fischer";
+        }
+        normalizeConfig();
+        hardReset();
+      }
+
+      function toggleRun() {
+        ensureAudio();
+        if (state.flagged !== null) return;
+        if (state.running) {
+          state = engine.pauseClock(state, now());
+        } else {
+          state = engine.startClock(state, state.active === null ? 0 : state.active, now());
+          scheduleFrame();
+        }
+        render();
+      }
+
+      function tapClock(side) {
+        ensureAudio();
+        if (state.flagged !== null) return;
+        const previousFlag = state.flagged;
+        if (!state.running) {
+          state = engine.startClock(state, side, now());
+        } else {
+          state = engine.switchTurn(state, now());
+        }
+        maybeFlagFeedback(previousFlag);
+        render();
+        scheduleFrame();
+      }
+
+      function buildControls() {
+        presetControls.innerHTML = "";
+        engine.PRESETS.forEach((preset) => {
+          const button = document.createElement("button");
+          button.className = "segment";
+          button.type = "button";
+          button.dataset.preset = `${preset.baseSeconds}+${preset.incrementSeconds}`;
+          button.textContent = preset.label;
+          button.addEventListener("click", () => setPreset(preset));
+          presetControls.append(button);
+        });
+
+        incrementControls.innerHTML = "";
+        engine.INCREMENTS.forEach((seconds) => {
+          const button = document.createElement("button");
+          button.className = "segment";
+          button.type = "button";
+          button.dataset.increment = String(seconds);
+          button.textContent = seconds === 0 ? "0" : `+${seconds}`;
+          button.addEventListener("click", () => setIncrement(seconds));
+          incrementControls.append(button);
+        });
+      }
+
+      playPause.addEventListener("click", toggleRun);
+      reset.addEventListener("click", hardReset);
+      sound.addEventListener("click", () => {
+        soundEnabled = !soundEnabled;
+        if (soundEnabled) ensureAudio();
+        render();
+      });
+      modeControls.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-mode]");
+        if (button) setMode(button.dataset.mode);
+      });
+      playerButtons.forEach((button, side) => {
+        button.addEventListener("click", () => tapClock(side));
+      });
+      window.addEventListener("keydown", (event) => {
+        if (event.target && /input|textarea|select/i.test(event.target.tagName)) return;
+        if (event.code === "Space") {
+          event.preventDefault();
+          toggleRun();
+        } else if (event.key === "r" || event.key === "R") {
+          hardReset();
+        } else if (event.key === "1") {
+          tapClock(0);
+        } else if (event.key === "2") {
+          tapClock(1);
+        }
+      });
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible" && state.running) {
+          state = engine.applyTick(state, now());
+          render();
+          scheduleFrame();
+        }
+      });
+
+      buildControls();
+      render();
+    })();
+  </script>
 </body>
 </html>

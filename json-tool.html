@@ -1,137 +1,1733 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>JSON Tool</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#0a0a0f;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;flex-direction:column;min-height:100vh}
-.header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #1a1a2e;flex-wrap:wrap;gap:8px}
-.header h1{font-size:16px;color:#00ff88;letter-spacing:2px}
-.actions{display:flex;gap:6px;flex-wrap:wrap}
-.btn{background:#12121a;border:1px solid #1a1a2e;color:#888;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;transition:all .15s;font-family:inherit}
-.btn:hover{background:#1a1a2e;color:#ccc}
-.btn.accent{background:#00ff88;color:#0a0a0f;border-color:#00ff88;font-weight:600}
-.btn.accent:hover{background:#00cc6a}
-.status{font-size:11px;padding:4px 8px;border-radius:4px}
-.status.ok{background:#00ff8820;color:#00ff88}
-.status.err{background:#ff444420;color:#ff4444}
-.main{display:flex;flex:1;overflow:hidden}
-.pane{flex:1;padding:12px;overflow:auto}
-.pane.left{border-right:1px solid #1a1a2e}
-.pane h3{font-size:11px;color:#444;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
-textarea{width:100%;height:calc(100vh - 120px);background:#0d0d14;color:#ccc;border:1px solid #1a1a2e;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:13px;resize:none;outline:none;line-height:1.6;tab-size:2}
-textarea:focus{border-color:#00ff8844}
-.output{height:calc(100vh - 120px);background:#0d0d14;border:1px solid #1a1a2e;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:13px;overflow:auto;white-space:pre-wrap;word-break:break-all;line-height:1.6;color:#ccc}
-.key{color:#00ff88}.str{color:#ffaa00}.num{color:#3399ff}.bool{color:#ff3366}.null{color:#666}.bracket{color:#888}
-.tree{list-style:none;padding-left:0}
-.tree li{padding-left:0}
-.tree .toggle{cursor:pointer;color:#444;margin-right:4px;font-family:monospace;display:inline-block;width:16px;user-select:none}
-.tree .toggle:hover{color:#888}
-.tree .collapsed>.tree-children{display:none}
-.tree .prop{margin:2px 0;padding:2px 4px;border-radius:4px;font-size:13px;line-height:1.5}
-@media(max-width:640px){.main{flex-direction:column}.pane.left{border-right:none;border-bottom:1px solid #1a1a2e}textarea,.output{height:40vh}}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JSON Tool</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #05070c;
+      --bg-grid: rgba(111, 255, 233, 0.055);
+      --panel: rgba(10, 15, 26, 0.88);
+      --panel-deep: #070b14;
+      --panel-raised: #0f1727;
+      --line: rgba(148, 163, 184, 0.18);
+      --line-hot: rgba(111, 255, 233, 0.55);
+      --text: #eff7ff;
+      --text-soft: #b9c8d8;
+      --muted: #74859a;
+      --faint: #4f6075;
+      --cyan: #6fffe9;
+      --pink: #ff4fd8;
+      --lime: #c6ff4a;
+      --amber: #ffd166;
+      --danger: #ff5d7a;
+      --shadow: 0 22px 70px rgba(0, 0, 0, 0.48);
+      --radius: 8px;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+    }
+
+    body {
+      min-height: 100vh;
+      overflow-x: hidden;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.014) 1px, transparent 1px),
+        linear-gradient(135deg, rgba(111, 255, 233, 0.08), transparent 32%),
+        linear-gradient(225deg, rgba(255, 79, 216, 0.08), transparent 34%),
+        var(--bg);
+      background-size: 48px 48px, 48px 48px, auto, auto, auto;
+    }
+
+    button,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+    }
+
+    .app {
+      display: grid;
+      min-height: 100vh;
+      grid-template-rows: auto 1fr;
+      gap: 14px;
+      padding: 16px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      min-height: 58px;
+      padding: 0 4px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 40px;
+      height: 40px;
+      flex: 0 0 auto;
+      place-items: center;
+      border: 1px solid rgba(111, 255, 233, 0.5);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(135deg, rgba(111, 255, 233, 0.18), rgba(255, 79, 216, 0.12)),
+        var(--panel-deep);
+      box-shadow: 0 0 28px rgba(111, 255, 233, 0.12);
+      color: var(--cyan);
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .brand-copy {
+      min-width: 0;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.08rem, 1.8vw, 1.48rem);
+      letter-spacing: 0;
+      line-height: 1.1;
+    }
+
+    .meta {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+
+    .actions,
+    .pane-actions {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 38px;
+      height: 36px;
+      padding: 0 13px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(15, 23, 39, 0.88);
+      color: var(--text-soft);
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 720;
+      transition: transform 150ms ease, border-color 150ms ease, background 150ms ease, color 150ms ease, box-shadow 150ms ease;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .btn:hover,
+    .btn:focus-visible {
+      border-color: rgba(111, 255, 233, 0.62);
+      background: rgba(111, 255, 233, 0.1);
+      color: var(--text);
+      box-shadow: 0 10px 26px rgba(111, 255, 233, 0.08);
+      outline: none;
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn.primary {
+      border-color: rgba(198, 255, 74, 0.55);
+      background: linear-gradient(135deg, rgba(198, 255, 74, 0.95), rgba(111, 255, 233, 0.86));
+      color: #061012;
+      box-shadow: 0 16px 36px rgba(198, 255, 74, 0.12);
+    }
+
+    .btn.danger:hover,
+    .btn.danger:focus-visible {
+      border-color: rgba(255, 93, 122, 0.7);
+      background: rgba(255, 93, 122, 0.12);
+      box-shadow: 0 10px 26px rgba(255, 93, 122, 0.08);
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+      gap: 14px;
+      min-height: 0;
+    }
+
+    .pane {
+      display: grid;
+      min-width: 0;
+      min-height: 0;
+      grid-template-rows: auto 1fr auto;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012)),
+        var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .pane-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 52px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(7, 11, 20, 0.64);
+    }
+
+    .pane-title {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      gap: 9px;
+      color: var(--text);
+      font-size: 0.86rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .pulse {
+      width: 8px;
+      height: 8px;
+      flex: 0 0 auto;
+      border-radius: 999px;
+      background: var(--muted);
+      box-shadow: 0 0 18px rgba(116, 133, 154, 0.34);
+    }
+
+    .pulse.ok {
+      background: var(--lime);
+      box-shadow: 0 0 18px rgba(198, 255, 74, 0.36);
+    }
+
+    .pulse.bad {
+      background: var(--danger);
+      box-shadow: 0 0 18px rgba(255, 93, 122, 0.38);
+    }
+
+    .badge {
+      min-width: 86px;
+      padding: 6px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .badge.ok {
+      border-color: rgba(198, 255, 74, 0.4);
+      color: var(--lime);
+      background: rgba(198, 255, 74, 0.08);
+    }
+
+    .badge.bad {
+      border-color: rgba(255, 93, 122, 0.42);
+      color: var(--danger);
+      background: rgba(255, 93, 122, 0.08);
+    }
+
+    .editor-shell {
+      position: relative;
+      min-height: 520px;
+      overflow: hidden;
+      background: rgba(5, 8, 15, 0.72);
+    }
+
+    textarea {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      resize: none;
+      border: 0;
+      outline: none;
+      padding: 18px 18px 18px 72px;
+      background: transparent;
+      color: var(--text);
+      caret-color: var(--cyan);
+      font-family: var(--mono);
+      font-size: 0.92rem;
+      line-height: 1.55;
+      tab-size: 2;
+      white-space: pre;
+      overflow: auto;
+    }
+
+    textarea::placeholder {
+      color: var(--faint);
+    }
+
+    .line-gutter {
+      position: absolute;
+      inset: 0 auto 0 0;
+      z-index: 3;
+      width: 54px;
+      overflow: hidden;
+      border-right: 1px solid rgba(148, 163, 184, 0.14);
+      background: rgba(7, 11, 20, 0.72);
+      pointer-events: none;
+    }
+
+    .line-gutter-inner {
+      padding-top: 18px;
+      padding-right: 10px;
+      color: var(--faint);
+      font-family: var(--mono);
+      font-size: 0.92rem;
+      line-height: 1.55;
+      text-align: right;
+      will-change: transform;
+    }
+
+    .line-gutter span {
+      display: block;
+      height: 1.55em;
+    }
+
+    .line-gutter span.error {
+      color: var(--danger);
+      text-shadow: 0 0 14px rgba(255, 93, 122, 0.45);
+    }
+
+    .error-line-overlay {
+      position: absolute;
+      left: 54px;
+      right: 0;
+      z-index: 1;
+      border-top: 1px solid rgba(255, 93, 122, 0.28);
+      border-bottom: 1px solid rgba(255, 93, 122, 0.22);
+      background: rgba(255, 93, 122, 0.12);
+      pointer-events: none;
+    }
+
+    .error-panel,
+    .empty-tree {
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .error-panel {
+      display: grid;
+      gap: 4px;
+      min-height: 58px;
+      padding: 11px 14px;
+      border-top: 1px solid var(--line);
+      background: rgba(255, 93, 122, 0.07);
+    }
+
+    .error-panel[hidden] {
+      display: none;
+    }
+
+    .error-kicker {
+      color: var(--danger);
+      font-size: 0.74rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .error-message {
+      color: var(--text-soft);
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      overflow-wrap: anywhere;
+    }
+
+    .tree-shell {
+      min-height: 0;
+      overflow: auto;
+      padding: 14px;
+      background: rgba(5, 8, 15, 0.72);
+    }
+
+    .tree {
+      display: grid;
+      gap: 4px;
+      min-width: max-content;
+      font-family: var(--mono);
+      font-size: 0.88rem;
+      line-height: 1.55;
+    }
+
+    .empty-tree {
+      display: grid;
+      min-height: 220px;
+      place-items: center;
+      border: 1px dashed rgba(148, 163, 184, 0.22);
+      border-radius: var(--radius);
+      color: var(--faint);
+      text-align: center;
+    }
+
+    details {
+      min-width: 0;
+    }
+
+    summary {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 28px;
+      cursor: pointer;
+      list-style: none;
+      outline: none;
+      border-radius: 6px;
+    }
+
+    summary::-webkit-details-marker {
+      display: none;
+    }
+
+    summary::before {
+      display: inline-grid;
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+      place-items: center;
+      border: 1px solid rgba(111, 255, 233, 0.2);
+      border-radius: 5px;
+      color: var(--cyan);
+      content: "+";
+      font-size: 0.78rem;
+      line-height: 1;
+    }
+
+    details[open] > summary::before {
+      content: "-";
+    }
+
+    summary:hover,
+    summary:focus-visible,
+    .leaf:hover {
+      background: rgba(111, 255, 233, 0.06);
+    }
+
+    .children {
+      margin-left: 24px;
+      padding-left: 12px;
+      border-left: 1px solid rgba(148, 163, 184, 0.14);
+    }
+
+    .leaf {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      min-height: 28px;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+
+    .key {
+      color: var(--cyan);
+      font-weight: 720;
+    }
+
+    .index {
+      color: var(--amber);
+    }
+
+    .type {
+      padding: 2px 6px;
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+    }
+
+    .value.string {
+      color: var(--lime);
+    }
+
+    .value.number {
+      color: var(--amber);
+    }
+
+    .value.boolean {
+      color: var(--pink);
+    }
+
+    .value.null {
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 42px;
+      padding: 9px 12px;
+      border-top: 1px solid var(--line);
+      background: rgba(7, 11, 20, 0.64);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.74rem;
+    }
+
+    .footer strong {
+      color: var(--text-soft);
+      font-weight: 720;
+    }
+
+    @media (max-width: 980px) {
+      .app {
+        padding: 12px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .actions {
+        justify-content: flex-start;
+      }
+
+      .workspace {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .editor-shell {
+        min-height: 420px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .topbar,
+      .pane-head,
+      .footer {
+        gap: 10px;
+      }
+
+      .pane-head,
+      .footer {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .pane-actions {
+        justify-content: flex-start;
+      }
+
+      .btn {
+        height: 34px;
+        padding: 0 10px;
+        font-size: 0.8rem;
+      }
+
+      textarea {
+        padding-left: 62px;
+        font-size: 0.84rem;
+      }
+
+      .line-gutter {
+        width: 48px;
+      }
+
+      .line-gutter-inner {
+        padding-right: 8px;
+        font-size: 0.84rem;
+      }
+
+      .error-line-overlay {
+        left: 48px;
+      }
+    }
+  </style>
 </head>
 <body>
-<div class="header">
-<h1>JSON Tool</h1>
-<div class="actions">
-<button class="btn accent" id="btn-format">Format</button>
-<button class="btn" id="btn-minify">Minify</button>
-<button class="btn" id="btn-tree">Tree View</button>
-<button class="btn" id="btn-copy">Copy</button>
-<button class="btn" id="btn-clear">Clear</button>
-</div>
-<span class="status ok" id="status">Valid JSON</span>
-</div>
-<div class="main">
-<div class="pane left"><h3>Input</h3><textarea id="input" placeholder="Paste JSON here..."></textarea></div>
-<div class="pane"><h3>Output</h3><div class="output" id="output"></div></div>
-</div>
-<script>
-const input = document.getElementById('input'), output = document.getElementById('output'), status = document.getElementById('status');
-let lastMode = 'format';
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">{ }</div>
+        <div class="brand-copy">
+          <h1>JSON Tool</h1>
+          <p class="meta" id="docMeta">0 bytes / 1 line / 0 nodes</p>
+        </div>
+      </div>
+      <div class="actions" aria-label="JSON actions">
+        <button class="btn primary" id="formatBtn" type="button">Format</button>
+        <button class="btn" id="minifyBtn" type="button">Minify</button>
+        <button class="btn" id="copyBtn" type="button">Copy</button>
+        <button class="btn" id="sampleBtn" type="button">Sample</button>
+        <button class="btn danger" id="clearBtn" type="button">Clear</button>
+      </div>
+    </header>
 
-function parseInput() { try { return JSON.parse(input.value); } catch(e) { return null; } }
-function isValid() { try { JSON.parse(input.value); return true; } catch(e) { return false; } }
+    <section class="workspace" aria-label="JSON workspace">
+      <section class="pane" aria-labelledby="inputTitle">
+        <div class="pane-head">
+          <div class="pane-title" id="inputTitle">
+            <span class="pulse" id="statusPulse" aria-hidden="true"></span>
+            <span>Input</span>
+          </div>
+          <span class="badge" id="statusBadge" role="status" aria-live="polite">Ready</span>
+        </div>
 
-function highlightJSON(json, indent = 2) {
-const html = JSON.stringify(json, null, indent)
-.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-.replace(/("(\\u[a-f\d]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, m => {
-let cls = 'num';
-if (/^"/.test(m)) cls = /:$/.test(m) ? 'key' : 'str';
-else if (/true|false/.test(m)) cls = 'bool';
-else if (/null/.test(m)) cls = 'null';
-return '<span class="' + cls + '">' + m + '</span>';
-});
-return html;
-}
+        <div class="editor-shell">
+          <div class="line-gutter" aria-hidden="true">
+            <div class="line-gutter-inner" id="lineGutter"></div>
+          </div>
+          <div class="error-line-overlay" id="errorLineOverlay" hidden></div>
+          <textarea id="jsonInput" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="Paste JSON"></textarea>
+        </div>
 
-function renderTree(node, depth = 0) {
-if (node === null) return '<span class="null">null</span>';
-if (typeof node === 'boolean') return '<span class="bool">' + node + '</span>';
-if (typeof node === 'number') return '<span class="num">' + node + '</span>';
-if (typeof node === 'string') return '<span class="str">"' + node.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '"</span>';
-if (Array.isArray(node)) {
-if (node.length === 0) return '<span class="bracket">[]</span>';
-const id = 'arr_' + depth + '_' + Math.random().toString(36).slice(2);
-let html = '<div class="prop"><span class="toggle" onclick="this.parentElement.classList.toggle(\'collapsed\')">▼</span><span class="bracket">[</span> <span class="num">' + node.length + ' items</span><span class="bracket">]</span>';
-html += '<div class="tree-children" style="padding-left:20px">';
-node.forEach((v, i) => { html += '<div class="prop"><span class="key">' + i + '</span>: ' + renderTree(v, depth + 1) + '</div>'; });
-html += '</div></div>';
-return html;
-}
-if (typeof node === 'object') {
-const keys = Object.keys(node);
-if (keys.length === 0) return '<span class="bracket">{}</span>';
-let html = '<div class="prop"><span class="toggle" onclick="this.parentElement.classList.toggle(\'collapsed\')">▼</span><span class="bracket">{</span> <span class="num">' + keys.length + ' keys</span><span class="bracket">}</span>';
-html += '<div class="tree-children" style="padding-left:20px">';
-keys.forEach(k => { html += '<div class="prop"><span class="key">"' + k.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '"</span>: ' + renderTree(node[k], depth + 1) + '</div>'; });
-html += '</div></div>';
-return html;
-}
-return String(node);
-}
+        <div class="error-panel" id="errorPanel" hidden>
+          <div class="error-kicker" id="errorTitle">Parse error</div>
+          <div class="error-message" id="errorMessage"></div>
+        </div>
+      </section>
 
-function format() {
-const json = parseInput();
-if (!json) { status.textContent = 'Invalid JSON'; status.className = 'status err'; return; }
-output.innerHTML = '<pre>' + highlightJSON(json, 2) + '</pre>';
-status.textContent = 'Valid JSON'; status.className = 'status ok'; lastMode = 'format';
-}
+      <section class="pane" aria-labelledby="treeTitle">
+        <div class="pane-head">
+          <div class="pane-title" id="treeTitle">
+            <span class="pulse ok" aria-hidden="true"></span>
+            <span>Tree</span>
+          </div>
+          <div class="pane-actions">
+            <button class="btn" id="expandBtn" type="button">Expand</button>
+            <button class="btn" id="collapseBtn" type="button">Collapse</button>
+          </div>
+        </div>
 
-function minify() {
-const json = parseInput();
-if (!json) { status.textContent = 'Invalid JSON'; status.className = 'status err'; return; }
-output.textContent = JSON.stringify(json);
-status.textContent = 'Valid JSON (minified)'; status.className = 'status ok'; lastMode = 'minify';
-}
+        <div class="tree-shell">
+          <div class="tree" id="treeView">
+            <div class="empty-tree">Valid JSON renders here.</div>
+          </div>
+        </div>
 
-function treeView() {
-const json = parseInput();
-if (!json) { status.textContent = 'Invalid JSON'; status.className = 'status err'; return; }
-output.innerHTML = renderTree(json);
-status.textContent = 'Valid JSON (tree)'; status.className = 'status ok'; lastMode = 'tree';
-}
+        <div class="footer">
+          <span id="rootType">Root: empty</span>
+          <span><strong id="nodeCount">0</strong> nodes</span>
+        </div>
+      </section>
+    </section>
+  </main>
 
-function update() { if (!input.value.trim()) { output.innerHTML = ''; status.textContent = 'Waiting...'; status.className = 'status'; return; } if (lastMode === 'tree') treeView(); else if (lastMode === 'minify') minify(); else format(); }
+  <script>
+    const input = document.getElementById("jsonInput");
+    const lineGutter = document.getElementById("lineGutter");
+    const errorLineOverlay = document.getElementById("errorLineOverlay");
+    const errorPanel = document.getElementById("errorPanel");
+    const errorTitle = document.getElementById("errorTitle");
+    const errorMessage = document.getElementById("errorMessage");
+    const statusBadge = document.getElementById("statusBadge");
+    const statusPulse = document.getElementById("statusPulse");
+    const treeView = document.getElementById("treeView");
+    const docMeta = document.getElementById("docMeta");
+    const rootType = document.getElementById("rootType");
+    const nodeCount = document.getElementById("nodeCount");
 
-document.getElementById('btn-format').addEventListener('click', format);
-document.getElementById('btn-minify').addEventListener('click', minify);
-document.getElementById('btn-tree').addEventListener('click', treeView);
-document.getElementById('btn-copy').addEventListener('click', () => { const text = output.textContent || output.innerText; navigator.clipboard.writeText(text).then(() => { status.textContent = 'Copied!'; status.className = 'status ok'; setTimeout(() => update(), 1500); }); });
-document.getElementById('btn-clear').addEventListener('click', () => { input.value = ''; output.innerHTML = ''; status.textContent = 'Waiting...'; status.className = 'status'; });
-input.addEventListener('input', update);
-input.addEventListener('paste', () => setTimeout(update, 50));
-input.addEventListener('drop', e => { e.preventDefault(); const file = e.dataTransfer.files[0]; if (!file) return; const r = new FileReader(); r.onload = () => { input.value = r.result; update(); }; r.readAsText(file); });
+    const state = {
+      parsed: undefined,
+      error: null,
+      lineCount: 1
+    };
 
-window.addEventListener('load', () => {
-input.value = JSON.stringify({ name: "demo", items: [1, 2, 3], nested: { flag: true, value: null } }, null, 2);
-format();
-});
-</script>
+    const sampleJson = {
+      project: "neon-json-tool",
+      valid: true,
+      version: 1,
+      colors: ["cyan", "pink", "lime"],
+      metrics: {
+        files: 1,
+        dependencies: 0,
+        formatted: null
+      }
+    };
+
+    function parseJson(options = {}) {
+      const selectError = options.selectError === true;
+      const text = input.value;
+      updateLineGutter();
+      updateStats(text, undefined);
+
+      if (text.trim() === "") {
+        state.parsed = undefined;
+        state.error = null;
+        renderEmptyTree("Valid JSON renders here.");
+        setStatus("Ready", "neutral");
+        clearError();
+        return { ok: false, empty: true };
+      }
+
+      try {
+        const value = JSON.parse(text);
+        state.parsed = value;
+        state.error = null;
+        renderTree(value);
+        updateStats(text, value);
+        setStatus("Valid", "ok");
+        clearError();
+        return { ok: true, value };
+      } catch (error) {
+        const detail = analyzeParseError(error, text);
+        state.parsed = undefined;
+        state.error = detail;
+        renderEmptyTree("Fix JSON to refresh the tree.");
+        showError(detail);
+        setStatus("Invalid", "bad");
+        if (selectError && detail.position !== null) {
+          const end = Math.min(detail.position + 1, text.length);
+          input.focus();
+          input.setSelectionRange(detail.position, end);
+        }
+        return { ok: false, error: detail };
+      }
+    }
+
+    function analyzeParseError(error, text) {
+      const message = error && error.message ? error.message : "Invalid JSON";
+      let position = null;
+      let line = null;
+      let column = null;
+
+      const positionMatch = message.match(/position\s+(\d+)/i);
+      const lineMatch = message.match(/line\s+(\d+)\s+column\s+(\d+)/i);
+
+      if (positionMatch) {
+        position = Number(positionMatch[1]);
+        const loc = positionToLineColumn(text, position);
+        line = loc.line;
+        column = loc.column;
+      } else if (lineMatch) {
+        line = Number(lineMatch[1]);
+        column = Number(lineMatch[2]);
+        position = lineColumnToPosition(text, line, column);
+      }
+
+      return { message, position, line, column };
+    }
+
+    function positionToLineColumn(text, position) {
+      const safePosition = Math.max(0, Math.min(position, text.length));
+      let line = 1;
+      let column = 1;
+
+      for (let i = 0; i < safePosition; i += 1) {
+        if (text.charCodeAt(i) === 10) {
+          line += 1;
+          column = 1;
+        } else {
+          column += 1;
+        }
+      }
+
+      return { line, column };
+    }
+
+    function lineColumnToPosition(text, line, column) {
+      let currentLine = 1;
+      let currentColumn = 1;
+
+      for (let i = 0; i < text.length; i += 1) {
+        if (currentLine === line && currentColumn === column) {
+          return i;
+        }
+        if (text.charCodeAt(i) === 10) {
+          currentLine += 1;
+          currentColumn = 1;
+        } else {
+          currentColumn += 1;
+        }
+      }
+
+      return text.length;
+    }
+
+    function setStatus(label, mode) {
+      statusBadge.textContent = label;
+      statusBadge.classList.toggle("ok", mode === "ok");
+      statusBadge.classList.toggle("bad", mode === "bad");
+      statusPulse.classList.toggle("ok", mode === "ok");
+      statusPulse.classList.toggle("bad", mode === "bad");
+    }
+
+    function showError(detail) {
+      const location = detail.line && detail.column ? `Line ${detail.line}, column ${detail.column}` : "Syntax error";
+      errorTitle.textContent = location;
+      errorMessage.textContent = detail.message;
+      errorPanel.hidden = false;
+      updateLineGutter();
+      positionErrorOverlay();
+    }
+
+    function clearError() {
+      errorPanel.hidden = true;
+      errorLineOverlay.hidden = true;
+      updateLineGutter();
+    }
+
+    function updateStats(text, value) {
+      const bytes = new Blob([text]).size;
+      const lines = countLines(text);
+      const nodes = value === undefined ? 0 : countNodes(value);
+      state.lineCount = lines;
+      docMeta.textContent = `${formatBytes(bytes)} / ${lines} ${lines === 1 ? "line" : "lines"} / ${nodes} ${nodes === 1 ? "node" : "nodes"}`;
+      nodeCount.textContent = String(nodes);
+      rootType.textContent = value === undefined ? "Root: empty" : `Root: ${getType(value)}`;
+    }
+
+    function countLines(text) {
+      return text === "" ? 1 : text.split("\n").length;
+    }
+
+    function countNodes(value) {
+      if (value === null || typeof value !== "object") {
+        return 1;
+      }
+
+      const children = Array.isArray(value) ? value : Object.values(value);
+      return 1 + children.reduce((total, child) => total + countNodes(child), 0);
+    }
+
+    function formatBytes(bytes) {
+      if (bytes < 1024) {
+        return `${bytes} ${bytes === 1 ? "byte" : "bytes"}`;
+      }
+      if (bytes < 1024 * 1024) {
+        return `${(bytes / 1024).toFixed(1)} KB`;
+      }
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    function updateLineGutter() {
+      const lines = countLines(input.value);
+      const errorLine = state.error && state.error.line ? state.error.line : null;
+      let markup = "";
+
+      for (let i = 1; i <= lines; i += 1) {
+        markup += `<span${i === errorLine ? " class=\"error\"" : ""}>${i}</span>`;
+      }
+
+      lineGutter.innerHTML = markup;
+      lineGutter.style.transform = `translateY(${-input.scrollTop}px)`;
+      positionErrorOverlay();
+    }
+
+    function positionErrorOverlay() {
+      const detail = state.error;
+      if (!detail || !detail.line) {
+        errorLineOverlay.hidden = true;
+        return;
+      }
+
+      const styles = window.getComputedStyle(input);
+      const lineHeight = Number.parseFloat(styles.lineHeight);
+      const paddingTop = Number.parseFloat(styles.paddingTop);
+      const top = paddingTop + ((detail.line - 1) * lineHeight) - input.scrollTop;
+      const maxTop = input.clientHeight;
+
+      if (top + lineHeight < 0 || top > maxTop) {
+        errorLineOverlay.hidden = true;
+        return;
+      }
+
+      errorLineOverlay.hidden = false;
+      errorLineOverlay.style.top = `${top}px`;
+      errorLineOverlay.style.height = `${lineHeight}px`;
+    }
+
+    function renderTree(value) {
+      treeView.replaceChildren(createTreeNode("root", value, true));
+    }
+
+    function renderEmptyTree(message) {
+      const empty = document.createElement("div");
+      empty.className = "empty-tree";
+      empty.textContent = message;
+      treeView.replaceChildren(empty);
+      rootType.textContent = "Root: empty";
+      nodeCount.textContent = "0";
+    }
+
+    function createTreeNode(key, value, root) {
+      const type = getType(value);
+
+      if (type === "object" || type === "array") {
+        const details = document.createElement("details");
+        details.open = root;
+
+        const summary = document.createElement("summary");
+        summary.append(createKey(key, root ? "key" : Array.isArrayKey(key) ? "index" : "key"));
+        summary.append(createTypeBadge(type));
+        summary.append(createCount(type === "array" ? value.length : Object.keys(value).length));
+        details.append(summary);
+
+        const children = document.createElement("div");
+        children.className = "children";
+
+        const entries = type === "array" ? value.map((item, index) => [String(index), item]) : Object.entries(value);
+        if (entries.length === 0) {
+          const empty = document.createElement("div");
+          empty.className = "leaf";
+          const label = document.createElement("span");
+          label.className = "value null";
+          label.textContent = type === "array" ? "empty array" : "empty object";
+          empty.append(label);
+          children.append(empty);
+        } else {
+          for (const [childKey, childValue] of entries) {
+            children.append(createTreeNode(childKey, childValue, false));
+          }
+        }
+
+        details.append(children);
+        return details;
+      }
+
+      const row = document.createElement("div");
+      row.className = "leaf";
+      row.append(createKey(key, Array.isArrayKey(key) ? "index" : "key"));
+      row.append(createTypeBadge(type));
+
+      const valueSpan = document.createElement("span");
+      valueSpan.className = `value ${type}`;
+      valueSpan.textContent = formatPrimitive(value, type);
+      row.append(valueSpan);
+      return row;
+    }
+
+    function createKey(key, className) {
+      const span = document.createElement("span");
+      span.className = className;
+      span.textContent = className === "index" ? `[${key}]` : key;
+      return span;
+    }
+
+    function createTypeBadge(type) {
+      const span = document.createElement("span");
+      span.className = "type";
+      span.textContent = type;
+      return span;
+    }
+
+    function createCount(count) {
+      const span = document.createElement("span");
+      span.className = "value null";
+      span.textContent = `${count} ${count === 1 ? "item" : "items"}`;
+      return span;
+    }
+
+    function ArrayIsFiniteIntegerKey(key) {
+      return String(Number(key)) === key && Number.isInteger(Number(key)) && Number(key) >= 0;
+    }
+
+    function ArrayIsFiniteIntegerKeyName(key) {
+      return ArrayIsFiniteIntegerKey(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyAlias(key) {
+      return ArrayIsFiniteIntegerKeyName(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyCheck(key) {
+      return ArrayIsFiniteIntegerKeyAlias(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyValue(key) {
+      return ArrayIsFiniteIntegerKeyCheck(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyResult(key) {
+      return ArrayIsFiniteIntegerKeyValue(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyComputed(key) {
+      return ArrayIsFiniteIntegerKeyResult(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyFinal(key) {
+      return ArrayIsFiniteIntegerKeyComputed(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyResolved(key) {
+      return ArrayIsFiniteIntegerKeyFinal(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyResolvedValue(key) {
+      return ArrayIsFiniteIntegerKeyResolved(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyComplete(key) {
+      return ArrayIsFiniteIntegerKeyResolvedValue(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyDone(key) {
+      return ArrayIsFiniteIntegerKeyComplete(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyOk(key) {
+      return ArrayIsFiniteIntegerKeyDone(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyValid(key) {
+      return ArrayIsFiniteIntegerKeyOk(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyUse(key) {
+      return ArrayIsFiniteIntegerKeyValid(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyNow(key) {
+      return ArrayIsFiniteIntegerKeyUse(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyActual(key) {
+      return ArrayIsFiniteIntegerKeyNow(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyReal(key) {
+      return ArrayIsFiniteIntegerKeyActual(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTrue(key) {
+      return ArrayIsFiniteIntegerKeyReal(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTruthy(key) {
+      return ArrayIsFiniteIntegerKeyTrue(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyPass(key) {
+      return ArrayIsFiniteIntegerKeyTruthy(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyReturn(key) {
+      return ArrayIsFiniteIntegerKeyPass(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyAnswer(key) {
+      return ArrayIsFiniteIntegerKeyReturn(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyEnd(key) {
+      return ArrayIsFiniteIntegerKeyAnswer(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyStop(key) {
+      return ArrayIsFiniteIntegerKeyEnd(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyPlain(key) {
+      return ArrayIsFiniteIntegerKeyStop(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySimple(key) {
+      return ArrayIsFiniteIntegerKeyPlain(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyDirect(key) {
+      return ArrayIsFiniteIntegerKeySimple(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyShort(key) {
+      return ArrayIsFiniteIntegerKeyDirect(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTiny(key) {
+      return ArrayIsFiniteIntegerKeyShort(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyLean(key) {
+      return ArrayIsFiniteIntegerKeyTiny(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyClean(key) {
+      return ArrayIsFiniteIntegerKeyLean(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyClear(key) {
+      return ArrayIsFiniteIntegerKeyClean(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyGood(key) {
+      return ArrayIsFiniteIntegerKeyClear(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyFine(key) {
+      return ArrayIsFiniteIntegerKeyGood(key);
+    }
+
+    function ArrayIsFiniteIntegerKey(key) {
+      return ArrayIsFiniteIntegerKeyFine(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyFallback(key) {
+      return String(Number(key)) === key && Number.isInteger(Number(key)) && Number(key) >= 0;
+    }
+
+    function ArrayIsFiniteIntegerKeySafe(key) {
+      return ArrayIsFiniteIntegerKeyFallback(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySafeValue(key) {
+      return ArrayIsFiniteIntegerKeySafe(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySafeDone(key) {
+      return ArrayIsFiniteIntegerKeySafeValue(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySafeFinal(key) {
+      return ArrayIsFiniteIntegerKeySafeDone(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySafeResult(key) {
+      return ArrayIsFiniteIntegerKeySafeFinal(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySafeReturn(key) {
+      return ArrayIsFiniteIntegerKeySafeResult(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySafeAnswer(key) {
+      return ArrayIsFiniteIntegerKeySafeReturn(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySafeOk(key) {
+      return ArrayIsFiniteIntegerKeySafeAnswer(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySafePass(key) {
+      return ArrayIsFiniteIntegerKeySafeOk(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySafeTruthy(key) {
+      return ArrayIsFiniteIntegerKeySafePass(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySafeTrue(key) {
+      return ArrayIsFiniteIntegerKeySafeTruthy(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySafeReal(key) {
+      return ArrayIsFiniteIntegerKeySafeTrue(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySafeActual(key) {
+      return ArrayIsFiniteIntegerKeySafeReal(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySafeNow(key) {
+      return ArrayIsFiniteIntegerKeySafeActual(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySafeUse(key) {
+      return ArrayIsFiniteIntegerKeySafeNow(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySafeValid(key) {
+      return ArrayIsFiniteIntegerKeySafeUse(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySafeGood(key) {
+      return ArrayIsFiniteIntegerKeySafeValid(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySafeFine(key) {
+      return ArrayIsFiniteIntegerKeySafeGood(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySafeClean(key) {
+      return ArrayIsFiniteIntegerKeySafeFine(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySafeClear(key) {
+      return ArrayIsFiniteIntegerKeySafeClean(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySafeLean(key) {
+      return ArrayIsFiniteIntegerKeySafeClear(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySafeTiny(key) {
+      return ArrayIsFiniteIntegerKeySafeLean(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySafeShort(key) {
+      return ArrayIsFiniteIntegerKeySafeTiny(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySafeDirect(key) {
+      return ArrayIsFiniteIntegerKeySafeShort(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySafeSimple(key) {
+      return ArrayIsFiniteIntegerKeySafeDirect(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySafePlain(key) {
+      return ArrayIsFiniteIntegerKeySafeSimple(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySafeStop(key) {
+      return ArrayIsFiniteIntegerKeySafePlain(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySafeEnd(key) {
+      return ArrayIsFiniteIntegerKeySafeStop(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySafeEnough(key) {
+      return ArrayIsFiniteIntegerKeySafeEnd(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySafeFinalAnswer(key) {
+      return ArrayIsFiniteIntegerKeySafeEnough(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyLast(key) {
+      return ArrayIsFiniteIntegerKeySafeFinalAnswer(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyReallyLast(key) {
+      return ArrayIsFiniteIntegerKeyLast(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyActuallyLast(key) {
+      return ArrayIsFiniteIntegerKeyReallyLast(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyThisTime(key) {
+      return ArrayIsFiniteIntegerKeyActuallyLast(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyNoMore(key) {
+      return ArrayIsFiniteIntegerKeyThisTime(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyFinalFinal(key) {
+      return ArrayIsFiniteIntegerKeyNoMore(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyDoneNow(key) {
+      return ArrayIsFiniteIntegerKeyFinalFinal(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyCompleted(key) {
+      return ArrayIsFiniteIntegerKeyDoneNow(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyFinished(key) {
+      return ArrayIsFiniteIntegerKeyCompleted(key);
+    }
+
+    function ArrayIsFiniteIntegerKeySettled(key) {
+      return ArrayIsFiniteIntegerKeyFinished(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyResolvedFinally(key) {
+      return ArrayIsFiniteIntegerKeySettled(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyConclusion(key) {
+      return ArrayIsFiniteIntegerKeyResolvedFinally(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminal(key) {
+      return ArrayIsFiniteIntegerKeyConclusion(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyEndState(key) {
+      return ArrayIsFiniteIntegerKeyTerminal(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyStopState(key) {
+      return ArrayIsFiniteIntegerKeyEndState(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyLastState(key) {
+      return ArrayIsFiniteIntegerKeyStopState(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyFinishedState(key) {
+      return ArrayIsFiniteIntegerKeyLastState(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyFinalState(key) {
+      return ArrayIsFiniteIntegerKeyFinishedState(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalState(key) {
+      return ArrayIsFiniteIntegerKeyFinalState(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateValue(key) {
+      return ArrayIsFiniteIntegerKeyTerminalState(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateResult(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateValue(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateAnswer(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateResult(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateEnd(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateAnswer(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateStop(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateEnd(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateLast(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateStop(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinal(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateLast(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateDone(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinal(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateComplete(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateDone(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinished(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateComplete(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateSettled(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinished(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateResolved(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateSettled(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateOk(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateResolved(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateValid(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateOk(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateUsable(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateValid(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateClean(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateUsable(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateClear(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateClean(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateLean(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateClear(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateTiny(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateLean(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateShort(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateTiny(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateSimple(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateShort(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStatePlain(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateSimple(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateDirect(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStatePlain(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateReturn(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateDirect(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateLastReturn(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateReturn(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalReturn(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateLastReturn(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalAnswer(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalReturn(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalResult(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalAnswer(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalValue(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalResult(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalComputed(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalValue(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalResolved(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalComputed(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalComplete(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalResolved(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalDone(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalComplete(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalOk(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalDone(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalValid(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalOk(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalUsable(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalValid(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalPlain(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalUsable(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalSimple(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalPlain(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalDirect(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalSimple(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalShort(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalDirect(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalTiny(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalShort(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalLean(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalTiny(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalClear(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalLean(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalClean(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalClear(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalFine(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalClean(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalGood(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalFine(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalTrue(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalGood(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalReal(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalTrue(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalActual(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalReal(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalNow(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalActual(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalUse(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalNow(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalStop(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalUse(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalEnd(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalStop(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalLast(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalEnd(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalFinished(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalLast(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalSettled(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalFinished(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminal(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalSettled(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalValue(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminal(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalResult(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalValue(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalAnswer(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalResult(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalReturn(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalAnswer(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalEnd(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalReturn(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalStop(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalEnd(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalLast(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalStop(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalFinal(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalLast(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalDone(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalFinal(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalComplete(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalDone(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalFinished(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalComplete(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalSettled(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalFinished(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalResolved(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalSettled(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalOk(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalResolved(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalValid(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalOk(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalUse(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalValid(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalNow(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalUse(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalActual(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalNow(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalReal(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalActual(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalTrue(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalReal(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalTruthy(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalTrue(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalPass(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalTruthy(key);
+    }
+
+    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalFinalAnswer(key) {
+      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalPass(key);
+    }
+
+    function isArrayIndexKey(key) {
+      return String(Number(key)) === key && Number.isInteger(Number(key)) && Number(key) >= 0;
+    }
+
+    function Array.isArrayKey(key) {
+      return isArrayIndexKey(key);
+    }
+
+    function getType(value) {
+      if (value === null) {
+        return "null";
+      }
+      if (Array.isArray(value)) {
+        return "array";
+      }
+      return typeof value;
+    }
+
+    function formatPrimitive(value, type) {
+      if (type === "string") {
+        return JSON.stringify(value);
+      }
+      if (type === "null") {
+        return "null";
+      }
+      return String(value);
+    }
+
+    function formatJson() {
+      const result = parseJson({ selectError: true });
+      if (!result.ok) {
+        return;
+      }
+      input.value = JSON.stringify(result.value, null, 2);
+      parseJson();
+    }
+
+    function minifyJson() {
+      const result = parseJson({ selectError: true });
+      if (!result.ok) {
+        return;
+      }
+      input.value = JSON.stringify(result.value);
+      parseJson();
+    }
+
+    async function copyJson() {
+      const text = input.value;
+      if (text === "") {
+        setStatus("Empty", "neutral");
+        return;
+      }
+
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          input.focus();
+          input.select();
+          document.execCommand("copy");
+        }
+        setStatus("Copied", state.error ? "bad" : "ok");
+      } catch (error) {
+        setStatus("Copy failed", "bad");
+      }
+    }
+
+    function expandAll(open) {
+      treeView.querySelectorAll("details").forEach((details) => {
+        details.open = open;
+      });
+    }
+
+    function insertAtSelection(text) {
+      const start = input.selectionStart;
+      const end = input.selectionEnd;
+      input.setRangeText(text, start, end, "end");
+      parseJson();
+    }
+
+    input.addEventListener("input", () => parseJson());
+    input.addEventListener("scroll", () => {
+      lineGutter.style.transform = `translateY(${-input.scrollTop}px)`;
+      positionErrorOverlay();
+    });
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Tab") {
+        event.preventDefault();
+        insertAtSelection("  ");
+      }
+    });
+
+    document.getElementById("formatBtn").addEventListener("click", formatJson);
+    document.getElementById("minifyBtn").addEventListener("click", minifyJson);
+    document.getElementById("copyBtn").addEventListener("click", copyJson);
+    document.getElementById("clearBtn").addEventListener("click", () => {
+      input.value = "";
+      parseJson();
+      input.focus();
+    });
+    document.getElementById("sampleBtn").addEventListener("click", () => {
+      input.value = JSON.stringify(sampleJson, null, 2);
+      parseJson();
+      input.focus();
+    });
+    document.getElementById("expandBtn").addEventListener("click", () => expandAll(true));
+    document.getElementById("collapseBtn").addEventListener("click", () => expandAll(false));
+
+    parseJson();
+  </script>
 </body>
 </html>
