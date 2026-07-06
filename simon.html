@@ -614,7 +614,6 @@
       <header class="topbar">
         <div class="title-block">
           <h1>Neon Simon</h1>
-          <p class="subtitle">Watch the lights, then repeat the pattern.</p>
         </div>
         <div class="status-pill" id="statusText" aria-live="polite">Ready</div>
       </header>
@@ -944,7 +943,7 @@
       ensureAudio();
       clearTimers();
       setState(SimonLogic.createState({ best: loadBest(), strict: strictToggle.checked }));
-      messageText.textContent = 'Get ready.';
+      messageText.textContent = 'Ready.';
       schedule(() => beginNextRound(), 380);
     }
 
@@ -992,13 +991,13 @@
           return;
         }
 
-        messageText.textContent = 'Miss. Watch it again.';
+        messageText.textContent = 'Miss.';
         schedule(() => playSequence(state.sequence), 900);
         return;
       }
 
       if (result.roundComplete) {
-        messageText.textContent = 'Clean repeat.';
+        messageText.textContent = 'Matched.';
         schedule(() => beginNextRound(), 820);
       }
     }
@@ -1027,12 +1026,12 @@
       };
 
       const messages = {
-        ready: 'Press Start to begin.',
-        watching: 'Watch the lights.',
-        player: 'Repeat the pattern.',
-        complete: 'Pattern matched.',
-        retry: 'Miss. Watch it again.',
-        gameover: 'Press Start for a new run.',
+        ready: 'Ready.',
+        watching: 'Playback.',
+        player: 'Input open.',
+        complete: 'Matched.',
+        retry: 'Miss.',
+        gameover: 'Game over.',
       };
 
       scoreText.textContent = state.score;

@@ -8,25 +8,24 @@
     :root {
       color-scheme: dark;
       --bg: #05070c;
-      --bg-grid: rgba(111, 255, 233, 0.055);
-      --panel: rgba(10, 15, 26, 0.88);
-      --panel-deep: #070b14;
-      --panel-raised: #0f1727;
-      --line: rgba(148, 163, 184, 0.18);
+      --panel: rgba(9, 14, 25, 0.9);
+      --panel-strong: #0d1423;
+      --panel-deep: #060a12;
+      --line: rgba(156, 171, 193, 0.18);
       --line-hot: rgba(111, 255, 233, 0.55);
-      --text: #eff7ff;
-      --text-soft: #b9c8d8;
-      --muted: #74859a;
-      --faint: #4f6075;
+      --text: #f0f7ff;
+      --soft: #b8c7d9;
+      --muted: #78889e;
+      --faint: #506176;
       --cyan: #6fffe9;
       --pink: #ff4fd8;
       --lime: #c6ff4a;
       --amber: #ffd166;
-      --danger: #ff5d7a;
-      --shadow: 0 22px 70px rgba(0, 0, 0, 0.48);
+      --red: #ff5d7a;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.48);
       --radius: 8px;
-      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
       --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
     }
 
     * {
@@ -46,10 +45,10 @@
       min-height: 100vh;
       overflow-x: hidden;
       background:
-        linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.014) 1px, transparent 1px),
-        linear-gradient(135deg, rgba(111, 255, 233, 0.08), transparent 32%),
-        linear-gradient(225deg, rgba(255, 79, 216, 0.08), transparent 34%),
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.016) 1px, transparent 1px),
+        linear-gradient(135deg, rgba(111, 255, 233, 0.09), transparent 34%),
+        linear-gradient(225deg, rgba(255, 79, 216, 0.08), transparent 36%),
         var(--bg);
       background-size: 48px 48px, 48px 48px, auto, auto, auto;
     }
@@ -83,8 +82,8 @@
     .brand {
       display: flex;
       align-items: center;
-      gap: 12px;
       min-width: 0;
+      gap: 12px;
     }
 
     .brand-mark {
@@ -98,7 +97,7 @@
       background:
         linear-gradient(135deg, rgba(111, 255, 233, 0.18), rgba(255, 79, 216, 0.12)),
         var(--panel-deep);
-      box-shadow: 0 0 28px rgba(111, 255, 233, 0.12);
+      box-shadow: 0 0 28px rgba(111, 255, 233, 0.14);
       color: var(--cyan);
       font-family: var(--mono);
       font-size: 0.9rem;
@@ -106,15 +105,11 @@
       letter-spacing: 0;
     }
 
-    .brand-copy {
-      min-width: 0;
-    }
-
     h1 {
       margin: 0;
       font-size: clamp(1.08rem, 1.8vw, 1.48rem);
-      letter-spacing: 0;
       line-height: 1.1;
+      letter-spacing: 0;
     }
 
     .meta {
@@ -143,8 +138,8 @@
       padding: 0 13px;
       border: 1px solid var(--line);
       border-radius: var(--radius);
-      background: rgba(15, 23, 39, 0.88);
-      color: var(--text-soft);
+      background: rgba(14, 22, 38, 0.9);
+      color: var(--soft);
       cursor: pointer;
       font-size: 0.88rem;
       font-weight: 720;
@@ -155,7 +150,7 @@
 
     .btn:hover,
     .btn:focus-visible {
-      border-color: rgba(111, 255, 233, 0.62);
+      border-color: rgba(111, 255, 233, 0.65);
       background: rgba(111, 255, 233, 0.1);
       color: var(--text);
       box-shadow: 0 10px 26px rgba(111, 255, 233, 0.08);
@@ -168,24 +163,24 @@
     }
 
     .btn.primary {
-      border-color: rgba(198, 255, 74, 0.55);
-      background: linear-gradient(135deg, rgba(198, 255, 74, 0.95), rgba(111, 255, 233, 0.86));
+      border-color: rgba(198, 255, 74, 0.58);
+      background: linear-gradient(135deg, rgba(198, 255, 74, 0.96), rgba(111, 255, 233, 0.86));
       color: #061012;
-      box-shadow: 0 16px 36px rgba(198, 255, 74, 0.12);
+      box-shadow: 0 16px 34px rgba(198, 255, 74, 0.14);
     }
 
     .btn.danger:hover,
     .btn.danger:focus-visible {
-      border-color: rgba(255, 93, 122, 0.7);
+      border-color: rgba(255, 93, 122, 0.72);
       background: rgba(255, 93, 122, 0.12);
-      box-shadow: 0 10px 26px rgba(255, 93, 122, 0.08);
+      box-shadow: 0 10px 26px rgba(255, 93, 122, 0.09);
     }
 
     .workspace {
       display: grid;
+      min-height: 0;
       grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
       gap: 14px;
-      min-height: 0;
     }
 
     .pane {
@@ -210,7 +205,7 @@
       min-height: 52px;
       padding: 10px 12px;
       border-bottom: 1px solid var(--line);
-      background: rgba(7, 11, 20, 0.64);
+      background: rgba(6, 10, 18, 0.66);
     }
 
     .pane-title {
@@ -231,7 +226,7 @@
       flex: 0 0 auto;
       border-radius: 999px;
       background: var(--muted);
-      box-shadow: 0 0 18px rgba(116, 133, 154, 0.34);
+      box-shadow: 0 0 16px rgba(120, 136, 158, 0.34);
     }
 
     .pulse.ok {
@@ -240,7 +235,7 @@
     }
 
     .pulse.bad {
-      background: var(--danger);
+      background: var(--red);
       box-shadow: 0 0 18px rgba(255, 93, 122, 0.38);
     }
 
@@ -257,14 +252,14 @@
     }
 
     .badge.ok {
-      border-color: rgba(198, 255, 74, 0.4);
+      border-color: rgba(198, 255, 74, 0.42);
       color: var(--lime);
       background: rgba(198, 255, 74, 0.08);
     }
 
     .badge.bad {
-      border-color: rgba(255, 93, 122, 0.42);
-      color: var(--danger);
+      border-color: rgba(255, 93, 122, 0.44);
+      color: var(--red);
       background: rgba(255, 93, 122, 0.08);
     }
 
@@ -306,8 +301,8 @@
       z-index: 3;
       width: 54px;
       overflow: hidden;
-      border-right: 1px solid rgba(148, 163, 184, 0.14);
-      background: rgba(7, 11, 20, 0.72);
+      border-right: 1px solid rgba(156, 171, 193, 0.14);
+      background: rgba(6, 10, 18, 0.72);
       pointer-events: none;
     }
 
@@ -328,7 +323,7 @@
     }
 
     .line-gutter span.error {
-      color: var(--danger);
+      color: var(--red);
       text-shadow: 0 0 14px rgba(255, 93, 122, 0.45);
     }
 
@@ -343,12 +338,6 @@
       pointer-events: none;
     }
 
-    .error-panel,
-    .empty-tree {
-      color: var(--muted);
-      font-size: 0.88rem;
-    }
-
     .error-panel {
       display: grid;
       gap: 4px;
@@ -358,12 +347,13 @@
       background: rgba(255, 93, 122, 0.07);
     }
 
-    .error-panel[hidden] {
+    .error-panel[hidden],
+    .error-line-overlay[hidden] {
       display: none;
     }
 
     .error-kicker {
-      color: var(--danger);
+      color: var(--red);
       font-size: 0.74rem;
       font-weight: 800;
       letter-spacing: 0.08em;
@@ -371,7 +361,7 @@
     }
 
     .error-message {
-      color: var(--text-soft);
+      color: var(--soft);
       font-family: var(--mono);
       font-size: 0.82rem;
       overflow-wrap: anywhere;
@@ -397,7 +387,7 @@
       display: grid;
       min-height: 220px;
       place-items: center;
-      border: 1px dashed rgba(148, 163, 184, 0.22);
+      border: 1px dashed rgba(156, 171, 193, 0.22);
       border-radius: var(--radius);
       color: var(--faint);
       text-align: center;
@@ -412,10 +402,10 @@
       align-items: center;
       gap: 8px;
       min-height: 28px;
+      border-radius: 6px;
       cursor: pointer;
       list-style: none;
       outline: none;
-      border-radius: 6px;
     }
 
     summary::-webkit-details-marker {
@@ -428,7 +418,7 @@
       height: 18px;
       flex: 0 0 auto;
       place-items: center;
-      border: 1px solid rgba(111, 255, 233, 0.2);
+      border: 1px solid rgba(111, 255, 233, 0.22);
       border-radius: 5px;
       color: var(--cyan);
       content: "+";
@@ -449,7 +439,7 @@
     .children {
       margin-left: 24px;
       padding-left: 12px;
-      border-left: 1px solid rgba(148, 163, 184, 0.14);
+      border-left: 1px solid rgba(156, 171, 193, 0.14);
     }
 
     .leaf {
@@ -468,11 +458,12 @@
 
     .index {
       color: var(--amber);
+      font-weight: 720;
     }
 
     .type {
       padding: 2px 6px;
-      border: 1px solid rgba(148, 163, 184, 0.18);
+      border: 1px solid rgba(156, 171, 193, 0.18);
       border-radius: 999px;
       color: var(--muted);
       font-size: 0.68rem;
@@ -504,14 +495,14 @@
       min-height: 42px;
       padding: 9px 12px;
       border-top: 1px solid var(--line);
-      background: rgba(7, 11, 20, 0.64);
+      background: rgba(6, 10, 18, 0.66);
       color: var(--muted);
       font-family: var(--mono);
       font-size: 0.74rem;
     }
 
     .footer strong {
-      color: var(--text-soft);
+      color: var(--soft);
       font-weight: 720;
     }
 
@@ -539,12 +530,6 @@
     }
 
     @media (max-width: 560px) {
-      .topbar,
-      .pane-head,
-      .footer {
-        gap: 10px;
-      }
-
       .pane-head,
       .footer {
         align-items: flex-start;
@@ -586,7 +571,7 @@
     <header class="topbar">
       <div class="brand">
         <div class="brand-mark" aria-hidden="true">{ }</div>
-        <div class="brand-copy">
+        <div>
           <h1>JSON Tool</h1>
           <p class="meta" id="docMeta">0 bytes / 1 line / 0 nodes</p>
         </div>
@@ -666,8 +651,7 @@
 
     const state = {
       parsed: undefined,
-      error: null,
-      lineCount: 1
+      error: null
     };
 
     const sampleJson = {
@@ -685,7 +669,7 @@
     function parseJson(options = {}) {
       const selectError = options.selectError === true;
       const text = input.value;
-      updateLineGutter();
+      renderGutter();
       updateStats(text, undefined);
 
       if (text.trim() === "") {
@@ -714,9 +698,8 @@
         showError(detail);
         setStatus("Invalid", "bad");
         if (selectError && detail.position !== null) {
-          const end = Math.min(detail.position + 1, text.length);
           input.focus();
-          input.setSelectionRange(detail.position, end);
+          input.setSelectionRange(detail.position, Math.min(detail.position + 1, text.length));
         }
         return { ok: false, error: detail };
       }
@@ -724,18 +707,15 @@
 
     function analyzeParseError(error, text) {
       const message = error && error.message ? error.message : "Invalid JSON";
+      const positionMatch = message.match(/position\s+(\d+)/i);
+      const lineMatch = message.match(/line\s+(\d+)\s+column\s+(\d+)/i);
       let position = null;
       let line = null;
       let column = null;
 
-      const positionMatch = message.match(/position\s+(\d+)/i);
-      const lineMatch = message.match(/line\s+(\d+)\s+column\s+(\d+)/i);
-
       if (positionMatch) {
         position = Number(positionMatch[1]);
-        const loc = positionToLineColumn(text, position);
-        line = loc.line;
-        column = loc.column;
+        ({ line, column } = positionToLineColumn(text, position));
       } else if (lineMatch) {
         line = Number(lineMatch[1]);
         column = Number(lineMatch[2]);
@@ -790,25 +770,23 @@
     }
 
     function showError(detail) {
-      const location = detail.line && detail.column ? `Line ${detail.line}, column ${detail.column}` : "Syntax error";
-      errorTitle.textContent = location;
+      errorTitle.textContent = detail.line && detail.column ? `Line ${detail.line}, column ${detail.column}` : "Syntax error";
       errorMessage.textContent = detail.message;
       errorPanel.hidden = false;
-      updateLineGutter();
+      renderGutter();
       positionErrorOverlay();
     }
 
     function clearError() {
       errorPanel.hidden = true;
       errorLineOverlay.hidden = true;
-      updateLineGutter();
+      renderGutter();
     }
 
     function updateStats(text, value) {
       const bytes = new Blob([text]).size;
       const lines = countLines(text);
       const nodes = value === undefined ? 0 : countNodes(value);
-      state.lineCount = lines;
       docMeta.textContent = `${formatBytes(bytes)} / ${lines} ${lines === 1 ? "line" : "lines"} / ${nodes} ${nodes === 1 ? "node" : "nodes"}`;
       nodeCount.textContent = String(nodes);
       rootType.textContent = value === undefined ? "Root: empty" : `Root: ${getType(value)}`;
@@ -822,7 +800,6 @@
       if (value === null || typeof value !== "object") {
         return 1;
       }
-
       const children = Array.isArray(value) ? value : Object.values(value);
       return 1 + children.reduce((total, child) => total + countNodes(child), 0);
     }
@@ -837,34 +814,30 @@
       return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     }
 
-    function updateLineGutter() {
+    function renderGutter() {
       const lines = countLines(input.value);
       const errorLine = state.error && state.error.line ? state.error.line : null;
       let markup = "";
-
       for (let i = 1; i <= lines; i += 1) {
         markup += `<span${i === errorLine ? " class=\"error\"" : ""}>${i}</span>`;
       }
-
       lineGutter.innerHTML = markup;
       lineGutter.style.transform = `translateY(${-input.scrollTop}px)`;
       positionErrorOverlay();
     }
 
     function positionErrorOverlay() {
-      const detail = state.error;
-      if (!detail || !detail.line) {
+      if (!state.error || !state.error.line) {
         errorLineOverlay.hidden = true;
         return;
       }
 
       const styles = window.getComputedStyle(input);
-      const lineHeight = Number.parseFloat(styles.lineHeight);
-      const paddingTop = Number.parseFloat(styles.paddingTop);
-      const top = paddingTop + ((detail.line - 1) * lineHeight) - input.scrollTop;
-      const maxTop = input.clientHeight;
+      const lineHeight = Number.parseFloat(styles.lineHeight) || 22;
+      const paddingTop = Number.parseFloat(styles.paddingTop) || 18;
+      const top = paddingTop + ((state.error.line - 1) * lineHeight) - input.scrollTop;
 
-      if (top + lineHeight < 0 || top > maxTop) {
+      if (top + lineHeight < 0 || top > input.clientHeight) {
         errorLineOverlay.hidden = true;
         return;
       }
@@ -875,7 +848,7 @@
     }
 
     function renderTree(value) {
-      treeView.replaceChildren(createTreeNode("root", value, true));
+      treeView.replaceChildren(createTreeNode("root", value, { root: true, arrayItem: false }));
     }
 
     function renderEmptyTree(message) {
@@ -887,23 +860,25 @@
       nodeCount.textContent = "0";
     }
 
-    function createTreeNode(key, value, root) {
+    function createTreeNode(key, value, options = {}) {
       const type = getType(value);
+      const root = options.root === true;
+      const arrayItem = options.arrayItem === true;
 
       if (type === "object" || type === "array") {
         const details = document.createElement("details");
         details.open = root;
 
         const summary = document.createElement("summary");
-        summary.append(createKey(key, root ? "key" : Array.isArrayKey(key) ? "index" : "key"));
+        summary.append(createKey(key, root, arrayItem));
         summary.append(createTypeBadge(type));
         summary.append(createCount(type === "array" ? value.length : Object.keys(value).length));
         details.append(summary);
 
         const children = document.createElement("div");
         children.className = "children";
+        const entries = type === "array" ? value.map((item, index) => [String(index), item, true]) : Object.entries(value).map(([name, item]) => [name, item, false]);
 
-        const entries = type === "array" ? value.map((item, index) => [String(index), item]) : Object.entries(value);
         if (entries.length === 0) {
           const empty = document.createElement("div");
           empty.className = "leaf";
@@ -913,8 +888,8 @@
           empty.append(label);
           children.append(empty);
         } else {
-          for (const [childKey, childValue] of entries) {
-            children.append(createTreeNode(childKey, childValue, false));
+          for (const [childKey, childValue, childArrayItem] of entries) {
+            children.append(createTreeNode(childKey, childValue, { arrayItem: childArrayItem }));
           }
         }
 
@@ -924,7 +899,7 @@
 
       const row = document.createElement("div");
       row.className = "leaf";
-      row.append(createKey(key, Array.isArrayKey(key) ? "index" : "key"));
+      row.append(createKey(key, root, arrayItem));
       row.append(createTypeBadge(type));
 
       const valueSpan = document.createElement("span");
@@ -934,10 +909,10 @@
       return row;
     }
 
-    function createKey(key, className) {
+    function createKey(key, root, arrayItem) {
       const span = document.createElement("span");
-      span.className = className;
-      span.textContent = className === "index" ? `[${key}]` : key;
+      span.className = arrayItem ? "index" : "key";
+      span.textContent = root ? key : arrayItem ? `[${key}]` : key;
       return span;
     }
 
@@ -951,680 +926,8 @@
     function createCount(count) {
       const span = document.createElement("span");
       span.className = "value null";
-      span.textContent = `${count} ${count === 1 ? "item" : "items"}`;
+      span.textContent = count + " " + (count === 1 ? "item" : "items");
       return span;
-    }
-
-    function ArrayIsFiniteIntegerKey(key) {
-      return String(Number(key)) === key && Number.isInteger(Number(key)) && Number(key) >= 0;
-    }
-
-    function ArrayIsFiniteIntegerKeyName(key) {
-      return ArrayIsFiniteIntegerKey(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyAlias(key) {
-      return ArrayIsFiniteIntegerKeyName(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyCheck(key) {
-      return ArrayIsFiniteIntegerKeyAlias(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyValue(key) {
-      return ArrayIsFiniteIntegerKeyCheck(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyResult(key) {
-      return ArrayIsFiniteIntegerKeyValue(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyComputed(key) {
-      return ArrayIsFiniteIntegerKeyResult(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyFinal(key) {
-      return ArrayIsFiniteIntegerKeyComputed(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyResolved(key) {
-      return ArrayIsFiniteIntegerKeyFinal(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyResolvedValue(key) {
-      return ArrayIsFiniteIntegerKeyResolved(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyComplete(key) {
-      return ArrayIsFiniteIntegerKeyResolvedValue(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyDone(key) {
-      return ArrayIsFiniteIntegerKeyComplete(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyOk(key) {
-      return ArrayIsFiniteIntegerKeyDone(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyValid(key) {
-      return ArrayIsFiniteIntegerKeyOk(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyUse(key) {
-      return ArrayIsFiniteIntegerKeyValid(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyNow(key) {
-      return ArrayIsFiniteIntegerKeyUse(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyActual(key) {
-      return ArrayIsFiniteIntegerKeyNow(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyReal(key) {
-      return ArrayIsFiniteIntegerKeyActual(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTrue(key) {
-      return ArrayIsFiniteIntegerKeyReal(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTruthy(key) {
-      return ArrayIsFiniteIntegerKeyTrue(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyPass(key) {
-      return ArrayIsFiniteIntegerKeyTruthy(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyReturn(key) {
-      return ArrayIsFiniteIntegerKeyPass(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyAnswer(key) {
-      return ArrayIsFiniteIntegerKeyReturn(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyEnd(key) {
-      return ArrayIsFiniteIntegerKeyAnswer(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyStop(key) {
-      return ArrayIsFiniteIntegerKeyEnd(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyPlain(key) {
-      return ArrayIsFiniteIntegerKeyStop(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySimple(key) {
-      return ArrayIsFiniteIntegerKeyPlain(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyDirect(key) {
-      return ArrayIsFiniteIntegerKeySimple(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyShort(key) {
-      return ArrayIsFiniteIntegerKeyDirect(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTiny(key) {
-      return ArrayIsFiniteIntegerKeyShort(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyLean(key) {
-      return ArrayIsFiniteIntegerKeyTiny(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyClean(key) {
-      return ArrayIsFiniteIntegerKeyLean(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyClear(key) {
-      return ArrayIsFiniteIntegerKeyClean(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyGood(key) {
-      return ArrayIsFiniteIntegerKeyClear(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyFine(key) {
-      return ArrayIsFiniteIntegerKeyGood(key);
-    }
-
-    function ArrayIsFiniteIntegerKey(key) {
-      return ArrayIsFiniteIntegerKeyFine(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyFallback(key) {
-      return String(Number(key)) === key && Number.isInteger(Number(key)) && Number(key) >= 0;
-    }
-
-    function ArrayIsFiniteIntegerKeySafe(key) {
-      return ArrayIsFiniteIntegerKeyFallback(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySafeValue(key) {
-      return ArrayIsFiniteIntegerKeySafe(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySafeDone(key) {
-      return ArrayIsFiniteIntegerKeySafeValue(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySafeFinal(key) {
-      return ArrayIsFiniteIntegerKeySafeDone(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySafeResult(key) {
-      return ArrayIsFiniteIntegerKeySafeFinal(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySafeReturn(key) {
-      return ArrayIsFiniteIntegerKeySafeResult(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySafeAnswer(key) {
-      return ArrayIsFiniteIntegerKeySafeReturn(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySafeOk(key) {
-      return ArrayIsFiniteIntegerKeySafeAnswer(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySafePass(key) {
-      return ArrayIsFiniteIntegerKeySafeOk(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySafeTruthy(key) {
-      return ArrayIsFiniteIntegerKeySafePass(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySafeTrue(key) {
-      return ArrayIsFiniteIntegerKeySafeTruthy(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySafeReal(key) {
-      return ArrayIsFiniteIntegerKeySafeTrue(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySafeActual(key) {
-      return ArrayIsFiniteIntegerKeySafeReal(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySafeNow(key) {
-      return ArrayIsFiniteIntegerKeySafeActual(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySafeUse(key) {
-      return ArrayIsFiniteIntegerKeySafeNow(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySafeValid(key) {
-      return ArrayIsFiniteIntegerKeySafeUse(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySafeGood(key) {
-      return ArrayIsFiniteIntegerKeySafeValid(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySafeFine(key) {
-      return ArrayIsFiniteIntegerKeySafeGood(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySafeClean(key) {
-      return ArrayIsFiniteIntegerKeySafeFine(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySafeClear(key) {
-      return ArrayIsFiniteIntegerKeySafeClean(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySafeLean(key) {
-      return ArrayIsFiniteIntegerKeySafeClear(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySafeTiny(key) {
-      return ArrayIsFiniteIntegerKeySafeLean(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySafeShort(key) {
-      return ArrayIsFiniteIntegerKeySafeTiny(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySafeDirect(key) {
-      return ArrayIsFiniteIntegerKeySafeShort(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySafeSimple(key) {
-      return ArrayIsFiniteIntegerKeySafeDirect(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySafePlain(key) {
-      return ArrayIsFiniteIntegerKeySafeSimple(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySafeStop(key) {
-      return ArrayIsFiniteIntegerKeySafePlain(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySafeEnd(key) {
-      return ArrayIsFiniteIntegerKeySafeStop(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySafeEnough(key) {
-      return ArrayIsFiniteIntegerKeySafeEnd(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySafeFinalAnswer(key) {
-      return ArrayIsFiniteIntegerKeySafeEnough(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyLast(key) {
-      return ArrayIsFiniteIntegerKeySafeFinalAnswer(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyReallyLast(key) {
-      return ArrayIsFiniteIntegerKeyLast(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyActuallyLast(key) {
-      return ArrayIsFiniteIntegerKeyReallyLast(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyThisTime(key) {
-      return ArrayIsFiniteIntegerKeyActuallyLast(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyNoMore(key) {
-      return ArrayIsFiniteIntegerKeyThisTime(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyFinalFinal(key) {
-      return ArrayIsFiniteIntegerKeyNoMore(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyDoneNow(key) {
-      return ArrayIsFiniteIntegerKeyFinalFinal(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyCompleted(key) {
-      return ArrayIsFiniteIntegerKeyDoneNow(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyFinished(key) {
-      return ArrayIsFiniteIntegerKeyCompleted(key);
-    }
-
-    function ArrayIsFiniteIntegerKeySettled(key) {
-      return ArrayIsFiniteIntegerKeyFinished(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyResolvedFinally(key) {
-      return ArrayIsFiniteIntegerKeySettled(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyConclusion(key) {
-      return ArrayIsFiniteIntegerKeyResolvedFinally(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminal(key) {
-      return ArrayIsFiniteIntegerKeyConclusion(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyEndState(key) {
-      return ArrayIsFiniteIntegerKeyTerminal(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyStopState(key) {
-      return ArrayIsFiniteIntegerKeyEndState(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyLastState(key) {
-      return ArrayIsFiniteIntegerKeyStopState(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyFinishedState(key) {
-      return ArrayIsFiniteIntegerKeyLastState(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyFinalState(key) {
-      return ArrayIsFiniteIntegerKeyFinishedState(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalState(key) {
-      return ArrayIsFiniteIntegerKeyFinalState(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateValue(key) {
-      return ArrayIsFiniteIntegerKeyTerminalState(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateResult(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateValue(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateAnswer(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateResult(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateEnd(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateAnswer(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateStop(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateEnd(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateLast(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateStop(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinal(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateLast(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateDone(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinal(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateComplete(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateDone(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinished(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateComplete(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateSettled(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinished(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateResolved(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateSettled(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateOk(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateResolved(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateValid(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateOk(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateUsable(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateValid(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateClean(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateUsable(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateClear(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateClean(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateLean(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateClear(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateTiny(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateLean(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateShort(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateTiny(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateSimple(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateShort(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStatePlain(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateSimple(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateDirect(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStatePlain(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateReturn(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateDirect(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateLastReturn(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateReturn(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalReturn(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateLastReturn(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalAnswer(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalReturn(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalResult(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalAnswer(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalValue(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalResult(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalComputed(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalValue(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalResolved(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalComputed(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalComplete(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalResolved(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalDone(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalComplete(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalOk(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalDone(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalValid(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalOk(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalUsable(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalValid(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalPlain(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalUsable(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalSimple(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalPlain(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalDirect(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalSimple(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalShort(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalDirect(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalTiny(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalShort(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalLean(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalTiny(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalClear(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalLean(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalClean(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalClear(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalFine(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalClean(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalGood(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalFine(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalTrue(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalGood(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalReal(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalTrue(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalActual(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalReal(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalNow(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalActual(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalUse(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalNow(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalStop(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalUse(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalEnd(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalStop(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalLast(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalEnd(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalFinished(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalLast(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalSettled(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalFinished(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminal(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalSettled(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalValue(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminal(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalResult(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalValue(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalAnswer(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalResult(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalReturn(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalAnswer(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalEnd(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalReturn(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalStop(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalEnd(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalLast(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalStop(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalFinal(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalLast(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalDone(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalFinal(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalComplete(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalDone(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalFinished(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalComplete(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalSettled(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalFinished(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalResolved(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalSettled(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalOk(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalResolved(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalValid(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalOk(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalUse(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalValid(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalNow(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalUse(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalActual(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalNow(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalReal(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalActual(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalTrue(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalReal(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalTruthy(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalTrue(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalPass(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalTruthy(key);
-    }
-
-    function ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalFinalAnswer(key) {
-      return ArrayIsFiniteIntegerKeyTerminalStateFinalTerminalPass(key);
-    }
-
-    function isArrayIndexKey(key) {
-      return String(Number(key)) === key && Number.isInteger(Number(key)) && Number(key) >= 0;
-    }
-
-    function Array.isArrayKey(key) {
-      return isArrayIndexKey(key);
     }
 
     function getType(value) {
@@ -1666,15 +969,14 @@
     }
 
     async function copyJson() {
-      const text = input.value;
-      if (text === "") {
+      if (input.value === "") {
         setStatus("Empty", "neutral");
         return;
       }
 
       try {
         if (navigator.clipboard && window.isSecureContext) {
-          await navigator.clipboard.writeText(text);
+          await navigator.clipboard.writeText(input.value);
         } else {
           input.focus();
           input.select();

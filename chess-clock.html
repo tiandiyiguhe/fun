@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Two-player Chess Clock</title>
+  <title>Neon Chess Clock</title>
   <style>
     :root {
       color-scheme: dark;
@@ -633,7 +633,7 @@
       <div class="brand">
         <div class="mark" aria-hidden="true">64</div>
         <div>
-          <h1>Neon Chess Clock</h1>
+          <h1>Two-player Chess Clock</h1>
           <p class="status" id="status">Ready</p>
         </div>
       </div>
@@ -1065,13 +1065,12 @@
       const sound = document.getElementById("sound");
       const presetControls = document.getElementById("presetControls");
       const modeControls = document.getElementById("modeControls");
-      const incrementControls = document.getElementById("incrementControls");
       const customBase = document.getElementById("customBase");
       const customIncrement = document.getElementById("customIncrement");
       const customApply = document.getElementById("customApply");
       const playerButtons = Array.from(document.querySelectorAll(".player-clock"));
 
-      let config = { ...engine.PRESETS[2] };
+      let config = { ...engine.PRESETS[2], incrementMode: "fischer", custom: false };
       let state = engine.createClock(config);
       let animationFrame = 0;
       let soundEnabled = true;
@@ -1168,14 +1167,16 @@
         sound.textContent = soundEnabled ? "Sound" : "Muted";
 
         Array.from(presetControls.querySelectorAll("[data-preset]")).forEach((button) => {
-          button.setAttribute("aria-pressed", String(button.dataset.preset === `${config.baseSeconds}+${config.incrementSeconds}`));
+          const isCustom = button.dataset.preset === "custom";
+          const isActive = isCustom
+            ? config.custom === true
+            : !config.custom && button.dataset.preset === `${config.baseSeconds}+${config.incrementSeconds}`;
+          button.setAttribute("aria-pressed", String(isActive));
         });
         Array.from(modeControls.querySelectorAll("[data-mode]")).forEach((button) => {
           button.setAttribute("aria-pressed", String(button.dataset.mode === config.incrementMode));
         });
-        Array.from(incrementControls.querySelectorAll("[data-increment]")).forEach((button) => {
-          button.setAttribute("aria-pressed", String(Number(button.dataset.increment) === config.incrementSeconds));
-        });
+        customApply.setAttribute("aria-pressed", String(config.custom === true));
       }
 
       function render() {
@@ -1207,9 +1208,8 @@
       }
 
       function normalizeConfig() {
-        config.incrementMode = config.incrementSeconds === 0 && config.incrementMode !== "delay" ? "none" : config.incrementMode;
-        if (config.incrementMode === "none") {
-          config.incrementSeconds = 0;
+        if (config.incrementMode !== "bronstein" && config.incrementMode !== "delay") {
+          config.incrementMode = "fischer";
         }
       }
 
@@ -1228,35 +1228,22 @@
           label: "Custom",
           baseSeconds: Math.round(minutes * 60),
           incrementSeconds: increment,
-          incrementMode: config.incrementMode
+          incrementMode: config.incrementMode,
+          custom: true
         };
         normalizeConfig();
         hardReset();
       }
 
       function setPreset(preset) {
-        config = { ...preset };
+        config = { ...config, ...preset, custom: false };
+        customBase.value = String(config.baseSeconds / 60);
+        customIncrement.value = String(config.incrementSeconds);
         hardReset();
       }
 
       function setMode(mode) {
         config.incrementMode = mode;
-        if (mode === "none") {
-          config.incrementSeconds = 0;
-        } else if (config.incrementSeconds === 0) {
-          config.incrementSeconds = 2;
-        }
-        normalizeConfig();
-        hardReset();
-      }
-
-      function setIncrement(seconds) {
-        config.incrementSeconds = seconds;
-        if (seconds === 0) {
-          config.incrementMode = "none";
-        } else if (config.incrementMode === "none") {
-          config.incrementMode = "fischer";
-        }
         normalizeConfig();
         hardReset();
       }
@@ -1299,15 +1286,12 @@
           presetControls.append(button);
         });
 
-        incrementControls.innerHTML = "";
-        engine.INCREMENTS.forEach((seconds) => {
-          const button = document.createElement("button");
-          button.className = "segment";
-          button.type = "button";
-          button.dataset.increment = String(seconds);
-          button.textContent = seconds === 0 ? "0" : `+${seconds}`;
-          button.addEventListener("click", () => setIncrement(seconds));
-          incrementControls.append(button);
+        [customBase, customIncrement].forEach((input) => {
+          input.addEventListener("input", () => {
+            config.custom = true;
+            renderControls();
+          });
+          input.addEventListener("change", applyCustomConfig);
         });
       }
 
