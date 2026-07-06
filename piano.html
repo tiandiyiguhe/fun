@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Neon Piano</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:system-ui,sans-serif;user-select:none}
+.piano-wrap{display:flex;flex-direction:column;align-items:center;gap:20px;padding:20px}
+.title{font-size:24px;font-weight:700;color:#00ff88;letter-spacing:2px}
+.piano{display:flex;position:relative;border-radius:8px;overflow:hidden;box-shadow:0 0 40px rgba(0,255,136,.1)}
+.key{position:relative;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;cursor:pointer;transition:all .08s;font-size:10px;color:#0006}
+.white{width:48px;height:180px;background:#e8e8e8;border:1px solid #1a1a2e;border-radius:0 0 6px 6px;z-index:1}
+.white:active,.white.active{background:#00ff88;box-shadow:0 0 20px rgba(0,255,136,.4);color:#0a0a0f}
+.white .note{font-size:9px;color:#888;font-family:'Courier New',monospace}
+.white.active .note{color:#0a0a0f}
+.black{width:32px;height:110px;background:#12121a;border:1px solid #0a0a0f;border-radius:0 0 4px 4px;margin:0 -16px;z-index:2;color:#666}
+.black:active,.black.active{background:#00ff88;box-shadow:0 0 15px rgba(0,255,136,.5),0 4px 0 #00cc6a;color:#0a0a0f}
+.black .note{font-size:8px;color:#444;margin-bottom:2px}
+.black.active .note{color:#0a0a0f}
+.controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.btn{background:#12121a;border:1px solid #1a1a2e;color:#888;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;transition:all .15s;font-family:inherit}
+.btn:hover{background:#1a1a2e;color:#ccc}
+.btn.primary{background:#00ff88;color:#0a0a0f;border-color:#00ff88;font-weight:600}
+.btn.primary:hover{background:#00cc6a}
+.btn.recording{background:#ff3366;border-color:#ff3366;color:#fff;animation:pulse .8s ease-in-out infinite alternate}
+.recorded{font-size:12px;color:#666;padding:4px 12px;background:#12121a;border-radius:6px;font-family:'Courier New',monospace}
+.sustain-label{display:flex;align-items:center;gap:8px;font-size:12px;color:#666}
+.sustain-label input{accent-color:#00ff88}
+@keyframes pulse{from{opacity:1}to{opacity:.7}}
+</style>
+</head>
+<body>
+<div class="piano-wrap">
+<div class="title">Neon Piano</div>
+<div class="piano" id="piano"></div>
+<div class="controls">
+<button class="btn primary" id="btn-record">⏺ Record</button>
+<button class="btn" id="btn-play">▶ Play</button>
+<button class="btn" id="btn-clear">Clear</button>
+<label class="sustain-label"><input type="checkbox" id="sustain">Sustain</label>
+</div>
+<div class="recorded" id="rec-status"></div>
+</div>
+<script>
+const notes = [
+{ note: 'C3', freq: 130.81, black: false, key: 'A' },
+{ note: 'C#3', freq: 138.59, black: true, key: 'W' },
+{ note: 'D3', freq: 146.83, black: false, key: 'S' },
+{ note: 'D#3', freq: 155.56, black: true, key: 'E' },
+{ note: 'E3', freq: 164.81, black: false, key: 'D' },
+{ note: 'F3', freq: 174.61, black: false, key: 'F' },
+{ note: 'F#3', freq: 185.00, black: true, key: 'T' },
+{ note: 'G3', freq: 196.00, black: false, key: 'G' },
+{ note: 'G#3', freq: 207.65, black: true, key: 'Y' },
+{ note: 'A3', freq: 220.00, black: false, key: 'H' },
+{ note: 'A#3', freq: 233.08, black: true, key: 'U' },
+{ note: 'B3', freq: 246.94, black: false, key: 'J' },
+{ note: 'C4', freq: 261.63, black: false, key: 'K' },
+{ note: 'C#4', freq: 277.18, black: true, key: 'O' },
+{ note: 'D4', freq: 293.66, black: false, key: 'L' },
+{ note: 'D#4', freq: 311.13, black: true, key: 'P' },
+{ note: 'E4', freq: 329.63, black: false, key: ';' },
+{ note: 'F4', freq: 349.23, black: false }
+];
+
+let audioCtx = null, recording = false, recorded = [], playIndex = -1, playing = false, activeOsc = {};
+
+function getCtx() {
+if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+return audioCtx;
+}
+
+function playNote(noteObj, time = 0) {
+const ctx = getCtx();
+const osc = ctx.createOscillator(), gain = ctx.createGain();
+osc.type = 'triangle'; osc.frequency.value = noteObj.freq;
+gain.gain.setValueAtTime(0.3, time);
+gain.gain.exponentialRampToValueAtTime(0.001, time + (document.getElementById('sustain').checked ? 1.5 : 0.4));
+osc.connect(gain); gain.connect(ctx.destination);
+osc.start(time); osc.stop(time + 2);
+return { osc, gain };
+}
+
+function playNoteNow(noteObj) {
+const ctx = getCtx();
+const osc = ctx.createOscillator(), gain = ctx.createGain();
+osc.type = 'triangle'; osc.frequency.value = noteObj.freq;
+gain.gain.setValueAtTime(0.3, ctx.currentTime);
+gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (document.getElementById('sustain').checked ? 1.5 : 0.4));
+osc.connect(gain); gain.connect(ctx.destination);
+osc.start(); osc.stop(ctx.currentTime + 2);
+activeOsc[noteObj.note] = { osc, gain };
+}
+
+function stopNote(noteObj) {
+if (activeOsc[noteObj.note]) {
+try { activeOsc[noteObj.note].gain.gain.exponentialRampToValueAtTime(0.001, getCtx().currentTime + 0.05); } catch(e) {}
+delete activeOsc[noteObj.note];
+}
+}
+
+function buildPiano() {
+const piano = document.getElementById('piano');
+piano.innerHTML = notes.map(n => {
+const cls = n.black ? 'black' : 'white';
+return `<div class="key ${cls}" data-note="${n.note}" data-key="${n.key}"><span class="note">${n.key}</span></div>`;
+}).join('');
+
+const noteMap = {};
+notes.forEach(n => noteMap[n.note] = n);
+noteMap.byKey = {};
+notes.forEach(n => noteMap.byKey[n.key.toLowerCase()] = n);
+
+piano.querySelectorAll('.key').forEach(el => {
+el.addEventListener('pointerdown', e => {
+e.preventDefault();
+const n = noteMap[el.dataset.note];
+playNoteNow(n);
+el.classList.add('active');
+if (recording) recorded.push({ note: n.note, time: Date.now() });
+});
+el.addEventListener('pointerup', () => { stopNote(noteMap[el.dataset.note]); el.classList.remove('active'); });
+el.addEventListener('pointerleave', () => { stopNote(noteMap[el.dataset.note]); el.classList.remove('active'); });
+});
+
+document.addEventListener('keydown', e => {
+if (e.repeat) return;
+if (['input','textarea','select'].includes(document.activeElement?.tagName?.toLowerCase())) return;
+const n = noteMap.byKey[e.key.toLowerCase()];
+if (!n) return;
+e.preventDefault();
+const el = piano.querySelector(`[data-note="${n.note}"]`);
+playNoteNow(n);
+el?.classList.add('active');
+if (recording) recorded.push({ note: n.note, time: Date.now() });
+});
+document.addEventListener('keyup', e => {
+const n = noteMap.byKey[e.key.toLowerCase()];
+if (!n) return;
+const el = piano.querySelector(`[data-note="${n.note}"]`);
+stopNote(n); el?.classList.remove('active');
+});
+
+return noteMap;
+}
+
+const noteMap = buildPiano();
+
+document.getElementById('btn-record').addEventListener('click', function() {
+getCtx();
+recording = !recording;
+if (recording) { recorded = []; this.textContent = '⏹ Stop'; this.classList.add('recording'); document.getElementById('rec-status').textContent = 'Recording...'; }
+else { this.textContent = '⏺ Record'; this.classList.remove('recording'); document.getElementById('rec-status').textContent = recorded.length + ' notes recorded'; }
+});
+
+document.getElementById('btn-play').addEventListener('click', function() {
+if (recorded.length === 0) return;
+if (playing) { playing = false; this.textContent = '▶ Play'; return; }
+playing = true; this.textContent = '⏹ Stop';
+playIndex = 0;
+const startTime = recorded[0].time;
+function playNext() {
+if (!playing || playIndex >= recorded.length) { playing = false; document.getElementById('btn-play').textContent = '▶ Play'; return; }
+const item = recorded[playIndex];
+const noteObj = notes.find(n => n.note === item.note);
+if (noteObj) {
+const el = document.getElementById('piano').querySelector(`[data-note="${item.note}"]`);
+playNoteNow(noteObj); el?.classList.add('active');
+setTimeout(() => { stopNote(noteObj); el?.classList.remove('active'); }, 200);
+}
+playIndex++;
+const nextTime = playIndex < recorded.length ? recorded[playIndex].time - item.time : 300;
+setTimeout(playNext, Math.max(80, nextTime - (playIndex < recorded.length ? recorded[playIndex - 1] ? 0 : 0 : 0)));
+}
+playNext();
+});
+
+document.getElementById('btn-clear').addEventListener('click', () => {
+recorded = []; recording = false; playing = false;
+document.getElementById('btn-record').textContent = '⏺ Record';
+document.getElementById('btn-record').classList.remove('recording');
+document.getElementById('btn-play').textContent = '▶ Play';
+document.getElementById('rec-status').textContent = '';
+});
+</script>
+</body>
+</html>
