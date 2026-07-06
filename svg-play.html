@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SVG Path Visualizer</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px}
+.container{display:flex;flex-direction:column;gap:12px;width:100%;max-width:560px;align-items:center}
+.title{font-size:24px;font-weight:700;color:#00ff88;letter-spacing:2px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.tool-btn{background:#12121a;border:2px solid #1a1a2e;color:#666;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:11px;transition:all .15s;font-family:inherit}
+.tool-btn:hover{color:#ccc;border-color:#333}
+.tool-btn.active{background:#00ff8820;border-color:#00ff88;color:#00ff88}
+svg{background:#0d0d14;border:1px solid #1a1a2e;border-radius:10px;cursor:crosshair;width:100%;max-width:500px;height:320px}
+svg line.grid{stroke:#1a1a2e;stroke-width:.5}
+svg .path-line{fill:none;stroke:#00ff88;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+svg .control-point{fill:#ffaa00;stroke:#ffaa00;cursor:pointer}
+svg .control-point:hover{fill:#fff}
+svg .control-line{stroke:#ffaa0050;stroke-width:1;stroke-dasharray:4,4}
+svg .anchor{fill:#00ff88;stroke:#00ff88;cursor:pointer}
+svg .anchor:hover{fill:#fff}
+.code-output{width:100%;background:#0d0d14;border:1px solid #1a1a2e;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:12px;color:#00ff88;word-break:break-all;display:flex;justify-content:space-between;align-items:center}
+.controls{display:flex;gap:8px}
+.btn{background:#12121a;border:1px solid #1a1a2e;color:#888;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:11px;transition:all .15s;font-family:inherit}
+.btn:hover{background:#1a1a2e;color:#ccc}
+.btn.primary{background:#00ff88;color:#0a0a0f;border-color:#00ff88;font-weight:600}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="title">SVG Path Visualizer</div>
+<div class="toolbar" id="tools">
+<button class="tool-btn active" data-tool="line">Line</button>
+<button class="tool-btn" data-tool="bezier">Bezier</button>
+<button class="tool-btn" data-tool="quad">Quadratic</button>
+<button class="tool-btn" data-tool="arc">Arc</button>
+<button class="tool-btn" data-tool="move">Move</button>
+</div>
+<svg id="canvas" viewBox="0 0 500 320"></svg>
+<div class="controls">
+<button class="btn primary" id="btn-clear">Clear</button>
+<button class="btn" id="btn-undo">Undo</button>
+<button class="btn" id="btn-copy">Copy Path</button>
+</div>
+<div class="code-output"><code id="code"></code></div>
+</div>
+<script>
+const svg = document.getElementById('canvas'), codeEl = document.getElementById('code');
+let tool = 'line', paths = [], currentPath = null, activePoint = null, dragIdx = -1;
+
+const PATH_COLORS = ['#00ff88','#3399ff','#ff3366','#ffaa00','#cc66ff','#00ccff'];
+
+function drawGrid() {
+for (let x = 0; x <= 500; x += 25) {
+const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+line.setAttribute('x1', x); line.setAttribute('y1', 0); line.setAttribute('x2', x); line.setAttribute('y2', 320);
+line.classList.add('grid'); svg.appendChild(line);
+}
+for (let y = 0; y <= 320; y += 25) {
+const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+line.setAttribute('x1', 0); line.setAttribute('y1', y); line.setAttribute('x2', 500); line.setAttribute('y2', y);
+line.classList.add('grid'); svg.appendChild(line);
+}
+}
+
+function svgPoint(e) {
+const rect = svg.getBoundingClientRect();
+const scaleX = 500 / rect.width, scaleY = 320 / rect.height;
+return { x: Math.round((e.clientX - rect.left) * scaleX), y: Math.round((e.clientY - rect.top) * scaleY) };
+}
+
+function renderAll() {
+svg.querySelectorAll('.path-line,.control-point,.control-line,.anchor').forEach(el => el.remove());
+
+paths.forEach(path => {
+const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+const d = buildPathD(path);
+pathEl.setAttribute('d', d);
+pathEl.classList.add('path-line');
+pathEl.setAttribute('stroke', PATH_COLORS[paths.indexOf(path) % PATH_COLORS.length]);
+g.appendChild(pathEl);
+
+if (path.type === 'bezier') {
+if (path.points.length >= 2) {
+const p0 = path.points[0], p1 = path.points[1] || p0;
+const cp1 = path.control1 || {x: (p0.x+p1.x)/2, y: p0.y};
+const cp2 = path.control2 || {x: (p0.x+p1.x)/2, y: p1.y};
+
+const l1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+l1.setAttribute('x1', p0.x); l1.setAttribute('y1', p0.y); l1.setAttribute('x2', cp1.x); l1.setAttribute('y2', cp1.y);
+l1.classList.add('control-line'); g.appendChild(l1);
+
+const l2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+l2.setAttribute('x1', p1.x); l2.setAttribute('y1', p1.y); l2.setAttribute('x2', cp2.x); l2.setAttribute('y2', cp2.y);
+l2.classList.add('control-line'); g.appendChild(l2);
+
+[cp1, cp2].forEach(cp => {
+const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+circle.setAttribute('cx', cp.x); circle.setAttribute('cy', cp.y); circle.setAttribute('r', 5);
+circle.classList.add('control-point');
+circle.dataset.cp = path === currentPath ? 'cp' : '';
+g.appendChild(circle);
+});
+}
+}
+
+path.points.forEach((p, i) => {
+const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+circle.setAttribute('cx', p.x); circle.setAttribute('cy', p.y); circle.setAttribute('r', i === 0 && path.type !== 'line' ? 5 : 4);
+circle.classList.add(i === 0 && path.type !== 'line' ? 'control-point' : 'anchor');
+circle.dataset.pathIdx = paths.indexOf(path);
+circle.dataset.pointIdx = i;
+g.appendChild(circle);
+});
+
+svg.appendChild(g);
+});
+
+if (currentPath) {
+currentPath.points.forEach((p, i) => {
+const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+circle.setAttribute('cx', p.x); circle.setAttribute('cy', p.y); circle.setAttribute('r', 3);
+circle.setAttribute('fill', '#fff');
+circle.dataset.pathIdx = 'current';
+circle.dataset.pointIdx = i;
+svg.appendChild(circle);
+});
+}
+
+updateCode();
+}
+
+function buildPathD(path) {
+if (!path.points.length) return '';
+const pts = path.points;
+let d = 'M ' + pts[0].x + ' ' + pts[0].y;
+if (path.type === 'line') {
+for (let i = 1; i < pts.length; i++) d += ' L ' + pts[i].x + ' ' + pts[i].y;
+} else if (path.type === 'bezier' && pts.length >= 2) {
+const p0 = pts[0], p1 = pts[1];
+const cp1 = path.control1 || {x: (p0.x+p1.x)/2, y: p0.y};
+const cp2 = path.control2 || {x: (p0.x+p1.x)/2, y: p1.y};
+d += ' C ' + cp1.x + ' ' + cp1.y + ' ' + cp2.x + ' ' + cp2.y + ' ' + p1.x + ' ' + p1.y;
+} else if (path.type === 'quad' && pts.length >= 2) {
+const cp = path.control1 || {x: (pts[0].x+pts[1].x)/2, y: Math.min(pts[0].y, pts[1].y) - 40};
+d += ' Q ' + cp.x + ' ' + cp.y + ' ' + pts[1].x + ' ' + pts[1].y;
+} else if (path.type === 'arc' && pts.length >= 2) {
+const dx = pts[1].x - pts[0].x, dy = pts[1].y - pts[0].y;
+const rx = Math.abs(dx) / 2, ry = Math.abs(dy) || rx;
+d += ' A ' + rx + ' ' + ry + ' 0 0 1 ' + pts[1].x + ' ' + pts[1].y;
+}
+return d;
+}
+
+function updateCode() {
+const allPaths = [...paths, ...(currentPath && currentPath.points.length >= 2 ? [currentPath] : [])];
+if (!allPaths.length) { codeEl.textContent = '(empty)'; return; }
+const d = allPaths.map(p => buildPathD(p)).join(' ');
+codeEl.textContent = '<path d="' + d + '" />';
+}
+
+svg.addEventListener('pointerdown', e => {
+const target = e.target;
+if (target.classList.contains('control-point') || target.classList.contains('anchor')) {
+dragIdx = parseInt(target.dataset.pointIdx);
+const pathIdx = target.dataset.pathIdx;
+activePoint = pathIdx === 'current' ? currentPath : paths[parseInt(pathIdx)];
+e.stopPropagation(); return;
+}
+
+const pt = svgPoint(e);
+if (!currentPath) {
+currentPath = { type: tool, points: [pt], control1: null, control2: null };
+} else {
+const maxPoints = tool === 'line' ? Infinity : 2;
+currentPath.points.push(pt);
+if (currentPath.points.length >= maxPoints) {
+
+if (tool === 'bezier' && currentPath.points.length === 2) {
+currentPath.control1 = {x: (currentPath.points[0].x + currentPath.points[1].x) / 2, y: currentPath.points[0].y};
+currentPath.control2 = {x: (currentPath.points[0].x + currentPath.points[1].x) / 2, y: currentPath.points[1].y};
+}
+if (tool === 'quad' && currentPath.points.length === 2) {
+currentPath.control1 = {x: (currentPath.points[0].x + currentPath.points[1].x) / 2, y: Math.min(currentPath.points[0].y, currentPath.points[1].y) - 40};
+}
+paths.push(currentPath);
+currentPath = null;
+}
+}
+renderAll();
+});
+
+svg.addEventListener('pointermove', e => {
+if (dragIdx < 0 || !activePoint) return;
+const pt = svgPoint(e);
+if (activePoint === currentPath) {
+activePoint.points[dragIdx] = pt;
+} else {
+activePoint.points[dragIdx] = pt;
+if (activePoint.type === 'bezier' && activePoint.points.length === 2) {
+activePoint.control1 = {x: (activePoint.points[0].x + activePoint.points[1].x) / 2, y: activePoint.points[0].y};
+activePoint.control2 = {x: (activePoint.points[0].x + activePoint.points[1].x) / 2, y: activePoint.points[1].y};
+}
+}
+renderAll();
+});
+
+document.addEventListener('pointerup', () => { dragIdx = -1; activePoint = null; });
+
+document.getElementById('tools').addEventListener('click', e => {
+const b = e.target.closest('.tool-btn');
+if (!b) return;
+tool = b.dataset.tool;
+currentPath = null;
+document.querySelectorAll('.tool-btn').forEach(x => x.classList.remove('active'));
+b.classList.add('active');
+renderAll();
+});
+
+document.getElementById('btn-clear').addEventListener('click', () => { paths = []; currentPath = null; renderAll(); });
+document.getElementById('btn-undo').addEventListener('click', () => {
+if (currentPath) { currentPath = null; }
+else if (paths.length > 0) paths.pop();
+renderAll();
+});
+document.getElementById('btn-copy').addEventListener('click', () => navigator.clipboard.writeText(codeEl.textContent));
+
+window.addEventListener('load', () => { drawGrid(); renderAll(); });
+</script>
+</body>
+</html>
