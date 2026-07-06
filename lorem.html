@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lorem Ipsum</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px}
+.container{display:flex;flex-direction:column;gap:16px;width:100%;max-width:520px;align-items:center}
+.title{font-size:24px;font-weight:700;color:#00ff88;letter-spacing:2px}
+.controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:center}
+.control-group{display:flex;align-items:center;gap:6px}
+.control-group label{font-size:11px;color:#444;text-transform:uppercase;letter-spacing:2px}
+.control-group input,.control-group select{background:#0d0d14;border:1px solid #1a1a2e;color:#ccc;padding:6px 10px;border-radius:6px;font-family:'Courier New',monospace;font-size:13px;outline:none;width:70px;text-align:center}
+.control-group input:focus,.control-group select:focus{border-color:#00ff8844}
+.btn{background:#12121a;border:1px solid #1a1a2e;color:#888;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;transition:all .15s;font-family:inherit}
+.btn:hover{background:#1a1a2e;color:#ccc}
+.btn.primary{background:#00ff88;color:#0a0a0f;border-color:#00ff88;font-weight:600}
+.btn.primary:hover{background:#00cc6a}
+.output{width:100%;background:#0d0d14;border:1px solid #1a1a2e;border-radius:10px;padding:16px;font-family:Georgia,serif;font-size:14px;line-height:1.8;color:#ccc;min-height:100px;max-height:400px;overflow-y:auto}
+.stats{font-size:11px;color:#666;font-family:'Courier New',monospace}
+.stats span{color:#00ff88}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="title">Lorem Ipsum</div>
+<div class="controls">
+<div class="control-group"><label>Count</label><input type="number" id="count" value="3" min="1" max="50"></div>
+<div class="control-group">
+<select id="unit">
+<option value="paragraphs" selected>Paragraphs</option>
+<option value="sentences">Sentences</option>
+<option value="words">Words</option>
+</select>
+</div>
+<button class="btn primary" id="btn-gen">Generate</button>
+<button class="btn" id="btn-copy">Copy</button>
+</div>
+<div class="stats" id="stats"></div>
+<div class="output" id="output"></div>
+</div>
+<script>
+const words = ['lorem','ipsum','dolor','sit','amet','consectetur','adipiscing','elit','sed','do','eiusmod','tempor','incididunt','ut','labore','et','dolore','magna','aliqua','enim','ad','minim','veniam','quis','nostrud','exercitation','ullamco','laboris','nisi','ut','aliquip','ex','ea','commodo','consequat','duis','aute','irure','dolor','in','reprehenderit','in','voluptate','velit','esse','cillum','dolore','eu','fugiat','nulla','pariatur','excepteur','sint','occaecat','cupidatat','non','proident','sunt','in','culpa','qui','officia','deserunt','mollit','anim','id','est','laborum'];
+
+const output = document.getElementById('output'), stats = document.getElementById('stats');
+
+function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+function randomWord() { return words[Math.floor(Math.random() * words.length)]; }
+
+function generateSentence(minWords = 5, maxWords = 15) {
+const count = minWords + Math.floor(Math.random() * (maxWords - minWords + 1));
+const sentence = Array.from({length: count}, () => randomWord()).join(' ');
+return capitalize(sentence) + '.';
+}
+
+function generateParagraph(minSentences = 3, maxSentences = 8) {
+const count = minSentences + Math.floor(Math.random() * (maxSentences - minSentences + 1));
+return Array.from({length: count}, () => generateSentence()).join(' ');
+}
+
+function generate() {
+const count = parseInt(document.getElementById('count').value) || 3;
+const unit = document.getElementById('unit').value;
+let text = '';
+
+if (unit === 'words') {
+const wordList = Array.from({length: count}, () => randomWord());
+text = capitalize(wordList[0]) + ' ' + wordList.slice(1).join(' ') + '.';
+} else if (unit === 'sentences') {
+text = Array.from({length: count}, () => generateSentence()).join(' ');
+} else {
+text = Array.from({length: count}, () => generateParagraph()).join('\n\n');
+}
+
+output.textContent = text;
+const wordCount = text.split(/\s+/).filter(w => w).length;
+const charCount = text.length;
+stats.innerHTML = '<span>' + wordCount + ' words</span> · <span>' + charCount + ' chars</span>';
+}
+
+document.getElementById('btn-gen').addEventListener('click', generate);
+document.getElementById('btn-copy').addEventListener('click', () => navigator.clipboard.writeText(output.textContent));
+document.addEventListener('keydown', e => { if (e.code === 'Space' && document.activeElement === document.body) { e.preventDefault(); generate(); } });
+
+window.addEventListener('load', generate);
+</script>
+</body>
+</html>

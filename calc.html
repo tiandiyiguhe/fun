@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Calculator</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:system-ui,sans-serif;padding:20px;user-select:none}
+.calc{background:#12121a;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px;width:320px;box-shadow:0 0 40px rgba(0,255,136,.05)}
+.display{background:#0d0d14;border:1px solid #1a1a2e;border-radius:10px;padding:12px 16px;text-align:right}
+.display .expr{font-size:13px;color:#666;font-family:'Courier New',monospace;min-height:20px;word-break:break-all}
+.display .result{font-size:32px;font-weight:700;color:#00ff88;font-family:'Courier New',monospace;word-break:break-all}
+.mode-row{display:flex;gap:4px}
+.mode-btn{flex:1;background:#0d0d14;border:1px solid #1a1a2e;color:#666;padding:6px;border-radius:6px;cursor:pointer;font-size:10px;font-family:inherit;transition:all .15s}
+.mode-btn.active{background:#00ff8820;border-color:#00ff8844;color:#00ff88}
+.buttons{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.btn{background:#1a1a2e;border:none;color:#ccc;padding:16px 4px;border-radius:10px;cursor:pointer;font-size:16px;transition:all .1s;font-family:inherit}
+.btn:hover{background:#252540}
+.btn:active{transform:scale(.95)}
+.btn.op{color:#00ff88;background:#1e2e28}
+.btn.op:hover{background:#254535}
+.btn.fn{color:#3399ff;background:#15202a}
+.btn.fn:hover{background:#1c2d3d}
+.btn.eq{background:#00ff88;color:#0a0a0f;font-weight:700}
+.btn.eq:hover{background:#00cc6a}
+.history{max-height:100px;overflow-y:auto;font-family:'Courier New',monospace;font-size:11px;color:#444}
+.history div{padding:2px 4px;cursor:pointer;border-radius:4px}
+.history div:hover{background:#0d0d14;color:#888}
+</style>
+</head>
+<body>
+<div class="calc">
+<div class="mode-row">
+<button class="mode-btn active" data-mode="basic">Basic</button>
+<button class="mode-btn" data-mode="scientific">Scientific</button>
+</div>
+<div class="display"><div class="expr" id="expr"></div><div class="result" id="result">0</div></div>
+<div class="buttons" id="buttons"></div>
+<div class="history" id="history"></div>
+</div>
+<script>
+let mode = 'basic', expr = '', lastResult = null, history = [];
+const exprEl = document.getElementById('expr'), resultEl = document.getElementById('result'), buttonsEl = document.getElementById('buttons'), historyEl = document.getElementById('history');
+
+const basicButtons = [
+['C','⌫','%','÷'],['7','8','9','×'],['4','5','6','−'],['1','2','3','+'],['±','0','.','=']
+];
+const scientificButtons = [
+['C','⌫','(',')'],['sin','cos','tan','÷'],['7','8','9','×'],['4','5','6','−'],['1','2','3','+'],['π','0','.','='],['√','x²','ln','log'],['e','^','10ˣ','!']
+];
+
+function evaluate(expression) {
+let e = expression.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-').replace(/π/g,Math.PI).replace(/e(?![xp])/g,Math.E);
+
+e = e.replace(/sin\(([^)]+)\)/g, (_, v) => Math.sin(deg(parseFloat(v))));
+e = e.replace(/cos\(([^)]+)\)/g, (_, v) => Math.cos(deg(parseFloat(v))));
+e = e.replace(/tan\(([^)]+)\)/g, (_, v) => Math.tan(deg(parseFloat(v))));
+e = e.replace(/log\(([^)]+)\)/g, (_, v) => Math.log10(parseFloat(v)));
+e = e.replace(/ln\(([^)]+)\)/g, (_, v) => Math.log(parseFloat(v)));
+e = e.replace(/√\(([^)]+)\)/g, (_, v) => Math.sqrt(parseFloat(v)));
+e = e.replace(/([^>]|^)(\d+)²/g, '$1Math.pow($2,2)');
+e = e.replace(/10ˣ\(([^)]+)\)/g, (_, v) => Math.pow(10, parseFloat(v)));
+e = e.replace(/(\d+)!/g, (_, v) => { let r=1; for(let i=2;i<=parseInt(v);i++)r*=i; return r; });
+e = e.replace(/\^/g, '**');
+
+try {
+const val = Function('"use strict"; return (' + e + ')')();
+return Number.isFinite(val) ? parseFloat(val.toPrecision(12)) : 'Error';
+} catch(err) { return 'Error'; }
+}
+function deg(v) { return v * Math.PI / 180; }
+
+function renderButtons() {
+const btns = mode === 'scientific' ? scientificButtons : basicButtons;
+buttonsEl.innerHTML = btns.flat().map(b => {
+let cls = 'btn';
+if ('÷×−+='.includes(b)) cls += b === '=' ? ' eq' : ' op';
+if ('C⌫±()sincostan√²lnlogπe^10ˣ!'.includes(b.slice(0,1)) || b.includes('ˣ')) cls += ' fn';
+return `<button class="${cls}" data-key="${b}">${b}</button>`;
+}).join('');
+
+buttonsEl.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => handleKey(btn.dataset.key)));
+}
+
+function handleKey(key) {
+if (key === 'C') { expr = ''; lastResult = null; }
+else if (key === '⌫') expr = expr.slice(0, -1);
+else if (key === '=') {
+try {
+const result = evaluate(expr);
+lastResult = result;
+history.push(expr + ' = ' + result);
+renderHistory();
+expr = String(result);
+} catch(e) { exprEl.textContent = 'Error'; }
+}
+else if (key === '±') {
+if (expr && expr !== '0') expr = expr.startsWith('-') ? expr.slice(1) : '-' + expr;
+else expr = '-';
+}
+else if (['sin','cos','tan','log','ln','√','!'].includes(key) || key === '²' || key === '10ˣ') {
+if (key === '!') expr += '!';
+else if (key === '²') expr += '²';
+else if (key === '10ˣ') expr += '10ˣ(';
+else expr += key + '(';
+}
+else if (key === 'π') expr += 'π';
+else if (key === 'e') expr += 'e';
+else if (key === '^') expr += '^';
+else expr += key;
+updateDisplay();
+}
+
+function updateDisplay() {
+exprEl.textContent = expr || '';
+if (expr) {
+const result = evaluate(expr);
+resultEl.textContent = result;
+} else {
+resultEl.textContent = lastResult != null ? lastResult : '0';
+}
+}
+
+function renderHistory() {
+historyEl.innerHTML = history.slice(-5).reverse().map(h => `<div onclick="replayHistory('${h.split(' = ')[0]}')">${h}</div>`).join('');
+}
+
+function replayHistory(e) { expr = e; updateDisplay(); }
+
+document.querySelectorAll('.mode-btn').forEach(b => b.addEventListener('click', () => {
+mode = b.dataset.mode;
+document.querySelectorAll('.mode-btn').forEach(x => x.classList.remove('active'));
+b.classList.add('active');
+renderButtons();
+}));
+
+document.addEventListener('keydown', e => {
+const keyMap = { Escape:'C', Backspace:'⌫', Enter:'=', '/':'÷', '*':'×', '-':'−' };
+const k = keyMap[e.key] || e.key;
+if ([...basicButtons.flat(), ...scientificButtons.flat()].includes(k) || Object.values(keyMap).includes(k)) { e.preventDefault(); handleKey(k); }
+if (e.key === '(' || e.key === ')') { e.preventDefault(); expr += e.key; updateDisplay(); }
+});
+
+window.addEventListener('load', () => renderButtons());
+</script>
+</body>
+</html>
