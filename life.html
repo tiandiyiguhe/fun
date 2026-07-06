@@ -1,0 +1,1251 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Neon Life</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #06080b;
+      --bg-2: #0a0f14;
+      --panel: rgba(12, 18, 24, 0.9);
+      --panel-strong: rgba(16, 24, 32, 0.98);
+      --line: rgba(218, 238, 255, 0.16);
+      --line-hot: rgba(58, 255, 216, 0.52);
+      --text: #eef8fb;
+      --text-soft: #a7b8c8;
+      --muted: #697987;
+      --cyan: #3affd8;
+      --green: #9eff6a;
+      --pink: #ff4ec7;
+      --amber: #ffd166;
+      --blue: #65a7ff;
+      --red: #ff5d78;
+      --radius: 8px;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.46);
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      letter-spacing: 0;
+    }
+
+    body {
+      min-height: 100dvh;
+      overflow-x: hidden;
+      background:
+        linear-gradient(135deg, rgba(58, 255, 216, 0.09), transparent 36%),
+        linear-gradient(225deg, rgba(255, 78, 199, 0.075), transparent 34%),
+        linear-gradient(180deg, #06080b 0%, #0b1016 48%, #06080b 100%);
+    }
+
+    body::before {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      content: "";
+      pointer-events: none;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.034) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.026) 1px, transparent 1px);
+      background-size: 34px 34px;
+      mask-image: linear-gradient(to bottom, black 0%, rgba(0, 0, 0, 0.7) 58%, transparent 100%);
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button,
+    select,
+    input[type="range"],
+    input[type="checkbox"] {
+      accent-color: var(--cyan);
+    }
+
+    button,
+    select {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.076), rgba(255, 255, 255, 0.018)),
+        var(--panel-strong);
+      color: var(--text);
+    }
+
+    button {
+      cursor: pointer;
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+
+    button:hover {
+      border-color: var(--line-hot);
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    canvas:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 2px;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      gap: 18px;
+      width: min(1240px, 100%);
+      min-height: 100dvh;
+      margin: 0 auto;
+      padding: 18px;
+      align-items: center;
+    }
+
+    .stage {
+      display: grid;
+      min-width: 0;
+      gap: 14px;
+    }
+
+    .topbar,
+    .panel,
+    .canvas-shell,
+    .mobile-strip {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.056), rgba(255, 255, 255, 0.014)),
+        var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px) saturate(1.18);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      min-height: 78px;
+      padding: 14px 16px;
+    }
+
+    .brand {
+      min-width: 0;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.42rem, 3vw, 2.48rem);
+      line-height: 1;
+      font-weight: 850;
+    }
+
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      margin: 8px 0 0;
+      color: var(--text-soft);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+    }
+
+    .status-pill {
+      display: inline-grid;
+      grid-template-columns: 9px auto;
+      align-items: center;
+      gap: 8px;
+      min-height: 34px;
+      padding: 0 12px;
+      border: 1px solid rgba(255, 209, 102, 0.36);
+      border-radius: 999px;
+      background: rgba(255, 209, 102, 0.09);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+
+    .status-pill::before {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--amber);
+      box-shadow: 0 0 16px var(--amber);
+      content: "";
+    }
+
+    .status-pill[data-running="true"] {
+      border-color: rgba(58, 255, 216, 0.34);
+      background: rgba(58, 255, 216, 0.08);
+    }
+
+    .status-pill[data-running="true"]::before {
+      background: var(--cyan);
+      box-shadow: 0 0 16px var(--cyan);
+    }
+
+    .canvas-shell {
+      position: relative;
+      overflow: hidden;
+      width: min(100%, calc(100dvh - 144px));
+      max-width: 830px;
+      aspect-ratio: 1;
+      margin: 0 auto;
+      border-color: rgba(58, 255, 216, 0.28);
+      background:
+        linear-gradient(145deg, #081019, #0e121b 52%, #090c11);
+      touch-action: none;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+      image-rendering: auto;
+    }
+
+    .hud {
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .hud span {
+      min-height: 28px;
+      padding: 6px 9px;
+      border: 1px solid rgba(255, 255, 255, 0.13);
+      border-radius: var(--radius);
+      background: rgba(3, 7, 12, 0.68);
+      color: var(--text-soft);
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+    }
+
+    .panel {
+      display: grid;
+      gap: 16px;
+      align-content: start;
+      max-height: calc(100dvh - 36px);
+      overflow: auto;
+      padding: 16px;
+    }
+
+    .group {
+      display: grid;
+      gap: 10px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+    }
+
+    .group:last-child {
+      padding-bottom: 0;
+      border-bottom: 0;
+    }
+
+    .group-title {
+      margin: 0;
+      color: var(--text-soft);
+      font-size: 0.76rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .button-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .primary {
+      border-color: rgba(58, 255, 216, 0.38);
+      background:
+        linear-gradient(180deg, rgba(58, 255, 216, 0.18), rgba(58, 255, 216, 0.055)),
+        var(--panel-strong);
+      color: #effffc;
+      box-shadow: 0 0 24px rgba(58, 255, 216, 0.09);
+    }
+
+    .danger {
+      border-color: rgba(255, 93, 120, 0.38);
+      background:
+        linear-gradient(180deg, rgba(255, 93, 120, 0.13), rgba(255, 93, 120, 0.035)),
+        var(--panel-strong);
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .field-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--text-soft);
+      font-size: 0.88rem;
+    }
+
+    .value {
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      min-height: 26px;
+    }
+
+    select {
+      width: 100%;
+      padding: 0 12px;
+      color: var(--text);
+    }
+
+    .toggle {
+      display: grid;
+      grid-template-columns: 22px minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+      min-height: 42px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.035);
+      color: var(--text);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .toggle span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .toggle input {
+      width: 18px;
+      height: 18px;
+      margin: 0;
+    }
+
+    .preset-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 96px;
+      gap: 8px;
+    }
+
+    .pan-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .pan-grid button:nth-child(1) {
+      grid-column: 2;
+    }
+
+    .pan-grid button:nth-child(2) {
+      grid-column: 1;
+    }
+
+    .pan-grid button:nth-child(3) {
+      grid-column: 3;
+    }
+
+    .pan-grid button:nth-child(4) {
+      grid-column: 2;
+    }
+
+    .mobile-strip {
+      display: none;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      padding: 10px;
+    }
+
+    @media (max-width: 980px) {
+      .app {
+        grid-template-columns: 1fr;
+        align-items: start;
+      }
+
+      .panel {
+        max-height: none;
+        overflow: visible;
+      }
+
+      .canvas-shell {
+        width: min(100%, 78dvh);
+      }
+
+      .mobile-strip {
+        display: grid;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .app {
+        gap: 12px;
+        padding: 12px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .status-pill {
+        align-self: stretch;
+        justify-content: center;
+      }
+
+      .canvas-shell {
+        width: 100%;
+      }
+
+      .button-grid,
+      .mobile-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="stage" aria-label="Game of Life stage">
+      <header class="topbar">
+        <div class="brand">
+          <h1>Neon Life</h1>
+          <div class="stats">
+            <span>Gen <strong id="generation">0</strong></span>
+            <span>Alive <strong id="aliveCount">0</strong></span>
+            <span id="viewStats">80 x 80</span>
+          </div>
+        </div>
+        <div class="status-pill" id="statusPill" data-running="false">Paused</div>
+      </header>
+
+      <div class="canvas-shell" id="canvasShell">
+        <canvas id="lifeCanvas" tabindex="0" aria-label="Conway's Game of Life grid"></canvas>
+        <div class="hud" aria-hidden="true">
+          <span id="toolReadout">Paint</span>
+          <span id="coordReadout">0, 0</span>
+        </div>
+      </div>
+
+      <div class="mobile-strip" aria-label="Mobile pan controls">
+        <button type="button" data-pan="up">Up</button>
+        <button type="button" data-pan="left">Left</button>
+        <button type="button" data-pan="right">Right</button>
+        <button type="button" data-pan="down">Down</button>
+      </div>
+    </section>
+
+    <aside class="panel" aria-label="Controls">
+      <section class="group">
+        <p class="group-title">Run</p>
+        <div class="button-grid">
+          <button type="button" class="primary" id="playButton" aria-keyshortcuts="Space">Play</button>
+          <button type="button" id="stepButton">Step</button>
+          <button type="button" id="randomButton" aria-keyshortcuts="R">Random</button>
+          <button type="button" class="danger" id="clearButton" aria-keyshortcuts="C">Clear</button>
+        </div>
+      </section>
+
+      <section class="group">
+        <p class="group-title">Simulation</p>
+        <label class="field" for="speedRange">
+          <span class="field-row">
+            <span>Speed</span>
+            <span class="value" id="speedValue">12 gen/s</span>
+          </span>
+          <input id="speedRange" type="range" min="1" max="60" value="12">
+        </label>
+
+        <label class="field" for="sizeRange">
+          <span class="field-row">
+            <span>Grid</span>
+            <span class="value" id="sizeValue">80 x 80</span>
+          </span>
+          <input id="sizeRange" type="range" min="24" max="180" step="4" value="80">
+        </label>
+
+        <label class="field" for="densityRange">
+          <span class="field-row">
+            <span>Seed density</span>
+            <span class="value" id="densityValue">28%</span>
+          </span>
+          <input id="densityRange" type="range" min="5" max="55" value="28">
+        </label>
+
+        <label class="toggle" for="paintMode">
+          <input id="paintMode" type="checkbox" checked>
+          <span>Paint mode</span>
+        </label>
+      </section>
+
+      <section class="group">
+        <p class="group-title">Patterns</p>
+        <div class="preset-row">
+          <select id="patternSelect" aria-label="Preset pattern">
+            <option value="glider">Glider</option>
+            <option value="lwss">Lightweight spaceship</option>
+            <option value="pulsar">Pulsar</option>
+            <option value="gosperGliderGun">Gosper glider gun</option>
+            <option value="pentadecathlon">Pentadecathlon</option>
+            <option value="acorn">Acorn</option>
+            <option value="diehard">Diehard</option>
+            <option value="blinker">Blinker</option>
+            <option value="toad">Toad</option>
+            <option value="beacon">Beacon</option>
+          </select>
+          <button type="button" id="stampButton">Stamp</button>
+        </div>
+      </section>
+
+      <section class="group">
+        <p class="group-title">Pan</p>
+        <div class="pan-grid">
+          <button type="button" data-pan="up">Up</button>
+          <button type="button" data-pan="left">Left</button>
+          <button type="button" data-pan="right">Right</button>
+          <button type="button" data-pan="down">Down</button>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <script>
+    /* life-core-start */
+    const LifeCore = (() => {
+      const patterns = {
+        glider: {
+          name: "Glider",
+          cells: [[0, 1], [1, 2], [2, 0], [2, 1], [2, 2]]
+        },
+        lwss: {
+          name: "Lightweight spaceship",
+          cells: [[0, 1], [0, 4], [1, 0], [2, 0], [2, 4], [3, 0], [3, 1], [3, 2], [3, 3]]
+        },
+        pulsar: {
+          name: "Pulsar",
+          cells: [
+            [0, 2], [0, 3], [0, 4], [0, 8], [0, 9], [0, 10],
+            [2, 0], [2, 5], [2, 7], [2, 12],
+            [3, 0], [3, 5], [3, 7], [3, 12],
+            [4, 0], [4, 5], [4, 7], [4, 12],
+            [5, 2], [5, 3], [5, 4], [5, 8], [5, 9], [5, 10],
+            [7, 2], [7, 3], [7, 4], [7, 8], [7, 9], [7, 10],
+            [8, 0], [8, 5], [8, 7], [8, 12],
+            [9, 0], [9, 5], [9, 7], [9, 12],
+            [10, 0], [10, 5], [10, 7], [10, 12],
+            [12, 2], [12, 3], [12, 4], [12, 8], [12, 9], [12, 10]
+          ]
+        },
+        gosperGliderGun: {
+          name: "Gosper glider gun",
+          cells: [
+            [5, 1], [5, 2], [6, 1], [6, 2],
+            [3, 13], [3, 14], [4, 12], [4, 16], [5, 11], [5, 17], [6, 11], [6, 15],
+            [6, 17], [6, 18], [7, 11], [7, 17], [8, 12], [8, 16], [9, 13], [9, 14],
+            [1, 25], [2, 23], [2, 25], [3, 21], [3, 22], [4, 21], [4, 22],
+            [5, 21], [5, 22], [6, 23], [6, 25], [7, 25],
+            [3, 35], [3, 36], [4, 35], [4, 36]
+          ]
+        },
+        pentadecathlon: {
+          name: "Pentadecathlon",
+          cells: [[0, 1], [0, 2], [1, 0], [1, 3], [2, 1], [2, 2], [3, 1], [3, 2], [4, 0], [4, 3], [5, 1], [5, 2], [6, 1], [6, 2], [7, 0], [7, 3], [8, 1], [8, 2]]
+        },
+        acorn: {
+          name: "Acorn",
+          cells: [[0, 1], [1, 3], [2, 0], [2, 1], [2, 4], [2, 5], [2, 6]]
+        },
+        diehard: {
+          name: "Diehard",
+          cells: [[0, 6], [1, 0], [1, 1], [2, 1], [2, 5], [2, 6], [2, 7]]
+        },
+        blinker: {
+          name: "Blinker",
+          cells: [[0, 0], [0, 1], [0, 2]]
+        },
+        toad: {
+          name: "Toad",
+          cells: [[0, 1], [0, 2], [0, 3], [1, 0], [1, 1], [1, 2]]
+        },
+        beacon: {
+          name: "Beacon",
+          cells: [[0, 0], [0, 1], [1, 0], [2, 3], [3, 2], [3, 3]]
+        }
+      };
+
+      function createGrid(size) {
+        const normalizedSize = Math.max(1, Math.floor(size));
+        return {
+          size: normalizedSize,
+          cells: new Uint8Array(normalizedSize * normalizedSize),
+          ages: new Uint16Array(normalizedSize * normalizedSize),
+          generation: 0
+        };
+      }
+
+      function inBounds(grid, row, col) {
+        return row >= 0 && row < grid.size && col >= 0 && col < grid.size;
+      }
+
+      function index(grid, row, col) {
+        return row * grid.size + col;
+      }
+
+      function getCell(grid, row, col) {
+        if (!inBounds(grid, row, col)) {
+          return false;
+        }
+        return grid.cells[index(grid, row, col)] === 1;
+      }
+
+      function setCell(grid, row, col, alive) {
+        if (!inBounds(grid, row, col)) {
+          return false;
+        }
+        const offset = index(grid, row, col);
+        grid.cells[offset] = alive ? 1 : 0;
+        grid.ages[offset] = alive ? Math.max(grid.ages[offset], 1) : 0;
+        return true;
+      }
+
+      function countNeighbors(grid, row, col) {
+        let count = 0;
+        for (let deltaRow = -1; deltaRow <= 1; deltaRow += 1) {
+          for (let deltaCol = -1; deltaCol <= 1; deltaCol += 1) {
+            if (deltaRow === 0 && deltaCol === 0) {
+              continue;
+            }
+            if (getCell(grid, row + deltaRow, col + deltaCol)) {
+              count += 1;
+            }
+          }
+        }
+        return count;
+      }
+
+      function step(grid) {
+        const next = createGrid(grid.size);
+        for (let row = 0; row < grid.size; row += 1) {
+          for (let col = 0; col < grid.size; col += 1) {
+            const offset = index(grid, row, col);
+            const alive = grid.cells[offset] === 1;
+            const neighbors = countNeighbors(grid, row, col);
+            const survives = alive && (neighbors === 2 || neighbors === 3);
+            const born = !alive && neighbors === 3;
+            if (survives || born) {
+              next.cells[offset] = 1;
+              next.ages[offset] = survives ? Math.min(grid.ages[offset] + 1, 65535) : 1;
+            }
+          }
+        }
+        next.generation = grid.generation + 1;
+        return next;
+      }
+
+      function liveCount(grid) {
+        let count = 0;
+        for (let i = 0; i < grid.cells.length; i += 1) {
+          count += grid.cells[i];
+        }
+        return count;
+      }
+
+      function clearGrid(grid) {
+        grid.cells.fill(0);
+        grid.ages.fill(0);
+        grid.generation = 0;
+        return grid;
+      }
+
+      function randomizeGrid(grid, density, random = Math.random) {
+        const clampedDensity = Math.max(0, Math.min(1, density));
+        for (let i = 0; i < grid.cells.length; i += 1) {
+          const alive = random() < clampedDensity;
+          grid.cells[i] = alive ? 1 : 0;
+          grid.ages[i] = alive ? 1 + Math.floor(random() * 4) : 0;
+        }
+        grid.generation = 0;
+        return grid;
+      }
+
+      function patternBounds(cells) {
+        return cells.reduce((bounds, cell) => {
+          const row = cell[0];
+          const col = cell[1];
+          return {
+            minRow: Math.min(bounds.minRow, row),
+            minCol: Math.min(bounds.minCol, col),
+            maxRow: Math.max(bounds.maxRow, row),
+            maxCol: Math.max(bounds.maxCol, col)
+          };
+        }, { minRow: Infinity, minCol: Infinity, maxRow: -Infinity, maxCol: -Infinity });
+      }
+
+      function applyPattern(grid, cells, row, col) {
+        for (const cell of cells) {
+          setCell(grid, row + cell[0], col + cell[1], true);
+        }
+        return grid;
+      }
+
+      function centerPattern(grid, cells) {
+        const bounds = patternBounds(cells);
+        const height = bounds.maxRow - bounds.minRow + 1;
+        const width = bounds.maxCol - bounds.minCol + 1;
+        return {
+          row: Math.floor((grid.size - height) / 2) - bounds.minRow,
+          col: Math.floor((grid.size - width) / 2) - bounds.minCol
+        };
+      }
+
+      function resizeGrid(grid, newSize) {
+        const next = createGrid(newSize);
+        const offset = Math.floor((next.size - grid.size) / 2);
+        for (let row = 0; row < grid.size; row += 1) {
+          for (let col = 0; col < grid.size; col += 1) {
+            const oldOffset = index(grid, row, col);
+            if (grid.cells[oldOffset] === 0) {
+              continue;
+            }
+            const nextRow = row + offset;
+            const nextCol = col + offset;
+            if (inBounds(next, nextRow, nextCol)) {
+              const nextOffset = index(next, nextRow, nextCol);
+              next.cells[nextOffset] = 1;
+              next.ages[nextOffset] = grid.ages[oldOffset];
+            }
+          }
+        }
+        next.generation = grid.generation;
+        return next;
+      }
+
+      return {
+        patterns,
+        createGrid,
+        getCell,
+        setCell,
+        countNeighbors,
+        step,
+        liveCount,
+        clearGrid,
+        randomizeGrid,
+        patternBounds,
+        applyPattern,
+        centerPattern,
+        resizeGrid
+      };
+    })();
+    if (typeof window !== "undefined") {
+      window.LifeCore = LifeCore;
+    }
+    /* life-core-end */
+
+    (() => {
+      const canvas = document.getElementById("lifeCanvas");
+      const shell = document.getElementById("canvasShell");
+      const context = canvas.getContext("2d");
+
+      const elements = {
+        generation: document.getElementById("generation"),
+        aliveCount: document.getElementById("aliveCount"),
+        viewStats: document.getElementById("viewStats"),
+        statusPill: document.getElementById("statusPill"),
+        playButton: document.getElementById("playButton"),
+        stepButton: document.getElementById("stepButton"),
+        randomButton: document.getElementById("randomButton"),
+        clearButton: document.getElementById("clearButton"),
+        speedRange: document.getElementById("speedRange"),
+        speedValue: document.getElementById("speedValue"),
+        sizeRange: document.getElementById("sizeRange"),
+        sizeValue: document.getElementById("sizeValue"),
+        densityRange: document.getElementById("densityRange"),
+        densityValue: document.getElementById("densityValue"),
+        paintMode: document.getElementById("paintMode"),
+        toolReadout: document.getElementById("toolReadout"),
+        coordReadout: document.getElementById("coordReadout"),
+        patternSelect: document.getElementById("patternSelect"),
+        stampButton: document.getElementById("stampButton")
+      };
+
+      const state = {
+        grid: LifeCore.createGrid(Number(elements.sizeRange.value)),
+        running: false,
+        speed: Number(elements.speedRange.value),
+        density: Number(elements.densityRange.value) / 100,
+        camera: { row: 0, col: 0 },
+        metrics: { width: 0, height: 0, dpr: 1, cell: 10, rows: 0, cols: 0 },
+        lastTick: 0,
+        accumulator: 0,
+        pointer: null,
+        needsRender: true
+      };
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function clampCamera() {
+        const maxRow = Math.max(0, state.grid.size - state.metrics.rows);
+        const maxCol = Math.max(0, state.grid.size - state.metrics.cols);
+        state.camera.row = clamp(Math.round(state.camera.row), 0, maxRow);
+        state.camera.col = clamp(Math.round(state.camera.col), 0, maxCol);
+      }
+
+      function computeMetrics() {
+        const rect = shell.getBoundingClientRect();
+        const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+        const width = Math.max(260, Math.floor(rect.width));
+        const height = Math.max(260, Math.floor(rect.height));
+        const targetVisible = Math.min(state.grid.size, width < 520 ? 58 : 82);
+        const cell = clamp(Math.floor(Math.min(width, height) / targetVisible), 5, 22);
+        return {
+          width,
+          height,
+          dpr,
+          cell,
+          cols: Math.min(state.grid.size, Math.floor(width / cell)),
+          rows: Math.min(state.grid.size, Math.floor(height / cell))
+        };
+      }
+
+      function resizeCanvas() {
+        state.metrics = computeMetrics();
+        canvas.width = Math.floor(state.metrics.width * state.metrics.dpr);
+        canvas.height = Math.floor(state.metrics.height * state.metrics.dpr);
+        canvas.style.width = `${state.metrics.width}px`;
+        canvas.style.height = `${state.metrics.height}px`;
+        clampCamera();
+        state.needsRender = true;
+      }
+
+      function updateLabels() {
+        const sizeLabel = `${state.grid.size} x ${state.grid.size}`;
+        elements.generation.textContent = String(state.grid.generation);
+        elements.aliveCount.textContent = String(LifeCore.liveCount(state.grid));
+        elements.viewStats.textContent = `${sizeLabel} / view ${state.metrics.cols} x ${state.metrics.rows}`;
+        elements.sizeValue.textContent = sizeLabel;
+        elements.speedValue.textContent = `${state.speed} gen/s`;
+        elements.densityValue.textContent = `${Math.round(state.density * 100)}%`;
+        elements.statusPill.dataset.running = String(state.running);
+        elements.statusPill.textContent = state.running ? "Running" : "Paused";
+        elements.playButton.textContent = state.running ? "Pause" : "Play";
+        elements.playButton.setAttribute("aria-pressed", String(state.running));
+        elements.toolReadout.textContent = elements.paintMode.checked ? "Paint" : "Move";
+      }
+
+      function colorForAge(age) {
+        if (age < 3) {
+          return "#3affd8";
+        }
+        if (age < 9) {
+          return "#9eff6a";
+        }
+        if (age < 20) {
+          return "#ffd166";
+        }
+        return "#ff4ec7";
+      }
+
+      function drawGridLines(cell, width, height) {
+        if (cell < 8) {
+          return;
+        }
+        context.beginPath();
+        context.strokeStyle = "rgba(225, 245, 255, 0.08)";
+        context.lineWidth = 1;
+        for (let x = 0.5; x <= width + 0.5; x += cell) {
+          context.moveTo(x, 0);
+          context.lineTo(x, height);
+        }
+        for (let y = 0.5; y <= height + 0.5; y += cell) {
+          context.moveTo(0, y);
+          context.lineTo(width, y);
+        }
+        context.stroke();
+      }
+
+      function render() {
+        const metrics = state.metrics;
+        context.setTransform(metrics.dpr, 0, 0, metrics.dpr, 0, 0);
+        context.clearRect(0, 0, metrics.width, metrics.height);
+        context.fillStyle = "#05090e";
+        context.fillRect(0, 0, metrics.width, metrics.height);
+
+        const cell = metrics.cell;
+        const pad = cell >= 10 ? 1.5 : 0.8;
+
+        drawGridLines(cell, metrics.width, metrics.height);
+
+        for (let row = 0; row < metrics.rows; row += 1) {
+          const gridRow = state.camera.row + row;
+          for (let col = 0; col < metrics.cols; col += 1) {
+            const gridCol = state.camera.col + col;
+            const offset = gridRow * state.grid.size + gridCol;
+            if (state.grid.cells[offset] === 0) {
+              continue;
+            }
+            const age = state.grid.ages[offset];
+            const color = colorForAge(age);
+            const x = col * cell + pad;
+            const y = row * cell + pad;
+            const size = Math.max(2, cell - pad * 2);
+
+            context.shadowColor = color;
+            context.shadowBlur = Math.min(16, cell * 1.2);
+            context.fillStyle = color;
+            context.fillRect(x, y, size, size);
+            context.shadowBlur = 0;
+
+            if (cell >= 11) {
+              context.fillStyle = "rgba(255, 255, 255, 0.18)";
+              context.fillRect(x + 1, y + 1, Math.max(1, size - 2), Math.max(1, Math.floor(size * 0.28)));
+            }
+          }
+        }
+
+        context.strokeStyle = "rgba(58, 255, 216, 0.42)";
+        context.lineWidth = 2;
+        context.strokeRect(1, 1, metrics.width - 2, metrics.height - 2);
+        state.needsRender = false;
+      }
+
+      function setRunning(running) {
+        state.running = running;
+        state.accumulator = 0;
+        updateLabels();
+      }
+
+      function stepOnce() {
+        state.grid = LifeCore.step(state.grid);
+        updateLabels();
+        state.needsRender = true;
+      }
+
+      function seedRandom() {
+        LifeCore.randomizeGrid(state.grid, state.density);
+        state.accumulator = 0;
+        updateLabels();
+        state.needsRender = true;
+      }
+
+      function clearBoard() {
+        setRunning(false);
+        LifeCore.clearGrid(state.grid);
+        updateLabels();
+        state.needsRender = true;
+      }
+
+      function panBy(deltaRow, deltaCol) {
+        state.camera.row += deltaRow;
+        state.camera.col += deltaCol;
+        clampCamera();
+        updateLabels();
+        state.needsRender = true;
+      }
+
+      function canvasPointToCell(clientX, clientY) {
+        const rect = canvas.getBoundingClientRect();
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+        const row = state.camera.row + Math.floor(y / state.metrics.cell);
+        const col = state.camera.col + Math.floor(x / state.metrics.cell);
+        return { row, col };
+      }
+
+      function setReadoutCell(cell) {
+        if (!cell || cell.row < 0 || cell.col < 0 || cell.row >= state.grid.size || cell.col >= state.grid.size) {
+          elements.coordReadout.textContent = "--, --";
+          return;
+        }
+        elements.coordReadout.textContent = `${cell.col}, ${cell.row}`;
+      }
+
+      function paintCell(cell, alive) {
+        if (LifeCore.setCell(state.grid, cell.row, cell.col, alive)) {
+          updateLabels();
+          state.needsRender = true;
+        }
+      }
+
+      function stampPresetAt(row, col) {
+        const pattern = LifeCore.patterns[elements.patternSelect.value];
+        const bounds = LifeCore.patternBounds(pattern.cells);
+        const height = bounds.maxRow - bounds.minRow + 1;
+        const width = bounds.maxCol - bounds.minCol + 1;
+        const top = row - Math.floor(height / 2) - bounds.minRow;
+        const left = col - Math.floor(width / 2) - bounds.minCol;
+        LifeCore.applyPattern(state.grid, pattern.cells, top, left);
+        updateLabels();
+        state.needsRender = true;
+      }
+
+      function stampPresetInView() {
+        const centerRow = state.camera.row + Math.floor(state.metrics.rows / 2);
+        const centerCol = state.camera.col + Math.floor(state.metrics.cols / 2);
+        stampPresetAt(centerRow, centerCol);
+      }
+
+      function handlePointerDown(event) {
+        canvas.focus({ preventScroll: true });
+        event.preventDefault();
+        const cell = canvasPointToCell(event.clientX, event.clientY);
+        setReadoutCell(cell);
+        canvas.setPointerCapture(event.pointerId);
+
+        const paintMode = elements.paintMode.checked;
+        state.pointer = {
+          id: event.pointerId,
+          mode: paintMode ? "paint" : "toggle",
+          startX: event.clientX,
+          startY: event.clientY,
+          startRow: state.camera.row,
+          startCol: state.camera.col,
+          startCell: cell,
+          lastKey: null,
+          paintedStart: false,
+          brushAlive: event.button === 2 || event.altKey ? false : true,
+          moved: false
+        };
+      }
+
+      function handlePointerMove(event) {
+        const cell = canvasPointToCell(event.clientX, event.clientY);
+        setReadoutCell(cell);
+        if (!state.pointer || state.pointer.id !== event.pointerId) {
+          return;
+        }
+        event.preventDefault();
+        const movedFar = Math.hypot(event.clientX - state.pointer.startX, event.clientY - state.pointer.startY) > 4;
+        state.pointer.moved = state.pointer.moved || movedFar;
+
+        if (state.pointer.mode === "paint") {
+          if (!state.pointer.moved) {
+            return;
+          }
+          if (!state.pointer.paintedStart) {
+            state.pointer.paintedStart = true;
+            state.pointer.lastKey = `${state.pointer.startCell.row}:${state.pointer.startCell.col}`;
+            paintCell(state.pointer.startCell, state.pointer.brushAlive);
+          }
+          const key = `${cell.row}:${cell.col}`;
+          if (key !== state.pointer.lastKey) {
+            state.pointer.lastKey = key;
+            paintCell(cell, state.pointer.brushAlive);
+          }
+          return;
+        }
+
+        if (movedFar) {
+          const deltaCol = Math.trunc((state.pointer.startX - event.clientX) / state.metrics.cell);
+          const deltaRow = Math.trunc((state.pointer.startY - event.clientY) / state.metrics.cell);
+          state.camera.row = state.pointer.startRow + deltaRow;
+          state.camera.col = state.pointer.startCol + deltaCol;
+          clampCamera();
+          updateLabels();
+          state.needsRender = true;
+        }
+      }
+
+      function handlePointerUp(event) {
+        if (!state.pointer || state.pointer.id !== event.pointerId) {
+          return;
+        }
+        event.preventDefault();
+        if (state.pointer.mode === "paint" && !state.pointer.moved) {
+          const cell = state.pointer.startCell;
+          const alive = state.pointer.brushAlive ? !LifeCore.getCell(state.grid, cell.row, cell.col) : false;
+          paintCell(cell, alive);
+        } else if (state.pointer.mode === "toggle" && !state.pointer.moved) {
+          const cell = state.pointer.startCell;
+          paintCell(cell, !LifeCore.getCell(state.grid, cell.row, cell.col));
+        }
+        state.pointer = null;
+      }
+
+      function handleKeyDown(event) {
+        const editable = event.target.matches("input, select, textarea, button");
+        if (editable) {
+          return;
+        }
+
+        if (event.code === "Space") {
+          event.preventDefault();
+          setRunning(!state.running);
+          return;
+        }
+        if (event.code === "KeyR") {
+          event.preventDefault();
+          seedRandom();
+          return;
+        }
+        if (event.code === "KeyC") {
+          event.preventDefault();
+          clearBoard();
+          return;
+        }
+
+        const panAmount = event.shiftKey ? 12 : 5;
+        if (event.code === "ArrowUp") {
+          event.preventDefault();
+          panBy(-panAmount, 0);
+        } else if (event.code === "ArrowDown") {
+          event.preventDefault();
+          panBy(panAmount, 0);
+        } else if (event.code === "ArrowLeft") {
+          event.preventDefault();
+          panBy(0, -panAmount);
+        } else if (event.code === "ArrowRight") {
+          event.preventDefault();
+          panBy(0, panAmount);
+        }
+      }
+
+      function animate(timestamp) {
+        if (!state.lastTick) {
+          state.lastTick = timestamp;
+        }
+        const delta = timestamp - state.lastTick;
+        state.lastTick = timestamp;
+
+        if (state.running) {
+          const interval = 1000 / state.speed;
+          state.accumulator += delta;
+          let steps = 0;
+          while (state.accumulator >= interval && steps < 6) {
+            state.grid = LifeCore.step(state.grid);
+            state.accumulator -= interval;
+            steps += 1;
+          }
+          if (steps > 0) {
+            updateLabels();
+            state.needsRender = true;
+          }
+          if (steps === 6) {
+            state.accumulator = 0;
+          }
+        }
+
+        if (state.needsRender || state.running) {
+          render();
+        }
+        requestAnimationFrame(animate);
+      }
+
+      elements.playButton.addEventListener("click", () => setRunning(!state.running));
+      elements.stepButton.addEventListener("click", () => {
+        setRunning(false);
+        stepOnce();
+      });
+      elements.randomButton.addEventListener("click", seedRandom);
+      elements.clearButton.addEventListener("click", clearBoard);
+      elements.stampButton.addEventListener("click", stampPresetInView);
+
+      elements.speedRange.addEventListener("input", () => {
+        state.speed = Number(elements.speedRange.value);
+        updateLabels();
+      });
+
+      elements.sizeRange.addEventListener("input", () => {
+        const nextSize = Number(elements.sizeRange.value);
+        const previousSize = state.grid.size;
+        state.grid = LifeCore.resizeGrid(state.grid, nextSize);
+        const cameraOffset = Math.floor((nextSize - previousSize) / 2);
+        state.camera.row += cameraOffset;
+        state.camera.col += cameraOffset;
+        resizeCanvas();
+        updateLabels();
+        state.needsRender = true;
+      });
+
+      elements.densityRange.addEventListener("input", () => {
+        state.density = Number(elements.densityRange.value) / 100;
+        updateLabels();
+      });
+
+      elements.paintMode.addEventListener("change", () => {
+        updateLabels();
+        canvas.style.cursor = elements.paintMode.checked ? "crosshair" : "grab";
+      });
+
+      document.querySelectorAll("[data-pan]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const amount = 8;
+          const direction = button.dataset.pan;
+          if (direction === "up") {
+            panBy(-amount, 0);
+          } else if (direction === "down") {
+            panBy(amount, 0);
+          } else if (direction === "left") {
+            panBy(0, -amount);
+          } else if (direction === "right") {
+            panBy(0, amount);
+          }
+        });
+      });
+
+      canvas.addEventListener("pointerdown", handlePointerDown);
+      canvas.addEventListener("pointermove", handlePointerMove);
+      canvas.addEventListener("pointerup", handlePointerUp);
+      canvas.addEventListener("pointercancel", handlePointerUp);
+      canvas.addEventListener("contextmenu", (event) => event.preventDefault());
+      canvas.addEventListener("pointerleave", (event) => {
+        if (!state.pointer) {
+          setReadoutCell(null);
+        } else {
+          handlePointerMove(event);
+        }
+      });
+
+      window.addEventListener("keydown", handleKeyDown);
+      window.addEventListener("resize", () => {
+        resizeCanvas();
+        updateLabels();
+      });
+
+      resizeCanvas();
+      updateLabels();
+      seedRandom();
+      requestAnimationFrame(animate);
+    })();
+  </script>
+</body>
+</html>
