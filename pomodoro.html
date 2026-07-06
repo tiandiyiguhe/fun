@@ -1,0 +1,1247 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pomodoro</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #06080c;
+      --bg-2: #0a0f16;
+      --panel: rgba(14, 19, 28, 0.88);
+      --panel-strong: rgba(18, 25, 36, 0.96);
+      --line: rgba(220, 231, 255, 0.14);
+      --line-strong: rgba(116, 234, 211, 0.52);
+      --text: #f4f7fb;
+      --text-soft: #b8c3d4;
+      --muted: #738094;
+      --cyan: #63f2df;
+      --mint: #8dffbd;
+      --rose: #ff6b9c;
+      --amber: #ffd166;
+      --violet: #a991ff;
+      --danger: #ff5570;
+      --shadow: 0 28px 80px rgba(0, 0, 0, 0.46);
+      --radius: 8px;
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      letter-spacing: 0;
+    }
+
+    body {
+      min-height: 100dvh;
+      overflow-x: hidden;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 24%),
+        linear-gradient(135deg, #06080c 0%, #0b1119 42%, #090c13 68%, #06080c 100%);
+    }
+
+    body::before {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      content: "";
+      pointer-events: none;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.038) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.026) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.88), transparent 78%);
+      opacity: 0.62;
+    }
+
+    body::after {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      content: "";
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(99, 242, 223, 0.09), transparent 26%, transparent 74%, rgba(255, 107, 156, 0.08)),
+        linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.46) 100%);
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      color: inherit;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.46;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      gap: 18px;
+      width: min(1120px, calc(100% - 32px));
+      min-height: 100dvh;
+      margin: 0 auto;
+      padding: 18px 0;
+      align-items: stretch;
+      animation: appEnter 460ms ease both;
+    }
+
+    .timer-stage,
+    .settings-panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.014)),
+        var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px) saturate(1.16);
+    }
+
+    .timer-stage {
+      position: relative;
+      display: grid;
+      min-height: calc(100dvh - 36px);
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      overflow: hidden;
+    }
+
+    .timer-stage::before {
+      position: absolute;
+      inset: 0;
+      content: "";
+      pointer-events: none;
+      background:
+        linear-gradient(120deg, rgba(99, 242, 223, 0.1), transparent 36%),
+        linear-gradient(300deg, rgba(255, 107, 156, 0.1), transparent 42%);
+      opacity: 0.78;
+    }
+
+    .topbar {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 18px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(7, 10, 15, 0.42);
+    }
+
+    .brand {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.34rem;
+      line-height: 1.08;
+      font-weight: 850;
+    }
+
+    .mode-copy {
+      margin: 0;
+      color: var(--text-soft);
+      font-size: 0.88rem;
+    }
+
+    .mode-tabs {
+      display: inline-grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.045);
+    }
+
+    .mode-tab {
+      min-width: 82px;
+      min-height: 36px;
+      padding: 0 12px;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-soft);
+      font-size: 0.9rem;
+      font-weight: 750;
+      transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease;
+    }
+
+    .mode-tab[aria-pressed="true"] {
+      color: #071010;
+      background: linear-gradient(135deg, var(--cyan), var(--mint));
+      box-shadow: 0 0 22px rgba(99, 242, 223, 0.2);
+    }
+
+    .timer-core {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      place-items: center;
+      min-width: 0;
+      padding: 28px 18px;
+    }
+
+    .ring-wrap {
+      position: relative;
+      display: grid;
+      width: min(72dvh, 100%, 470px);
+      aspect-ratio: 1;
+      place-items: center;
+    }
+
+    .progress-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      transform: rotate(-90deg);
+    }
+
+    .ring-track {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.085);
+      stroke-width: 12;
+    }
+
+    .ring-progress {
+      fill: none;
+      stroke: url(#ringGradient);
+      stroke-width: 12;
+      stroke-linecap: round;
+      stroke-dasharray: 691.15;
+      stroke-dashoffset: 0;
+      filter: drop-shadow(0 0 16px rgba(99, 242, 223, 0.34));
+      transition: stroke-dashoffset 260ms linear, filter 260ms ease;
+    }
+
+    .ring-glow {
+      fill: none;
+      stroke: url(#ringGlow);
+      stroke-width: 22;
+      stroke-linecap: round;
+      opacity: 0.18;
+      stroke-dasharray: 691.15;
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 260ms linear, opacity 260ms ease;
+    }
+
+    .ring-pulse {
+      animation: ringPulse 1100ms ease;
+    }
+
+    .time-face {
+      position: relative;
+      display: grid;
+      width: 67%;
+      aspect-ratio: 1;
+      place-items: center;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 50%;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015)),
+        rgba(8, 12, 18, 0.74);
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+        inset 0 -28px 60px rgba(0, 0, 0, 0.34);
+    }
+
+    .time-stack {
+      display: grid;
+      gap: 10px;
+      place-items: center;
+      padding: 18px;
+    }
+
+    .time-display {
+      min-width: 5.6ch;
+      font-family: var(--mono);
+      font-size: 4.7rem;
+      line-height: 0.98;
+      font-weight: 820;
+      font-variant-numeric: tabular-nums;
+      text-shadow: 0 0 34px rgba(99, 242, 223, 0.22);
+    }
+
+    .state-line {
+      min-height: 1.2em;
+      color: var(--text-soft);
+      font-size: 0.98rem;
+      font-weight: 680;
+    }
+
+    .controls {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 18px;
+      border-top: 1px solid var(--line);
+      background: rgba(7, 10, 15, 0.38);
+    }
+
+    .control-btn,
+    .icon-btn {
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.055);
+      color: var(--text);
+      transition: transform 150ms ease, border-color 170ms ease, background 170ms ease, box-shadow 170ms ease;
+      user-select: none;
+    }
+
+    .control-btn {
+      grid-template-columns: auto auto;
+      min-width: 154px;
+      min-height: 52px;
+      gap: 10px;
+      padding: 0 20px;
+      color: #051010;
+      border-color: rgba(99, 242, 223, 0.62);
+      background: linear-gradient(135deg, var(--cyan), var(--mint));
+      font-weight: 850;
+      box-shadow: 0 0 30px rgba(99, 242, 223, 0.18);
+    }
+
+    .control-btn[data-running="true"] {
+      border-color: rgba(255, 107, 156, 0.66);
+      background: linear-gradient(135deg, var(--rose), var(--amber));
+      box-shadow: 0 0 30px rgba(255, 107, 156, 0.18);
+    }
+
+    .icon-btn {
+      width: 52px;
+      height: 52px;
+    }
+
+    .control-btn svg,
+    .icon-btn svg {
+      width: 22px;
+      height: 22px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .control-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+      stroke: none;
+    }
+
+    .control-btn:hover,
+    .control-btn:focus-visible,
+    .icon-btn:hover,
+    .icon-btn:focus-visible,
+    .mode-tab:focus-visible {
+      outline: none;
+      transform: translateY(-1px);
+      border-color: var(--line-strong);
+      box-shadow: 0 0 0 3px rgba(99, 242, 223, 0.1), 0 16px 34px rgba(0, 0, 0, 0.26);
+    }
+
+    .control-btn:active,
+    .icon-btn:active,
+    .mode-tab:active {
+      transform: translateY(0);
+    }
+
+    .settings-panel {
+      display: grid;
+      align-content: start;
+      min-height: calc(100dvh - 36px);
+      overflow: hidden;
+    }
+
+    .panel-section {
+      display: grid;
+      gap: 14px;
+      padding: 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel-section:last-child {
+      border-bottom: 0;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .section-title h2 {
+      margin: 0;
+      font-size: 0.86rem;
+      line-height: 1;
+      color: var(--muted);
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .save-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--mint);
+      box-shadow: 0 0 16px rgba(141, 255, 189, 0.42);
+      opacity: 0.34;
+      transition: opacity 180ms ease, background 180ms ease;
+    }
+
+    .save-dot.active {
+      opacity: 1;
+      background: var(--cyan);
+    }
+
+    .field-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .field {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 94px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .field label {
+      display: grid;
+      gap: 3px;
+      min-width: 0;
+      color: var(--text);
+      font-weight: 750;
+    }
+
+    .field small {
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 620;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      min-height: 42px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      outline: none;
+      background: rgba(5, 8, 13, 0.72);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 1rem;
+      font-weight: 760;
+      font-variant-numeric: tabular-nums;
+      transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    }
+
+    input[type="number"]:focus {
+      border-color: var(--line-strong);
+      background: rgba(8, 14, 22, 0.94);
+      box-shadow: 0 0 0 3px rgba(99, 242, 223, 0.09);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .stat {
+      display: grid;
+      min-height: 88px;
+      align-content: center;
+      gap: 6px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 780;
+      text-transform: uppercase;
+    }
+
+    .stat-value {
+      font-family: var(--mono);
+      font-size: 1.65rem;
+      line-height: 1;
+      font-weight: 850;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .mini-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .mini-btn {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.045);
+      color: var(--text-soft);
+      font-weight: 780;
+      transition: transform 150ms ease, border-color 170ms ease, background 170ms ease, color 170ms ease;
+    }
+
+    .mini-btn:hover,
+    .mini-btn:focus-visible {
+      outline: none;
+      color: var(--text);
+      border-color: var(--line-strong);
+      background: rgba(99, 242, 223, 0.1);
+      transform: translateY(-1px);
+    }
+
+    .sound-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .sound-label {
+      display: grid;
+      gap: 4px;
+      color: var(--text);
+      font-weight: 780;
+    }
+
+    .sound-label span:last-child {
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 620;
+    }
+
+    .switch {
+      position: relative;
+      width: 58px;
+      height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.07);
+      transition: background 160ms ease, border-color 160ms ease;
+    }
+
+    .switch::after {
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      content: "";
+      background: var(--text-soft);
+      transition: transform 180ms ease, background 180ms ease, box-shadow 180ms ease;
+    }
+
+    .switch[aria-pressed="true"] {
+      border-color: rgba(99, 242, 223, 0.62);
+      background: rgba(99, 242, 223, 0.16);
+    }
+
+    .switch[aria-pressed="true"]::after {
+      transform: translateX(24px);
+      background: var(--cyan);
+      box-shadow: 0 0 16px rgba(99, 242, 223, 0.44);
+    }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.45;
+    }
+
+    body.is-fullscreen .app,
+    :fullscreen .app {
+      width: min(1240px, calc(100% - 36px));
+    }
+
+    body.is-fullscreen .timer-stage,
+    :fullscreen .timer-stage {
+      min-height: calc(100dvh - 36px);
+    }
+
+    @keyframes appEnter {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes ringPulse {
+      0% {
+        transform: scale(1);
+      }
+      42% {
+        transform: scale(1.018);
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    @media (max-width: 860px) {
+      .app {
+        grid-template-columns: 1fr;
+        width: min(100% - 24px, 680px);
+        min-height: auto;
+      }
+
+      .timer-stage,
+      .settings-panel {
+        min-height: auto;
+      }
+
+      .ring-wrap {
+        width: min(82vw, 430px);
+      }
+    }
+
+    @media (max-width: 560px) {
+      .app {
+        width: min(100% - 18px, 520px);
+        padding: 9px 0;
+        gap: 10px;
+      }
+
+      .topbar {
+        display: grid;
+        padding: 14px;
+      }
+
+      .mode-tabs {
+        width: 100%;
+      }
+
+      .mode-tab {
+        min-width: 0;
+      }
+
+      .timer-core {
+        padding: 20px 10px;
+      }
+
+      .ring-wrap {
+        width: min(90vw, 380px);
+      }
+
+      .time-display {
+        font-size: 3.35rem;
+      }
+
+      .state-line {
+        font-size: 0.9rem;
+      }
+
+      .controls {
+        gap: 8px;
+        padding: 14px;
+      }
+
+      .control-btn {
+        min-width: 132px;
+        min-height: 50px;
+        padding: 0 14px;
+      }
+
+      .icon-btn {
+        width: 50px;
+        height: 50px;
+      }
+
+      .panel-section {
+        padding: 14px;
+      }
+
+      .field {
+        grid-template-columns: minmax(0, 1fr) 84px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" id="app">
+    <section class="timer-stage" aria-label="Pomodoro timer">
+      <header class="topbar">
+        <div class="brand">
+          <h1>Pomodoro</h1>
+          <p class="mode-copy" id="statusText">Work session ready</p>
+        </div>
+
+        <div class="mode-tabs" role="group" aria-label="Timer mode">
+          <button class="mode-tab" id="workModeButton" type="button" aria-pressed="true">Work</button>
+          <button class="mode-tab" id="breakModeButton" type="button" aria-pressed="false">Break</button>
+        </div>
+      </header>
+
+      <div class="timer-core">
+        <div class="ring-wrap" id="ringWrap">
+          <svg class="progress-svg" viewBox="0 0 240 240" aria-hidden="true">
+            <defs>
+              <linearGradient id="ringGradient" x1="24" y1="24" x2="216" y2="216" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#63f2df"></stop>
+                <stop offset="48%" stop-color="#8dffbd"></stop>
+                <stop offset="76%" stop-color="#ffd166"></stop>
+                <stop offset="100%" stop-color="#ff6b9c"></stop>
+              </linearGradient>
+              <linearGradient id="ringGlow" x1="216" y1="24" x2="24" y2="216" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#a991ff"></stop>
+                <stop offset="52%" stop-color="#63f2df"></stop>
+                <stop offset="100%" stop-color="#ff6b9c"></stop>
+              </linearGradient>
+            </defs>
+            <circle class="ring-track" cx="120" cy="120" r="110"></circle>
+            <circle class="ring-glow" id="ringGlow" cx="120" cy="120" r="110"></circle>
+            <circle class="ring-progress" id="progressRing" cx="120" cy="120" r="110"></circle>
+          </svg>
+
+          <div class="time-face">
+            <div class="time-stack">
+              <div class="time-display" id="timeDisplay" role="timer" aria-live="polite">25:00</div>
+              <div class="state-line" id="modeLabel">Focus</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="controls" aria-label="Timer controls">
+        <button class="control-btn" id="toggleButton" type="button" data-running="false" aria-label="Start timer" title="Start or pause">
+          <svg id="toggleIcon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M8 5v14l11-7z"></path>
+          </svg>
+          <span id="toggleLabel">Start</span>
+        </button>
+
+        <button class="icon-btn" id="resetButton" type="button" aria-label="Reset timer" title="Reset">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 12a9 9 0 1 0 3-6.7"></path>
+            <path d="M3 4v6h6"></path>
+          </svg>
+        </button>
+
+        <button class="icon-btn" id="fullscreenButton" type="button" aria-label="Enter fullscreen" title="Fullscreen">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M8 3H3v5"></path>
+            <path d="M16 3h5v5"></path>
+            <path d="M21 16v5h-5"></path>
+            <path d="M3 16v5h5"></path>
+          </svg>
+        </button>
+      </footer>
+    </section>
+
+    <aside class="settings-panel" aria-label="Pomodoro settings">
+      <section class="panel-section">
+        <div class="section-title">
+          <h2>Intervals</h2>
+          <span class="save-dot" id="saveDot" aria-hidden="true"></span>
+        </div>
+
+        <div class="field-grid">
+          <div class="field">
+            <label for="workMinutes">
+              <span>Work</span>
+              <small>minutes</small>
+            </label>
+            <input id="workMinutes" type="number" min="1" max="120" step="1" value="25" inputmode="numeric">
+          </div>
+
+          <div class="field">
+            <label for="breakMinutes">
+              <span>Break</span>
+              <small>minutes</small>
+            </label>
+            <input id="breakMinutes" type="number" min="1" max="60" step="1" value="5" inputmode="numeric">
+          </div>
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <div class="section-title">
+          <h2>Progress</h2>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat">
+            <span class="stat-label">Sessions</span>
+            <span class="stat-value" id="sessionCount">0</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Streak</span>
+            <span class="stat-value" id="streakCount">0</span>
+          </div>
+        </div>
+
+        <div class="mini-actions">
+          <button class="mini-btn" id="clearSessionsButton" type="button">Clear</button>
+          <button class="mini-btn" id="testSoundButton" type="button">Sound</button>
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <div class="section-title">
+          <h2>Output</h2>
+        </div>
+
+        <div class="sound-row">
+          <div class="sound-label">
+            <span>Chime</span>
+            <span>Web Audio API</span>
+          </div>
+          <button class="switch" id="soundToggle" type="button" role="switch" aria-pressed="true" aria-label="Toggle notification sound"></button>
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <p class="footer-note" id="storageStatus">Settings saved locally.</p>
+      </section>
+    </aside>
+  </main>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const STORAGE_KEY = "tasteSkillPomodoroSettings";
+      const DEFAULTS = {
+        workMinutes: 25,
+        breakMinutes: 5,
+        completedSessions: 0,
+        streak: 0,
+        soundEnabled: true,
+      };
+
+      const $ = (selector) => document.querySelector(selector);
+
+      const elements = {
+        app: $("#app"),
+        timeDisplay: $("#timeDisplay"),
+        statusText: $("#statusText"),
+        modeLabel: $("#modeLabel"),
+        progressRing: $("#progressRing"),
+        ringGlow: $("#ringGlow"),
+        ringWrap: $("#ringWrap"),
+        toggleButton: $("#toggleButton"),
+        toggleIcon: $("#toggleIcon"),
+        toggleLabel: $("#toggleLabel"),
+        resetButton: $("#resetButton"),
+        fullscreenButton: $("#fullscreenButton"),
+        workModeButton: $("#workModeButton"),
+        breakModeButton: $("#breakModeButton"),
+        workMinutes: $("#workMinutes"),
+        breakMinutes: $("#breakMinutes"),
+        sessionCount: $("#sessionCount"),
+        streakCount: $("#streakCount"),
+        clearSessionsButton: $("#clearSessionsButton"),
+        testSoundButton: $("#testSoundButton"),
+        soundToggle: $("#soundToggle"),
+        saveDot: $("#saveDot"),
+        storageStatus: $("#storageStatus"),
+      };
+
+      const circumference = 2 * Math.PI * elements.progressRing.r.baseVal.value;
+      let saveDotTimer = 0;
+      let audioContext = null;
+
+      const state = {
+        mode: "work",
+        isRunning: false,
+        workMinutes: DEFAULTS.workMinutes,
+        breakMinutes: DEFAULTS.breakMinutes,
+        completedSessions: DEFAULTS.completedSessions,
+        streak: DEFAULTS.streak,
+        soundEnabled: DEFAULTS.soundEnabled,
+        totalSeconds: DEFAULTS.workMinutes * 60,
+        remainingSeconds: DEFAULTS.workMinutes * 60,
+        startedAt: 0,
+        startingRemaining: DEFAULTS.workMinutes * 60,
+        rafId: 0,
+      };
+
+      function clampInteger(value, fallback, min, max) {
+        const parsed = Number.parseInt(value, 10);
+        if (!Number.isFinite(parsed)) return fallback;
+        return Math.min(max, Math.max(min, parsed));
+      }
+
+      function modeSeconds(mode = state.mode) {
+        return (mode === "work" ? state.workMinutes : state.breakMinutes) * 60;
+      }
+
+      function loadSettings() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return;
+
+          const saved = JSON.parse(raw);
+          state.workMinutes = clampInteger(saved.workMinutes, DEFAULTS.workMinutes, 1, 120);
+          state.breakMinutes = clampInteger(saved.breakMinutes, DEFAULTS.breakMinutes, 1, 60);
+          state.completedSessions = clampInteger(saved.completedSessions, 0, 0, 9999);
+          state.streak = clampInteger(saved.streak, 0, 0, 9999);
+          state.soundEnabled = saved.soundEnabled !== false;
+        } catch (error) {
+          elements.storageStatus.textContent = "Local settings could not be loaded.";
+        }
+      }
+
+      function saveSettings() {
+        const payload = {
+          workMinutes: state.workMinutes,
+          breakMinutes: state.breakMinutes,
+          completedSessions: state.completedSessions,
+          streak: state.streak,
+          soundEnabled: state.soundEnabled,
+        };
+
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+          elements.storageStatus.textContent = "Settings saved locally.";
+          elements.saveDot.classList.add("active");
+          clearTimeout(saveDotTimer);
+          saveDotTimer = window.setTimeout(() => elements.saveDot.classList.remove("active"), 520);
+        } catch (error) {
+          elements.storageStatus.textContent = "Local settings are unavailable.";
+        }
+      }
+
+      function formatTime(seconds) {
+        const safeSeconds = Math.max(0, Math.ceil(seconds));
+        const minutes = Math.floor(safeSeconds / 60).toString().padStart(2, "0");
+        const remainder = (safeSeconds % 60).toString().padStart(2, "0");
+        return `${minutes}:${remainder}`;
+      }
+
+      function setToggleIcon(isRunning) {
+        elements.toggleIcon.innerHTML = isRunning
+          ? '<path d="M7 5h4v14H7z"></path><path d="M13 5h4v14h-4z"></path>'
+          : '<path d="M8 5v14l11-7z"></path>';
+      }
+
+      function render() {
+        const remainingRatio = state.totalSeconds > 0 ? state.remainingSeconds / state.totalSeconds : 0;
+        const offset = circumference * (1 - Math.max(0, Math.min(1, remainingRatio)));
+        const isWork = state.mode === "work";
+
+        elements.timeDisplay.textContent = formatTime(state.remainingSeconds);
+        elements.modeLabel.textContent = isWork ? "Focus" : "Recover";
+        elements.statusText.textContent = state.isRunning
+          ? `${isWork ? "Work" : "Break"} session running`
+          : `${isWork ? "Work" : "Break"} session ready`;
+        elements.progressRing.style.strokeDasharray = `${circumference}`;
+        elements.progressRing.style.strokeDashoffset = `${offset}`;
+        elements.ringGlow.style.strokeDasharray = `${circumference}`;
+        elements.ringGlow.style.strokeDashoffset = `${offset}`;
+        elements.workModeButton.setAttribute("aria-pressed", String(isWork));
+        elements.breakModeButton.setAttribute("aria-pressed", String(!isWork));
+        elements.toggleButton.dataset.running = String(state.isRunning);
+        elements.toggleButton.setAttribute("aria-label", state.isRunning ? "Pause timer" : "Start timer");
+        elements.toggleLabel.textContent = state.isRunning ? "Pause" : "Start";
+        elements.sessionCount.textContent = String(state.completedSessions);
+        elements.streakCount.textContent = String(state.streak);
+        elements.soundToggle.setAttribute("aria-pressed", String(state.soundEnabled));
+        elements.fullscreenButton.setAttribute(
+          "aria-label",
+          document.fullscreenElement ? "Exit fullscreen" : "Enter fullscreen"
+        );
+        document.body.classList.toggle("is-fullscreen", Boolean(document.fullscreenElement));
+        document.title = `${formatTime(state.remainingSeconds)} - Pomodoro`;
+        setToggleIcon(state.isRunning);
+      }
+
+      function syncInputs() {
+        elements.workMinutes.value = String(state.workMinutes);
+        elements.breakMinutes.value = String(state.breakMinutes);
+      }
+
+      function resetToMode(mode = state.mode) {
+        cancelAnimationFrame(state.rafId);
+        state.mode = mode;
+        state.isRunning = false;
+        state.totalSeconds = modeSeconds(mode);
+        state.remainingSeconds = state.totalSeconds;
+        state.startedAt = 0;
+        state.startingRemaining = state.remainingSeconds;
+        render();
+      }
+
+      function currentRemaining(now = performance.now()) {
+        if (!state.isRunning) return state.remainingSeconds;
+        const elapsed = (now - state.startedAt) / 1000;
+        return Math.max(0, state.startingRemaining - elapsed);
+      }
+
+      function tick(now) {
+        state.remainingSeconds = currentRemaining(now);
+        render();
+
+        if (state.remainingSeconds <= 0) {
+          completeInterval();
+          return;
+        }
+
+        state.rafId = requestAnimationFrame(tick);
+      }
+
+      function ensureAudioContext() {
+        if (audioContext) return audioContext;
+        const AudioCtor = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtor) return null;
+        audioContext = new AudioCtor();
+        return audioContext;
+      }
+
+      async function playNotificationSound() {
+        if (!state.soundEnabled) return;
+        const context = ensureAudioContext();
+        if (!context) return;
+
+        if (context.state === "suspended") {
+          await context.resume();
+        }
+
+        const now = context.currentTime;
+        const master = context.createGain();
+        master.gain.setValueAtTime(0.0001, now);
+        master.gain.exponentialRampToValueAtTime(0.18, now + 0.018);
+        master.gain.exponentialRampToValueAtTime(0.0001, now + 0.74);
+        master.connect(context.destination);
+
+        [523.25, 659.25, 783.99].forEach((frequency, index) => {
+          const start = now + index * 0.12;
+          const type = index === 1 ? "triangle" : "sine";
+          const oscillator = typeof OscillatorNode === "function"
+            ? new OscillatorNode(context, { frequency, type })
+            : context.createOscillator();
+          const gain = context.createGain();
+
+          if (!("frequency" in oscillator && typeof OscillatorNode === "function")) {
+            oscillator.frequency.setValueAtTime(frequency, start);
+            oscillator.type = type;
+          }
+
+          gain.gain.setValueAtTime(0.0001, start);
+          gain.gain.exponentialRampToValueAtTime(0.22, start + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.38);
+          oscillator.connect(gain);
+          gain.connect(master);
+          oscillator.start(start);
+          oscillator.stop(start + 0.42);
+        });
+      }
+
+      function startTimer() {
+        ensureAudioContext();
+        if (state.remainingSeconds <= 0) {
+          resetToMode(state.mode);
+        }
+        state.isRunning = true;
+        state.startedAt = performance.now();
+        state.startingRemaining = state.remainingSeconds;
+        state.rafId = requestAnimationFrame(tick);
+        render();
+      }
+
+      function pauseTimer() {
+        state.remainingSeconds = currentRemaining();
+        state.isRunning = false;
+        cancelAnimationFrame(state.rafId);
+        render();
+      }
+
+      function toggleTimer() {
+        if (state.isRunning) {
+          pauseTimer();
+        } else {
+          startTimer();
+        }
+      }
+
+      function completeInterval() {
+        cancelAnimationFrame(state.rafId);
+        state.isRunning = false;
+        state.remainingSeconds = 0;
+        render();
+        playNotificationSound();
+
+        if (state.mode === "work") {
+          state.completedSessions += 1;
+          state.streak += 1;
+          saveSettings();
+          pulseRing();
+          resetToMode("break");
+        } else {
+          pulseRing();
+          resetToMode("work");
+        }
+      }
+
+      function pulseRing() {
+        elements.ringWrap.classList.remove("ring-pulse");
+        void elements.ringWrap.offsetWidth;
+        elements.ringWrap.classList.add("ring-pulse");
+      }
+
+      function setMode(mode) {
+        if (mode === state.mode && !state.isRunning) {
+          resetToMode(mode);
+          return;
+        }
+
+        if (state.isRunning) {
+          pauseTimer();
+        }
+
+        resetToMode(mode);
+      }
+
+      function handleIntervalInput(event) {
+        const target = event.currentTarget;
+        const isWork = target === elements.workMinutes;
+        const min = Number(target.min);
+        const max = Number(target.max);
+        const fallback = isWork ? state.workMinutes : state.breakMinutes;
+        const value = clampInteger(target.value, fallback, min, max);
+
+        target.value = String(value);
+        if (isWork) {
+          state.workMinutes = value;
+        } else {
+          state.breakMinutes = value;
+        }
+
+        if (!state.isRunning) {
+          resetToMode(state.mode);
+        }
+
+        saveSettings();
+      }
+
+      function clearSessions() {
+        state.completedSessions = 0;
+        state.streak = 0;
+        saveSettings();
+        render();
+      }
+
+      async function toggleFullscreen() {
+        try {
+          if (!document.fullscreenElement) {
+            await document.documentElement.requestFullscreen();
+          } else {
+            await document.exitFullscreen();
+          }
+        } catch (error) {
+          elements.storageStatus.textContent = "Fullscreen is unavailable.";
+        } finally {
+          render();
+        }
+      }
+
+      function isEditableTarget(target) {
+        if (!(target instanceof HTMLElement)) return false;
+        const tag = target.tagName.toLowerCase();
+        return tag === "input" || tag === "textarea" || tag === "select" || target.isContentEditable;
+      }
+
+      function bindEvents() {
+        elements.toggleButton.addEventListener("click", toggleTimer);
+        elements.resetButton.addEventListener("click", () => resetToMode(state.mode));
+        elements.fullscreenButton.addEventListener("click", toggleFullscreen);
+        elements.workModeButton.addEventListener("click", () => setMode("work"));
+        elements.breakModeButton.addEventListener("click", () => setMode("break"));
+        elements.workMinutes.addEventListener("change", handleIntervalInput);
+        elements.breakMinutes.addEventListener("change", handleIntervalInput);
+        elements.clearSessionsButton.addEventListener("click", clearSessions);
+        elements.testSoundButton.addEventListener("click", playNotificationSound);
+        elements.soundToggle.addEventListener("click", () => {
+          state.soundEnabled = !state.soundEnabled;
+          saveSettings();
+          render();
+        });
+
+        document.addEventListener("fullscreenchange", render);
+        document.addEventListener("keydown", (event) => {
+          if ((event.code === "Space" || event.key === " ") && !isEditableTarget(event.target)) {
+            event.preventDefault();
+            toggleTimer();
+          }
+        });
+      }
+
+      function init() {
+        elements.progressRing.style.strokeDasharray = `${circumference}`;
+        elements.ringGlow.style.strokeDasharray = `${circumference}`;
+        loadSettings();
+        syncInputs();
+        resetToMode("work");
+        bindEvents();
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
