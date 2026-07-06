@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dice Roller</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px}
+.container{display:flex;flex-direction:column;gap:20px;width:100%;max-width:460px;align-items:center}
+.title{font-size:24px;font-weight:700;color:#00ff88;letter-spacing:2px}
+.preset-row{display:flex;gap:4px;flex-wrap:wrap;justify-content:center}
+.die-btn{background:#12121a;border:2px solid #1a1a2e;color:#888;width:52px;height:52px;border-radius:12px;cursor:pointer;font-size:20px;transition:all .15s;display:flex;align-items:center;justify-content:center}
+.die-btn:hover{background:#1a1a2e;color:#ccc;border-color:#333}
+.die-btn.active{background:#00ff8820;border-color:#00ff88;color:#00ff88;box-shadow:0 0 15px rgba(0,255,136,.2)}
+.results{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;min-height:60px}
+.result-die{width:56px;height:56px;background:#0d0d14;border:1px solid #1a1a2e;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#00ff88;font-family:'Courier New',monospace;animation:roll .3s ease-out}
+.total{font-size:14px;color:#666;text-align:center}
+.total span{color:#00ff88;font-size:18px;font-weight:600}
+.controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.btn{background:#12121a;border:1px solid #1a1a2e;color:#888;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:14px;transition:all .15s;font-family:inherit}
+.btn:hover{background:#1a1a2e;color:#ccc}
+.btn.primary{background:#00ff88;color:#0a0a0f;border-color:#00ff88;font-weight:600}
+.btn.primary:hover{background:#00cc6a}
+.custom-row{display:flex;align-items:center;gap:8px}
+.custom-row input{background:#0d0d14;border:1px solid #1a1a2e;color:#ccc;padding:6px 8px;border-radius:6px;width:60px;text-align:center;font-family:'Courier New',monospace;font-size:14px;outline:none}
+.custom-row input:focus{border-color:#00ff8844}
+.custom-row label{font-size:12px;color:#666}
+.history{width:100%;display:flex;flex-wrap:wrap;gap:4px;justify-content:center}
+.hist-item{background:#0d0d14;padding:4px 8px;border-radius:4px;font-family:'Courier New',monospace;font-size:11px;color:#888;cursor:pointer;transition:all .15s}
+.hist-item:hover{color:#00ff88}
+@keyframes roll{0%{transform:rotateX(180deg) scale(.5);opacity:0}100%{transform:rotateX(0) scale(1);opacity:1}}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="title">Dice Roller</div>
+<div class="preset-row" id="presets">
+<button class="die-btn active" data-die="4">4</button>
+<button class="die-btn" data-die="6">6</button>
+<button class="die-btn" data-die="8">8</button>
+<button class="die-btn" data-die="10">10</button>
+<button class="die-btn" data-die="12">12</button>
+<button class="die-btn" data-die="20">20</button>
+<button class="die-btn" data-die="100">%</button>
+</div>
+<div class="custom-row">
+<label>Count:</label><input type="number" id="count" value="1" min="1" max="20">
+<label>Sides:</label><input type="number" id="sides" value="6" min="2" max="1000">
+<button class="btn primary" id="btn-roll">Roll</button>
+</div>
+<div class="results" id="results"></div>
+<div class="total">Total: <span id="total">-</span></div>
+<div class="history" id="history"></div>
+</div>
+<script>
+let activePreset = 6, history = [];
+const presetsEl = document.getElementById('presets'), resultsEl = document.getElementById('results'), totalEl = document.getElementById('total'),
+countEl = document.getElementById('count'), sidesEl = document.getElementById('sides'), historyEl = document.getElementById('history');
+
+function rollDice(count, sides) {
+return Array.from({length: count}, () => Math.floor(Math.random() * sides) + 1);
+}
+
+function roll() {
+const count = parseInt(countEl.value) || 1;
+const sides = parseInt(sidesEl.value) || 6;
+const results = rollDice(count, sides);
+const total = results.reduce((a,b) => a + b, 0);
+
+resultsEl.innerHTML = results.map((r, i) =>
+`<div class="result-die" style="animation-delay:${i*0.05}s">${r}</div>`
+).join('');
+totalEl.textContent = total;
+
+history.push({ count, sides, results, total, time: Date.now() });
+if (history.length > 20) history.shift();
+renderHistory();
+}
+
+function renderHistory() {
+historyEl.innerHTML = history.slice().reverse().map(h =>
+`<div class="hist-item" onclick="replayHistory(${history.indexOf(h)})">${h.count}d${h.sides} → ${h.total}</div>`
+).join('');
+}
+
+function replayHistory(idx) {
+const h = history[idx];
+countEl.value = h.count;
+sidesEl.value = h.sides;
+resultsEl.innerHTML = h.results.map((r, i) =>
+`<div class="result-die">${r}</div>`
+).join('');
+totalEl.textContent = h.total;
+updatePresetHighlight(h.sides);
+}
+
+function updatePresetHighlight(sides) {
+activePreset = sides;
+document.querySelectorAll('.die-btn').forEach(b => {
+b.classList.toggle('active', parseInt(b.dataset.die) === sides);
+});
+}
+
+presetsEl.addEventListener('click', e => {
+const b = e.target.closest('.die-btn');
+if (!b) return;
+const sides = parseInt(b.dataset.die);
+sidesEl.value = sides;
+countEl.value = 1;
+updatePresetHighlight(sides);
+roll();
+});
+
+document.getElementById('btn-roll').addEventListener('click', roll);
+document.addEventListener('keydown', e => {
+if (e.code === 'Space' && document.activeElement === document.body) { e.preventDefault(); roll(); }
+});
+
+window.addEventListener('load', () => { updatePresetHighlight(6); roll(); });
+</script>
+</body>
+</html>

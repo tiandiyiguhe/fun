@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Morse Code</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px}
+.container{display:flex;flex-direction:column;gap:20px;width:100%;max-width:520px;align-items:center}
+.title{font-size:24px;font-weight:700;color:#00ff88;letter-spacing:2px}
+.converter{width:100%;display:flex;flex-direction:column;gap:8px}
+textarea{width:100%;height:80px;background:#0d0d14;border:1px solid #1a1a2e;color:#ccc;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:14px;resize:none;outline:none}
+textarea:focus{border-color:#00ff8844}
+textarea#morse{color:#00ff88;letter-spacing:2px}
+.controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.btn{background:#12121a;border:1px solid #1a1a2e;color:#888;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;transition:all .15s;font-family:inherit}
+.btn:hover{background:#1a1a2e;color:#ccc}
+.btn.primary{background:#00ff88;color:#0a0a0f;border-color:#00ff88;font-weight:600}
+.btn.primary:hover{background:#00cc6a}
+.play-area{display:flex;align-items:center;gap:12px}
+.flash{width:40px;height:40px;border-radius:50%;background:#1a1a2e;transition:background .05s}
+.flash.on{background:#00ff88;box-shadow:0 0 20px rgba(0,255,136,.6)}
+.speed-row{display:flex;gap:8px;align-items:center;font-size:12px;color:#666}
+.speed-row input{width:60px}
+.table{display:grid;grid-template-columns:repeat(auto-fill,minmax(60px,1fr));gap:4px;width:100%;max-height:120px;overflow-y:auto}
+.cell{background:#0d0d14;padding:4px 6px;border-radius:4px;font-family:'Courier New',monospace;font-size:11px;text-align:center}
+.cell .char{color:#00ff88}
+.cell .code{color:#666;font-size:9px}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="title">Morse Code</div>
+<div class="converter">
+<textarea id="text" placeholder="Type text..."></textarea>
+<textarea id="morse" placeholder="Morse code (use . and - for dots/dashes, / for space)..." readonly></textarea>
+</div>
+<div class="controls">
+<button class="btn primary" id="btn-encode">Text → Morse</button>
+<button class="btn" id="btn-decode">Morse → Text</button>
+<button class="btn" id="btn-play">▶ Play</button>
+<button class="btn" id="btn-copy">Copy Morse</button>
+</div>
+<div class="speed-row">
+<label>WPM:</label><input type="range" id="wpm" min="5" max="40" value="20"><span id="wpm-val">20</span>
+<div class="flash" id="flash"></div>
+</div>
+<div class="table" id="table"></div>
+</div>
+<script>
+const morseMap = {
+A:'.-',B:'-...',C:'-.-.',D:'-..',E:'.',F:'..-.',G:'--.',H:'....',I:'..',J:'.---',K:'-.-',L:'.-..',M:'--',
+N:'-.',O:'---',P:'.--.',Q:'--.-',R:'.-.',S:'...',T:'-',U:'..-',V:'...-',W:'.--',X:'-..-',Y:'-.--',Z:'--..',
+0:'-----',1:'.----',2:'..---',3:'...--',4:'....-',5:'.....',6:'-....',7:'--...',8:'---..',9:'----.',
+'.':'.-.-.-',',':'--..--','?':'..--..',"'":'.----.','!':'-.-.--','/':'-..-.','(':'-.--.',')':'-.--.-','&':'.-...',
+':':'---...',';':'-.-.-.','=':'-...-','+':'.-.-.','-':'-....-','_':'..--.-','"':'.-..-.','$':'...-..-','@':'.--.-.'
+};
+const reverseMap = {};
+Object.entries(morseMap).forEach(([k,v]) => reverseMap[v] = k);
+
+function textToMorse(t) {
+return t.toUpperCase().split('').map(c => c === ' ' ? '/' : (morseMap[c] || c)).join(' ').replace(/ \/ /g, ' / ');
+}
+
+function morseToText(m) {
+return m.replace(/\//g, ' / ').split(' ').map(w => w === '/' ? ' ' : (reverseMap[w] || w)).join('');
+}
+
+const textEl = document.getElementById('text'), morseEl = document.getElementById('morse');
+
+document.getElementById('btn-encode').addEventListener('click', () => {
+morseEl.value = textToMorse(textEl.value);
+});
+document.getElementById('btn-decode').addEventListener('click', () => {
+textEl.value = morseToText(morseEl.value.trim());
+});
+document.getElementById('btn-copy').addEventListener('click', () => navigator.clipboard.writeText(morseEl.value));
+textEl.addEventListener('input', () => morseEl.value = textToMorse(textEl.value));
+
+const flash = document.getElementById('flash'), wpmSlider = document.getElementById('wpm');
+let playing = false;
+
+wpmSlider.addEventListener('input', e => document.getElementById('wpm-val').textContent = e.target.value);
+
+document.getElementById('btn-play').addEventListener('click', function() {
+if (playing) { playing = false; this.textContent = '▶ Play'; return; }
+const morse = morseEl.value.replace(/\s+/g, ' ').trim();
+if (!morse) return;
+playing = true; this.textContent = '⏹ Stop';
+const unit = 1200 / parseInt(wpmSlider.value);
+let i = 0;
+function tick() {
+if (!playing || i >= morse.length) { playing = false; flash.classList.remove('on'); document.getElementById('btn-play').textContent = '▶ Play'; return; }
+const ch = morse[i];
+if (ch === '.') { flash.classList.add('on'); try { const ctx = new AudioContext(); const o = ctx.createOscillator(); const g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value = 700; g.gain.value = 0.2; o.start(); o.stop(ctx.currentTime + unit / 1000); } catch(e){} setTimeout(() => { flash.classList.remove('on'); i++; setTimeout(tick, unit); }, unit); }
+else if (ch === '-') { flash.classList.add('on'); try { const ctx = new AudioContext(); const o = ctx.createOscillator(); const g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value = 700; g.gain.value = 0.2; o.start(); o.stop(ctx.currentTime + unit * 3 / 1000); } catch(e){} setTimeout(() => { flash.classList.remove('on'); i++; setTimeout(tick, unit); }, unit * 3); }
+else if (ch === ' ' || ch === '/') { i++; setTimeout(tick, ch === '/' ? unit * 5 : unit * 2); }
+else { i++; setTimeout(tick, unit); }
+}
+tick();
+});
+
+function buildTable() {
+document.getElementById('table').innerHTML = Object.entries(morseMap).map(([k,v]) => `<div class="cell"><span class="char">${k}</span><br><span class="code">${v}</span></div>`).join('');
+}
+buildTable();
+</script>
+</body>
+</html>

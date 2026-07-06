@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>URL Tools</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px}
+.container{display:flex;flex-direction:column;gap:16px;width:100%;max-width:520px;align-items:center}
+.title{font-size:24px;font-weight:700;color:#00ff88;letter-spacing:2px}
+.tabs{display:flex;gap:0;background:#12121a;border-radius:10px;overflow:hidden}
+.tab{background:transparent;border:none;color:#666;padding:8px 20px;cursor:pointer;font-size:12px;font-family:inherit;transition:all .15s}
+.tab.active{background:#00ff88;color:#0a0a0f;font-weight:600}
+.section{width:100%;display:flex;flex-direction:column;gap:8px}
+textarea{width:100%;height:100px;background:#0d0d14;border:1px solid #1a1a2e;color:#ccc;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:13px;resize:none;outline:none;line-height:1.5}
+textarea:focus{border-color:#00ff8844}
+.controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.btn{background:#12121a;border:1px solid #1a1a2e;color:#888;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;transition:all .15s;font-family:inherit}
+.btn:hover{background:#1a1a2e;color:#ccc}
+.btn.primary{background:#00ff88;color:#0a0a0f;border-color:#00ff88;font-weight:600}
+.btn.primary:hover{background:#00cc6a}
+.params{width:100%;display:flex;flex-direction:column;gap:4px}
+.param-row{display:flex;gap:6px;align-items:center}
+.param-row input{flex:1;background:#0d0d14;border:1px solid #1a1a2e;color:#ccc;padding:6px 10px;border-radius:6px;font-family:'Courier New',monospace;font-size:12px;outline:none}
+.param-row input:focus{border-color:#00ff8844}
+.param-row .btn{padding:4px 10px;font-size:11px}
+.param-row .btn.remove{color:#ff3366;border-color:#ff336633}
+.param-row .btn.remove:hover{background:#ff336620}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="title">URL Tools</div>
+<div class="tabs" id="tabs">
+<button class="tab active" data-tab="encode">Encode/Decode</button>
+<button class="tab" data-tab="params">Query Params</button>
+<button class="tab" data-tab="parser">URL Parser</button>
+</div>
+<div id="content"></div>
+</div>
+<script>
+let tab = 'encode';
+const tabsEl = document.getElementById('tabs'), content = document.getElementById('content');
+
+function renderEncode() {
+content.innerHTML = `
+<div class="section"><textarea id="enc-input" placeholder="Enter text or URL-encoded string..."></textarea></div>
+<div class="section"><textarea id="enc-output" placeholder="Result..." readonly></textarea></div>
+<div class="controls">
+<button class="btn primary" id="btn-encode">Encode</button>
+<button class="btn" id="btn-decode">Decode</button>
+<button class="btn" id="btn-copy">Copy Result</button>
+<button class="btn" id="btn-swap">⇅ Swap</button>
+</div>
+`;
+const input = document.getElementById('enc-input'), output = document.getElementById('enc-output');
+document.getElementById('btn-encode').addEventListener('click', () => { output.value = encodeURIComponent(input.value); });
+document.getElementById('btn-decode').addEventListener('click', () => { try { output.value = decodeURIComponent(input.value); } catch(e) { output.value = 'Decode error: ' + e.message; } });
+document.getElementById('btn-copy').addEventListener('click', () => navigator.clipboard.writeText(output.value));
+document.getElementById('btn-swap').addEventListener('click', () => { const t = input.value; input.value = output.value; output.value = t; });
+input.addEventListener('input', () => { try { output.value = encodeURIComponent(input.value); } catch(e){} });
+}
+
+function renderParams() {
+content.innerHTML = `
+<div class="section"><textarea id="url-input" placeholder="Enter URL with query string..."></textarea></div>
+<button class="btn" id="btn-parse" style="width:100%">Parse Query Params</button>
+<div class="params" id="params-container"></div>
+<button class="btn" id="btn-add-param" style="width:100%">+ Add Param</button>
+<div class="section"><textarea id="url-output" placeholder="Resulting URL..." readonly></textarea></div>
+<div class="controls">
+<button class="btn primary" id="btn-build">Build URL</button>
+<button class="btn" id="btn-copy2">Copy</button>
+</div>
+`;
+const urlInput = document.getElementById('url-input');
+const paramsContainer = document.getElementById('params-container');
+const urlOutput = document.getElementById('url-output');
+
+function getParams() {
+const rows = paramsContainer.querySelectorAll('.param-row');
+return Array.from(rows).map(r => ({
+key: r.querySelector('.key-input').value,
+value: r.querySelector('.value-input').value
+})).filter(p => p.key);
+}
+
+function parseURL(url) {
+try {
+const u = new URL(url.includes('://') ? url : 'https://' + url);
+paramsContainer.innerHTML = '';
+u.searchParams.forEach((v, k) => addParamRow(k, v));
+if (!u.searchParams.toString()) addParamRow('', '');
+} catch(e) {
+paramsContainer.innerHTML = '<div style="color:#ff3366;font-size:12px">Invalid URL</div>';
+}
+}
+
+function addParamRow(key = '', value = '') {
+const row = document.createElement('div');
+row.className = 'param-row';
+row.innerHTML = `
+<input class="key-input" placeholder="key" value="${key.replace(/"/g,'&quot;')}">
+<input class="value-input" placeholder="value" value="${value.replace(/"/g,'&quot;')}">
+<button class="btn remove">✕</button>
+`;
+row.querySelector('.remove').addEventListener('click', () => row.remove());
+paramsContainer.appendChild(row);
+}
+
+function buildURL() {
+const baseUrl = urlInput.value.split('?')[0];
+const params = getParams();
+const sp = new URLSearchParams();
+params.forEach(p => sp.append(p.key, p.value));
+const sep = baseUrl.includes('?') ? '&' : '?';
+urlOutput.value = sp.toString() ? baseUrl + sep + sp.toString() : baseUrl;
+}
+
+document.getElementById('btn-parse').addEventListener('click', () => parseURL(urlInput.value));
+document.getElementById('btn-add-param').addEventListener('click', () => addParamRow());
+document.getElementById('btn-build').addEventListener('click', buildURL);
+document.getElementById('btn-copy2').addEventListener('click', () => navigator.clipboard.writeText(urlOutput.value));
+addParamRow();
+addParamRow();
+}
+
+function renderParser() {
+content.innerHTML = `
+<div class="section"><textarea id="parse-input" placeholder="Enter URL..."></textarea></div>
+<button class="btn primary" id="btn-analyze" style="width:100%">Analyze</button>
+<div id="parse-result" style="font-family:'Courier New',monospace;font-size:12px;color:#888;width:100%"></div>
+`;
+const input = document.getElementById('parse-input'), result = document.getElementById('parse-result');
+function analyze() {
+const url = input.value.trim();
+if (!url) { result.innerHTML = ''; return; }
+try {
+const u = new URL(url.includes('://') ? url : 'https://' + url);
+let html = '';
+html += '<span class="key" style="color:#00ff88">protocol</span>: ' + u.protocol + '\n';
+html += '<span class="key" style="color:#00ff88">hostname</span>: ' + u.hostname + '\n';
+if (u.port) html += '<span class="key" style="color:#00ff88">port</span>: ' + u.port + '\n';
+html += '<span class="key" style="color:#00ff88">pathname</span>: ' + u.pathname + '\n';
+html += '<span class="key" style="color:#00ff88">hash</span>: ' + (u.hash || '(none)') + '\n';
+html += '<span class="key" style="color:#ffaa00">query params</span>:\n';
+if (u.searchParams.toString()) {
+u.searchParams.forEach((v, k) => html += '  ' + k + ' = ' + v + '\n');
+} else html += '  (none)\n';
+result.innerHTML = '<pre style="color:#ccc">' + html + '</pre>';
+} catch(e) {
+result.innerHTML = '<span style="color:#ff3366">Invalid URL: ' + e.message + '</span>';
+}
+}
+document.getElementById('btn-analyze').addEventListener('click', analyze);
+input.addEventListener('input', analyze);
+}
+
+function switchTab(t) {
+tab = t;
+document.querySelectorAll('.tab').forEach(el => el.classList.toggle('active', el.dataset.tab === t));
+if (t === 'encode') renderEncode();
+else if (t === 'params') renderParams();
+else if (t === 'parser') renderParser();
+}
+
+tabsEl.addEventListener('click', e => {
+const b = e.target.closest('.tab');
+if (b) switchTab(b.dataset.tab);
+});
+
+window.addEventListener('load', () => renderEncode());
+</script>
+</body>
+</html>
